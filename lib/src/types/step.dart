@@ -1,4 +1,5 @@
 import 'package:dart_mappable/dart_mappable.dart';
+
 import 'tool_call.dart';
 
 part 'step.mapper.dart';
@@ -177,16 +178,143 @@ class Step with StepMappable {
   });
 
   factory Step.fromMap(Map<String, dynamic> map) {
-    Map<String, dynamic>? updatedMap;
-    if (!map.containsKey('content_delta') && map.containsKey('text_delta')) {
-      updatedMap ??= Map<String, dynamic>.from(map);
-      updatedMap['content_delta'] = map['text_delta'];
+    final updatedMap = Map<String, dynamic>.from(map);
+
+    // 1. Map 'text' to 'content'
+    if (!updatedMap.containsKey('content') && updatedMap.containsKey('text')) {
+      updatedMap['content'] = updatedMap['text'];
     }
-    if (!map.containsKey('error') && map.containsKey('error_message')) {
-      updatedMap ??= Map<String, dynamic>.from(map);
-      updatedMap['error'] = map['error_message'];
+
+    // 2. Map 'text_delta' to 'content_delta'
+    if (!updatedMap.containsKey('content_delta') &&
+        updatedMap.containsKey('text_delta')) {
+      updatedMap['content_delta'] = updatedMap['text_delta'];
     }
-    return StepMapper.fromMap(updatedMap ?? map);
+
+    // 3. Extract nested error message
+    if (updatedMap.containsKey('error')) {
+      final errorField = updatedMap['error'];
+      if (errorField is Map) {
+        updatedMap['error'] = errorField['error_message'] ?? '';
+      } else if (errorField is! String) {
+        updatedMap['error'] = errorField.toString();
+      }
+    } else if (updatedMap.containsKey('error_message')) {
+      updatedMap['error'] = updatedMap['error_message'];
+    }
+
+    // 4. Map 'state' to 'status'
+    if (updatedMap.containsKey('state')) {
+      final stateStr = updatedMap['state'].toString();
+      var statusVal = 'UNKNOWN';
+      if (stateStr == 'STATE_ACTIVE' || stateStr == 'ACTIVE') {
+        statusVal = 'ACTIVE';
+      } else if (stateStr == 'STATE_DONE' || stateStr == 'DONE') {
+        statusVal = 'DONE';
+      } else if (stateStr == 'STATE_WAITING_FOR_USER' ||
+          stateStr == 'WAITING_FOR_USER') {
+        statusVal = 'WAITING_FOR_USER';
+      } else if (stateStr == 'STATE_ERROR' || stateStr == 'ERROR') {
+        statusVal = 'ERROR';
+      } else if (stateStr == 'STATE_CANCELED' || stateStr == 'CANCELED') {
+        statusVal = 'CANCELED';
+      }
+      updatedMap['status'] = statusVal;
+    }
+
+    // 5. Map 'source'
+    if (updatedMap.containsKey('source')) {
+      final sourceStr = updatedMap['source'].toString();
+      var sourceVal = 'UNKNOWN';
+      if (sourceStr == 'SOURCE_SYSTEM' || sourceStr == 'SYSTEM') {
+        sourceVal = 'SYSTEM';
+      } else if (sourceStr == 'SOURCE_USER' || sourceStr == 'USER') {
+        sourceVal = 'USER';
+      } else if (sourceStr == 'SOURCE_MODEL' || sourceStr == 'MODEL') {
+        sourceVal = 'MODEL';
+      }
+      updatedMap['source'] = sourceVal;
+    }
+
+    // 6. Parse tool calls
+    const toolFields = {
+      'create_file': 'create_file',
+      'edit_file': 'edit_file',
+      'find_file': 'find_file',
+      'list_directory': 'list_directory',
+      'run_command': 'run_command',
+      'search_directory': 'search_directory',
+      'view_file': 'view_file',
+      'invoke_subagent': 'invoke_subagent',
+      'generate_image': 'generate_image',
+      'finish': 'finish',
+    };
+
+    final toolCalls = <Map<String, dynamic>>[];
+    for (final entry in toolFields.entries) {
+      final protoField = entry.key;
+      final toolName = entry.value;
+      if (updatedMap.containsKey(protoField) && updatedMap[protoField] is Map) {
+        final rawArgs = Map<String, dynamic>.from(
+          updatedMap[protoField] as Map,
+        );
+
+        // Normalize file paths
+        String? canonicalPath;
+        const pathKeys = ['path', 'file_path', 'TargetFile', 'directory_path'];
+        for (final pathKey in pathKeys) {
+          if (rawArgs.containsKey(pathKey) && rawArgs[pathKey] is String) {
+            final normalized = _normalizeWirePath(rawArgs[pathKey] as String);
+            rawArgs[pathKey] = normalized;
+            canonicalPath = normalized;
+          }
+        }
+
+        final trajId = updatedMap['trajectory_id'] ?? '';
+        final stepIdx = updatedMap['step_index'] ?? 0;
+        final callId = trajId.isNotEmpty ? '$trajId:$stepIdx' : '$stepIdx';
+
+        toolCalls.add({
+          'id': callId,
+          'name': toolName,
+          'arguments_json': rawArgs,
+          'arguments': rawArgs,
+          'canonical_path': canonicalPath,
+        });
+      }
+    }
+    if (toolCalls.isNotEmpty) {
+      updatedMap['tool_calls'] = toolCalls;
+    }
+
+    // 7. Determine StepType type
+    if (!updatedMap.containsKey('type') ||
+        updatedMap['type'] == null ||
+        updatedMap['type'] == 'UNKNOWN') {
+      var typeVal = 'UNKNOWN';
+      if (updatedMap['compaction'] != null) {
+        typeVal = 'COMPACTION';
+      } else if (updatedMap['finish'] != null) {
+        typeVal = 'FINISH';
+      } else if (toolCalls.isNotEmpty) {
+        typeVal = 'TOOL_CALL';
+      } else if (updatedMap['text'] != null &&
+          updatedMap['text'].toString().isNotEmpty) {
+        typeVal = 'TEXT_RESPONSE';
+      }
+      updatedMap['type'] = typeVal;
+    }
+
+    return StepMapper.fromMap(updatedMap);
   }
+
+  static String _normalizeWirePath(String path) {
+    final uri = Uri.tryParse(path);
+    if (uri != null && uri.scheme == 'file') {
+      return Uri.decodeComponent(uri.path);
+    }
+    return path;
+  }
+
   factory Step.fromJson(String json) => StepMapper.fromJson(json);
 }

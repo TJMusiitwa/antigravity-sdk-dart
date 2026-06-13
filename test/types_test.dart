@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'package:test/test.dart';
+
 import 'package:antigravity/antigravity.dart';
+import 'package:test/test.dart';
 
 void main() {
   // ---------------------------------------------------------------------------
@@ -281,6 +282,45 @@ void main() {
       expect(step.usageMetadata, isNotNull);
       expect(step.usageMetadata!.promptTokenCount, equals(10));
       expect(step.usageMetadata!.totalTokenCount, equals(25));
+    });
+
+    test('parses protobuf state, source, and text formats correctly', () {
+      final protoJson = {
+        'trajectory_id': 'traj-123',
+        'step_index': 1,
+        'state': 'STATE_DONE',
+        'source': 'SOURCE_MODEL',
+        'target': 'TARGET_USER',
+        'text': 'Hello from protobuf',
+      };
+      final step = Step.fromMap(protoJson);
+      expect(step.status, equals(StepStatus.done));
+      expect(step.source, equals(StepSource.model));
+      expect(step.content, equals('Hello from protobuf'));
+      expect(step.type, equals(StepType.textResponse));
+    });
+
+    test('extracts nested error_message from error map correctly', () {
+      final protoJson = {
+        'error': {'error_message': 'API rate limit exceeded', 'http_code': 429},
+      };
+      final step = Step.fromMap(protoJson);
+      expect(step.error, equals('API rate limit exceeded'));
+    });
+
+    test('parses tool calls from individual proto fields correctly', () {
+      final protoJson = {
+        'trajectory_id': 'traj-456',
+        'step_index': 2,
+        'run_command': {'command': 'git status'},
+      };
+      final step = Step.fromMap(protoJson);
+      expect(step.type, equals(StepType.toolCall));
+      expect(step.toolCalls.length, equals(1));
+      final call = step.toolCalls[0];
+      expect(call.name, equals('run_command'));
+      expect(call.id, equals('traj-456:2'));
+      expect(call.args['command'], equals('git status'));
     });
   });
 
