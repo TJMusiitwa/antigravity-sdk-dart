@@ -39,6 +39,7 @@
 library;
 
 import 'dart:io';
+
 import 'package:antigravity/antigravity.dart';
 
 Future<void> mcpStdio() async {
@@ -76,14 +77,4 @@ Future<void> mcpStdio() async {
 
 Future<void> main() async {
   await mcpStdio();
-
-  // Note: SSE and Streamable HTTP transports are not yet supported in the
-  // Dart SDK. They require a running HTTP server (e.g. the Python mcp_server.py
-  // with uvicorn). Use the Python SDK for those transport examples until
-  // dart_mcp gains HTTP transport support.
-  print(
-    '\n  Note: SSE and Streamable HTTP transports are not yet supported '
-    'in the Dart SDK.\n'
-    '  Use the Python mcp_tools.py for those transport variants.',
-  );
 }
