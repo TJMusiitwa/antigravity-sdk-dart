@@ -1,11 +1,16 @@
 import 'dart:async';
+import 'package:logging/logging.dart';
 import 'package:antigravity/antigravity.dart';
+
+final _logger = Logger('antigravity.conversation');
 
 /// Manages a high-level stateful interaction between a user and an agent.
 class Conversation {
   final Connection _connection;
   final HookRunner? _hookRunner;
   final List<Step> _history = [];
+  final List<int> _compactionIndices = [];
+  int? maxHistorySize;
   UsageMetadata _cumulativeUsage = _zeroUsage();
   UsageMetadata? _turnUsage;
 
@@ -27,6 +32,15 @@ class Conversation {
 
   /// Returns an unmodifiable view of the conversation history.
   List<Step> get history => List.unmodifiable(_history);
+
+  /// Returns step indices where history compaction events occurred.
+  List<int> get compactionIndices => List.unmodifiable(_compactionIndices);
+
+  /// Clears all steps and compaction indices from history.
+  void clearHistory() {
+    _history.clear();
+    _compactionIndices.clear();
+  }
 
   /// Returns the current conversation identifier.
   String get conversationId => _connection.conversationId;
@@ -65,16 +79,9 @@ class Conversation {
     ContentPrimitive? prompt, {
     Map<String, dynamic>? kwargs,
   }) async {
-    // 1. Reset turn usage
     _turnUsage = _zeroUsage();
 
-    // 2. Dispatch pre-turn hooks
-    if (_hookRunner != null) {
-      final ctx = _hookRunner.createTurnContext();
-      await _hookRunner.dispatchPreTurn(ctx);
-    }
-
-    // 3. Record user input step in history
+    // 2. Record user input step in history
     final userStep = Step(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       stepIndex: _history.length + 1,
@@ -85,35 +92,107 @@ class Conversation {
       content: prompt is String ? prompt : '[Media/Complex Input]',
     );
     _history.add(userStep);
+    _enforceMaxHistory();
 
-    // 4. Send to connection
-    await _connection.send(prompt, kwargs: kwargs);
+    // 3. Dispatch pre-turn hooks
+    if (_hookRunner != null) {
+      final res = await _hookRunner.dispatchPreTurn(prompt);
+      if (!res.allow) {
+        final message = res.message.isNotEmpty
+            ? res.message
+            : 'Turn execution denied by hook.';
+        _logger.warning("Turn denied by hook: $message");
 
-    // 5. Wrap step stream to update internal state
+        final canceledStep = Step(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          stepIndex: _history.length + 1,
+          type: StepType.systemMessage,
+          source: StepSource.system,
+          target: StepTarget.user,
+          status: StepStatus.canceled,
+          content: '',
+          error: message,
+        );
+        _history.add(canceledStep);
+
+        final controller = StreamController<dynamic>();
+        controller.add(canceledStep);
+        unawaited(controller.close());
+        return ChatResponse(controller.stream);
+      }
+    }
+
+    // 4. Wrap step stream to update internal state
     final controller = StreamController<dynamic>();
     final originalStream = _connection.receiveSteps();
+    final Set<String> seenToolIds = {};
+    late StreamSubscription subscription;
 
-    originalStream.listen(
+    subscription = originalStream.listen(
       (step) {
         _history.add(step);
+        if (step.type == StepType.compaction) {
+          _compactionIndices.add(_history.length - 1);
+        }
+        _enforceMaxHistory();
         if (step.usageMetadata != null) {
           _accumulateUsage(step.usageMetadata!);
         }
 
-        // Forward to ChatResponse
-        controller.add(step);
+        // Forward chunks to ChatResponse
+        final isModel = step.source == StepSource.model;
+        final isTargetUser = step.target == StepTarget.user;
+
+        if (isModel && isTargetUser) {
+          if (step.thinkingDelta.isNotEmpty) {
+            controller.add(
+              Thought(stepIndex: step.stepIndex, text: step.thinkingDelta),
+            );
+          }
+          if (step.contentDelta.isNotEmpty) {
+            controller.add(
+              Text(stepIndex: step.stepIndex, text: step.contentDelta),
+            );
+          }
+        }
+
+        for (final call in step.toolCalls) {
+          final id = call.id ?? '';
+          if (id.isEmpty || !seenToolIds.contains(id)) {
+            if (id.isNotEmpty) {
+              seenToolIds.add(id);
+            }
+            controller.add(call);
+          }
+        }
 
         if (step.status == StepStatus.done || step.status == StepStatus.error) {
           // Check for post-turn hook
           if (_hookRunner != null) {
             final ctx = _hookRunner.createTurnContext();
-            _hookRunner.dispatchPostTurn(ctx, step.content);
+            _hookRunner.dispatchPostTurn(ctx, step.content).catchError((
+              Object err,
+              StackTrace st,
+            ) {
+              _logger.severe('Error in post-turn hook: $err', err, st);
+            });
           }
+          unawaited(subscription.cancel());
+          controller.close();
         }
       },
-      onError: (err) => controller.addError(err),
-      onDone: () => controller.close(),
+      onError: (err) {
+        controller.addError(err);
+      },
+      onDone: () {
+        if (!controller.isClosed) {
+          controller.close();
+        }
+      },
     );
+
+    // 5. Send to connection
+    await _connection.send(prompt, kwargs: kwargs);
 
     return ChatResponse(controller.stream);
   }
@@ -173,5 +252,16 @@ class Conversation {
           (a.thoughtsTokenCount ?? 0) + (b.thoughtsTokenCount ?? 0),
       totalTokenCount: (a.totalTokenCount ?? 0) + (b.totalTokenCount ?? 0),
     );
+  }
+
+  void _enforceMaxHistory() {
+    if (maxHistorySize != null && _history.length > maxHistorySize!) {
+      final toRemove = _history.length - maxHistorySize!;
+      _history.removeRange(0, toRemove);
+      _compactionIndices.removeWhere((idx) => idx < toRemove);
+      for (var i = 0; i < _compactionIndices.length; i++) {
+        _compactionIndices[i] -= toRemove;
+      }
+    }
   }
 }

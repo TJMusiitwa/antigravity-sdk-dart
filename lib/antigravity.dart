@@ -16,3 +16,4 @@ export 'src/connections/local/local_connection.dart';
 export 'src/mcp/mcp_bridge.dart';
 export 'src/utils/binary_discovery.dart';
 export 'src/utils/harness_downloader.dart';
+export 'src/utils/interactive.dart';

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'connections/connection.dart';
 import 'conversation/conversation.dart';
 import 'hooks/hooks.dart';
@@ -25,11 +26,17 @@ class Agent {
 
   Agent(AgentConfig config) : _config = config {
     if (_config.responseSchema != null) {
-      _config.capabilities.finishToolSchemaJson = _config.responseSchema
-          .toString();
+      if (_config.responseSchema is String) {
+        _config.capabilities.finishToolSchemaJson =
+            _config.responseSchema as String;
+      } else {
+        _config.capabilities.finishToolSchemaJson = jsonEncode(
+          _config.responseSchema,
+        );
+      }
     }
-    _pendingHooks.addAll(_config.hooks.cast<Hook>());
-    _pendingTriggers.addAll(_config.triggers.cast<Trigger>());
+    _pendingHooks.addAll(_config.hooks);
+    _pendingTriggers.addAll(_config.triggers);
   }
 
   /// Registers a hook on the agent.
@@ -61,7 +68,7 @@ class Agent {
       _pendingHooks.clear();
 
       // Apply policies
-      final activePolicies = List.from(_config.policies);
+      final activePolicies = List<policy.Policy>.from(_config.policies);
       final cfg = _config.capabilities;
       final readOnlyTools = BuiltinTools.readOnly().toSet();
 
@@ -92,12 +99,10 @@ class Agent {
       }
 
       if (activePolicies.isNotEmpty) {
-        _hookRunner!.registerHook(
-          policy.enforce(activePolicies.cast<policy.Policy>()),
-        );
+        _hookRunner!.registerHook(policy.enforce(activePolicies));
       }
 
-      final allTools = List<Tool>.from(_config.tools.cast<Tool>());
+      final allTools = List<Tool>.from(_config.tools);
 
       // Connect MCP servers and collect their tools
       if (_config.mcpServers.isNotEmpty) {
@@ -111,13 +116,16 @@ class Agent {
       _toolRunner = ToolRunner(tools: allTools);
 
       _strategy = _config.createStrategy(
-        toolRunner: _toolRunner,
-        hookRunner: _hookRunner,
+        toolRunner: _toolRunner!,
+        hookRunner: _hookRunner!,
       );
 
       await _strategy!.start();
 
-      _conversation = Conversation(_strategy!.connect());
+      _conversation = Conversation(
+        _strategy!.connect(),
+        hookRunner: _hookRunner,
+      );
 
       // Start triggers via TriggerRunner
       if (_pendingTriggers.isNotEmpty) {
@@ -187,4 +195,10 @@ class Agent {
     final cid = _conversation!.conversationId;
     return cid.isEmpty ? null : cid;
   }
+
+  /// Returns the agent's configuration.
+  AgentConfig get config => _config;
+
+  /// Returns the agent's hook runner.
+  HookRunner? get hookRunner => _hookRunner;
 }

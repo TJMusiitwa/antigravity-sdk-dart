@@ -1,20 +1,30 @@
 import 'dart:async';
 import 'package:dart_mappable/dart_mappable.dart';
 import '../types.dart';
+import '../hooks/hooks.dart';
+import '../hooks/policy.dart';
+import '../tools/tool_runner.dart';
+import '../triggers/triggers.dart';
 
 part 'connection.mapper.dart';
 
-/// Abstract base class for agent configuration.
-///
-/// Each ConnectionStrategy defines a concrete subclass with the config fields it needs.
-@MappableClass()
+@MappableClass(
+  includeCustomMappers: [
+    ToolMapper(),
+    PolicyMapper(),
+    HookMapper(),
+    TriggerMapper(),
+  ],
+)
 abstract class AgentConfig with AgentConfigMappable {
   final dynamic systemInstructions; // String or SystemInstructions
   final CapabilitiesConfig capabilities;
-  final List<dynamic> tools;
-  final List<dynamic> policies;
-  final List<dynamic> hooks;
-  final List<dynamic> triggers;
+
+  final List<Tool> tools;
+  final List<Policy> policies;
+  final List<Hook> hooks;
+  final List<Trigger> triggers;
+
   final List<McpServerConfig> mcpServers;
   final List<String> workspaces;
   final String? conversationId;
@@ -26,10 +36,10 @@ abstract class AgentConfig with AgentConfigMappable {
   AgentConfig({
     this.systemInstructions,
     CapabilitiesConfig? capabilities,
-    List<dynamic>? tools,
-    List<dynamic>? policies,
-    List<dynamic>? hooks,
-    List<dynamic>? triggers,
+    List<Tool>? tools,
+    List<Policy>? policies,
+    List<Hook>? hooks,
+    List<Trigger>? triggers,
     List<McpServerConfig>? mcpServers,
     List<String>? workspaces,
     this.conversationId,
@@ -40,18 +50,18 @@ abstract class AgentConfig with AgentConfigMappable {
   }) : capabilities =
            capabilities ??
            CapabilitiesConfig(enabledTools: BuiltinTools.readOnly()),
-       tools = tools ?? [],
-       policies = policies ?? [],
-       hooks = hooks ?? [],
-       triggers = triggers ?? [],
-       mcpServers = mcpServers ?? [],
-       workspaces = workspaces ?? [],
-       skillsPaths = skillsPaths ?? [];
+       tools = tools ?? const [],
+       policies = policies ?? const [],
+       hooks = hooks ?? const [],
+       triggers = triggers ?? const [],
+       mcpServers = mcpServers ?? const [],
+       workspaces = workspaces ?? const [],
+       skillsPaths = skillsPaths ?? const [];
 
   /// Creates the [ConnectionStrategy] for this configuration.
   ConnectionStrategy createStrategy({
-    required dynamic toolRunner,
-    required dynamic hookRunner,
+    required ToolRunner toolRunner,
+    required HookRunner hookRunner,
   });
 }
 
@@ -100,4 +110,36 @@ abstract class ConnectionStrategy {
 
   /// Cleans up the strategy.
   Future<void> stop();
+}
+
+class ToolMapper extends SimpleMapper<Tool> {
+  const ToolMapper();
+  @override
+  Tool decode(dynamic value) => throw UnimplementedError();
+  @override
+  dynamic encode(Tool value) => throw UnimplementedError();
+}
+
+class PolicyMapper extends SimpleMapper<Policy> {
+  const PolicyMapper();
+  @override
+  Policy decode(dynamic value) => throw UnimplementedError();
+  @override
+  dynamic encode(Policy value) => throw UnimplementedError();
+}
+
+class HookMapper extends SimpleMapper<Hook> {
+  const HookMapper();
+  @override
+  Hook decode(dynamic value) => throw UnimplementedError();
+  @override
+  dynamic encode(Hook value) => throw UnimplementedError();
+}
+
+class TriggerMapper extends SimpleMapper<Trigger> {
+  const TriggerMapper();
+  @override
+  Trigger decode(dynamic value) => throw UnimplementedError();
+  @override
+  dynamic encode(Trigger value) => throw UnimplementedError();
 }

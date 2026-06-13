@@ -8,14 +8,16 @@ import '../../types.dart';
 import '../../utils/binary_discovery.dart';
 import '../connection.dart';
 import 'localharness_proto.dart';
+import '../../hooks/hooks.dart';
+import '../../tools/tool_runner.dart';
 
 final _logger = Logger('antigravity.connection.local');
 
 /// Strategy for establishing a LocalConnection to a Go-based localharness binary.
 class LocalConnectionStrategy extends ConnectionStrategy {
   final String? _configuredBinaryPath;
-  final dynamic _toolRunner;
-  final dynamic _hookRunner;
+  final ToolRunner _toolRunner;
+  final HookRunner _hookRunner;
   final GeminiConfig _geminiConfig;
   final dynamic _systemInstructions;
   final CapabilitiesConfig _capabilitiesConfig;
@@ -31,8 +33,8 @@ class LocalConnectionStrategy extends ConnectionStrategy {
 
   LocalConnectionStrategy({
     String? binaryPath,
-    required dynamic toolRunner,
-    required dynamic hookRunner,
+    required ToolRunner toolRunner,
+    required HookRunner hookRunner,
     required GeminiConfig geminiConfig,
     required dynamic systemInstructions,
     required CapabilitiesConfig capabilitiesConfig,
@@ -159,9 +161,7 @@ class LocalConnectionStrategy extends ConnectionStrategy {
     _connection!._startReaderLoop();
 
     // Dispatch session-start hook if runner is set up
-    if (_hookRunner != null) {
-      await _hookRunner.dispatchSessionStart();
-    }
+    await _hookRunner.dispatchSessionStart();
   }
 
   @override
@@ -177,13 +177,9 @@ class LocalConnectionStrategy extends ConnectionStrategy {
   Map<String, dynamic> _buildHarnessConfig(String apiKey) {
     // Generate tool schemas from dynamic functions registered in L2
     final List<Map<String, dynamic>> toolsProtos = [];
-    if (_toolRunner != null && _toolRunner.tools is Map) {
-      for (final name in _toolRunner.tools.keys) {
-        final toolFn = _toolRunner.tools[name];
-        if (toolFn != null && toolFn.schema != null) {
-          toolsProtos.add(toolFn.schema);
-        }
-      }
+    for (final name in _toolRunner.tools.keys) {
+      final toolFn = _toolRunner.tools[name]!;
+      toolsProtos.add(toolFn.schema);
     }
 
     Map<String, dynamic>? systemInstructionsProto;
@@ -323,8 +319,8 @@ class HandshakeReader {
 class LocalConnection extends Connection {
   final Process _process;
   final WebSocket _ws;
-  final dynamic _toolRunner;
-  final dynamic _hookRunner;
+  final ToolRunner _toolRunner;
+  final HookRunner _hookRunner;
 
   final StreamController<Step> _stepController =
       StreamController<Step>.broadcast();
@@ -342,8 +338,8 @@ class LocalConnection extends Connection {
   LocalConnection({
     required Process process,
     required WebSocket ws,
-    required dynamic toolRunner,
-    required dynamic hookRunner,
+    required ToolRunner toolRunner,
+    required HookRunner hookRunner,
   }) : _process = process,
        _ws = ws,
        _toolRunner = toolRunner,
@@ -507,52 +503,40 @@ class LocalConnection extends Connection {
 
       // Pre-tool-call check policy
       bool allowed = true;
-      if (_hookRunner != null) {
-        final ctx = _hookRunner.createTurnContext();
-        final res = await _hookRunner.dispatchPreToolCall(ctx, toolCall);
-        allowed = res.allow;
-        if (!allowed) {
-          final errReason = res.message.isNotEmpty
-              ? res.message
-              : 'Tool execution denied by policy';
-          _logger.warning('Tool execution denied: $errReason');
-          await sendToolResults([
-            ToolResult(id: toolCall.id, name: toolCall.name, error: errReason),
-          ]);
-          return;
-        }
-      }
-
-      if (_toolRunner != null) {
-        ToolResult result;
-        try {
-          final results = await _toolRunner.processToolCalls([toolCall]);
-          result = results[0];
-        } catch (e) {
-          result = ToolResult(
-            id: toolCall.id,
-            name: toolCall.name,
-            error: e.toString(),
-            exception: e is Exception ? e : Exception(e.toString()),
-          );
-        }
-
-        // Post-tool-call hook
-        if (_hookRunner != null && result.error == null) {
-          final ctx = _hookRunner.createTurnContext();
-          await _hookRunner.dispatchPostToolCall(ctx, result);
-        }
-
-        await sendToolResults([result]);
-      } else {
+      final ctx = _hookRunner.createTurnContext();
+      final res = await _hookRunner.dispatchPreToolCall(ctx, toolCall);
+      allowed = res.allow;
+      if (!allowed) {
+        final errReason = res.message.isNotEmpty
+            ? res.message
+            : 'Tool execution denied by policy';
+        _logger.warning('Tool execution denied: $errReason');
         await sendToolResults([
-          ToolResult(
-            id: toolCall.id,
-            name: toolCall.name,
-            error: 'No host tool runner registered',
-          ),
+          ToolResult(id: toolCall.id, name: toolCall.name, error: errReason),
         ]);
+        return;
       }
+
+      ToolResult result;
+      try {
+        final results = await _toolRunner.processToolCalls([toolCall]);
+        result = results[0];
+      } catch (e) {
+        result = ToolResult(
+          id: toolCall.id,
+          name: toolCall.name,
+          error: e.toString(),
+          exception: e is Exception ? e : Exception(e.toString()),
+        );
+      }
+
+      // Post-tool-call hook
+      if (result.error == null) {
+        final ctx = _hookRunner.createTurnContext();
+        await _hookRunner.dispatchPostToolCall(ctx, result);
+      }
+
+      await sendToolResults([result]);
     } catch (e) {
       _logger.severe('Internal SDK tool call processing error: $e');
       await sendToolResults([

@@ -84,10 +84,26 @@ class McpBridge {
       );
     } else if (serverCfg is McpSseServer) {
       _logger.info('Connecting to MCP server via SSE: ${serverCfg.url}');
-      transport = StreamableHttpClientTransport(Uri.parse(serverCfg.url));
+      final opts = serverCfg.headers != null
+          ? StreamableHttpClientTransportOptions(
+              requestInit: {'headers': serverCfg.headers},
+            )
+          : null;
+      transport = StreamableHttpClientTransport(
+        Uri.parse(serverCfg.url),
+        opts: opts,
+      );
     } else if (serverCfg is McpStreamableHttpServer) {
       _logger.info('Connecting to MCP server via HTTP: ${serverCfg.url}');
-      transport = StreamableHttpClientTransport(Uri.parse(serverCfg.url));
+      final opts = serverCfg.headers != null
+          ? StreamableHttpClientTransportOptions(
+              requestInit: {'headers': serverCfg.headers},
+            )
+          : null;
+      transport = StreamableHttpClientTransport(
+        Uri.parse(serverCfg.url),
+        opts: opts,
+      );
     } else {
       _logger.warning(
         'MCP server type "${serverCfg.type}" is not yet supported by the Dart SDK bridge.',

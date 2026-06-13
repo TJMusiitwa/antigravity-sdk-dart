@@ -202,10 +202,10 @@ int _bucketIndex(Policy p) {
   }
 }
 
-class _PolicyDecideHook extends PreToolCallDecideHook {
+class PolicyDecideHook extends PreToolCallDecideHook {
   final List<List<Policy>> _buckets;
 
-  _PolicyDecideHook(this._buckets);
+  PolicyDecideHook(this._buckets);
 
   @override
   Future<HookResult> run(HookContext context, ToolCall toolCall) async {
@@ -287,5 +287,5 @@ PreToolCallDecideHook enforce(List<Policy> policies) {
     buckets[_bucketIndex(p)].add(p);
   }
 
-  return _PolicyDecideHook(buckets);
+  return PolicyDecideHook(buckets);
 }

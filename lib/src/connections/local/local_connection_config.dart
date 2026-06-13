@@ -1,9 +1,13 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:dart_mappable/dart_mappable.dart';
 import '../../hooks/policy.dart';
 import '../../types.dart';
 import '../connection.dart';
 import 'local_connection.dart';
+import '../../hooks/hooks.dart';
+import '../../tools/tool_runner.dart';
+import '../../triggers/triggers.dart';
 
 part 'local_connection_config.mapper.dart';
 
@@ -15,7 +19,14 @@ String get defaultAppDataDir {
 }
 
 /// Configuration for the local harness backend.
-@MappableClass()
+@MappableClass(
+  includeCustomMappers: [
+    ToolMapper(),
+    PolicyMapper(),
+    HookMapper(),
+    TriggerMapper(),
+  ],
+)
 class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
   final GeminiConfig geminiConfig;
   final String? model;
@@ -25,10 +36,10 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
   LocalAgentConfig({
     super.systemInstructions,
     CapabilitiesConfig? capabilities,
-    List<dynamic>? tools,
-    List<dynamic>? policies,
-    List<dynamic>? hooks,
-    List<dynamic>? triggers,
+    List<Tool>? tools,
+    List<Policy>? policies,
+    List<Hook>? hooks,
+    List<Trigger>? triggers,
     List<McpServerConfig>? mcpServers,
     List<String>? workspaces,
     super.conversationId,
@@ -82,8 +93,8 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
 
   @override
   ConnectionStrategy createStrategy({
-    required dynamic toolRunner,
-    required dynamic hookRunner,
+    required ToolRunner toolRunner,
+    required HookRunner hookRunner,
   }) {
     // Merge shorthand into effective config for the strategy
     final effectiveApiKey = apiKey ?? geminiConfig.apiKey;
