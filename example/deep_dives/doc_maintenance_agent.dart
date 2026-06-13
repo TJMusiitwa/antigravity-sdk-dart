@@ -27,8 +27,9 @@ library;
 
 import 'dart:async';
 import 'dart:io';
-import 'package:path/path.dart' as p;
+
 import 'package:antigravity/antigravity.dart';
+import 'package:path/path.dart' as p;
 
 const Map<String, String> _toolNameMapping = {
   'view_file': 'Viewing Files',
