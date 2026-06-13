@@ -101,13 +101,24 @@ final config = LocalAgentConfig(
 ```
 
 ### 4. Stateful & Stateless Custom Tools
-Directly register standard Dart functions as tools that your agent can invoke dynamically:
+Directly register custom tools that your agent can invoke dynamically:
 
 ```dart
-// Register any function as a tool
-String getSystemWeather(String city) {
-  return "It is currently sunny and 22°C in $city.";
-}
+final getSystemWeather = Tool(
+  name: 'get_system_weather',
+  description: 'Gets the current weather for a city.',
+  schema: {
+    'type': 'object',
+    'properties': {
+      'city': {'type': 'string', 'description': 'The city name.'},
+    },
+    'required': ['city'],
+  },
+  handler: (args, _) async {
+    final city = args['city'] as String;
+    return "It is currently sunny and 22°C in $city.";
+  },
+);
 
 final config = LocalAgentConfig(
   tools: [getSystemWeather],
@@ -169,6 +180,11 @@ The [`example/`](example/) directory contains high-fidelity ports of every scrip
 | `example/getting_started/autonomous_shell.dart` | Provides an autonomous shell agent run |
 | `example/getting_started/multimodal.dart` | Ingests mixed text, images, and document attachments |
 | `example/getting_started/human_in_the_loop.dart`| Implements stdin-based interactive confirmation |
+| `example/getting_started/agent_skills.dart`      | Loads and queries local agent skills |
+| `example/getting_started/app_data_dir_override.dart` | Overrides the local application data directory |
+| `example/getting_started/error_handler.dart`     | Catches and resolves tool/agent errors using hooks |
+| `example/getting_started/persona_config.dart`    | Configures Custom and Templated system instructions |
+| `example/getting_started/subagents.dart`         | Spawns child subagents for task delegation |
 
 ### Deep Dives
 | File | Focus Concept |

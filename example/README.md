@@ -135,6 +135,46 @@ Below is a detailed guide to each example in the `example/getting_started/` dire
   dart run example/getting_started/human_in_the_loop.dart
   ```
 
+### 13. Agent Skills (`agent_skills.dart`)
+* **Focus**: Loading and querying local agent skills.
+* **Details**: Demonstrates how to point the agent to a folder containing local skills and query the agent about its active skill definitions.
+* **Run Command**:
+  ```bash
+  dart run example/getting_started/agent_skills.dart
+  ```
+
+### 14. App Data Directory Override (`app_data_dir_override.dart`)
+* **Focus**: Overriding the default storage location.
+* **Details**: Shows how to configure `appDataDir` in `LocalAgentConfig` to use a custom directory path for intermediate scratch, logs, and downloaded harness resources.
+* **Run Command**:
+  ```bash
+  dart run example/getting_started/app_data_dir_override.dart
+  ```
+
+### 15. Error Handling (`error_handler.dart`)
+* **Focus**: Catching and resolving tool errors with hooks.
+* **Details**: Illustrates registering an `OnToolErrorHook` subclass to catch exceptions thrown by tools and optionally feed a recovery response back to the agent to steer it.
+* **Run Command**:
+  ```bash
+  dart run example/getting_started/error_handler.dart
+  ```
+
+### 16. Persona Config (`persona_config.dart`)
+* **Focus**: Customizing system instructions and personas.
+* **Details**: Demonstrates configuring templated persona identity additions alongside standard sections as well as fully overriding instructions via `CustomSystemInstructions`.
+* **Run Command**:
+  ```bash
+  dart run example/getting_started/persona_config.dart
+  ```
+
+### 17. Subagents (`subagents.dart`)
+* **Focus**: Spawning child subagents for task delegation.
+* **Details**: Shows how to configure and spawn subagents within the agent configuration, showing how they execute tasks and logs output for tracking progression.
+* **Run Command**:
+  ```bash
+  dart run example/getting_started/subagents.dart
+  ```
+
 ---
 
 ## 🔌 Advanced Deep Dive Catalog
