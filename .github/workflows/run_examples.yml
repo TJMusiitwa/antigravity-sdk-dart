@@ -25,6 +25,7 @@ jobs:
         run: dart pub get
 
       - name: Run Getting Started examples
+        if: ${{ secrets.GEMINI_API_KEY != '' }}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
@@ -41,6 +42,7 @@ jobs:
           done
 
       - name: Run Deep Dive examples
+        if: ${{ secrets.GEMINI_API_KEY != '' }}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
