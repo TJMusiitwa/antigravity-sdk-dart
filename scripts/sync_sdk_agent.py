@@ -27,7 +27,7 @@ async def main() -> None:
     3. Synchronize the version number to the Dart SDK package:
        - Update the version field in `dart-sdk/pubspec.yaml` to match the Python SDK version.
        - Update the hardcoded version in `dart-sdk/lib/src/mcp/mcp_bridge.dart` (specifically in the Implementation instantiation) to match the Python SDK version.
-       - Prepend a new release entry in `dart-sdk/CHANGELOG.md` with the new version if it is not already documented.
+       - Prepend a new release entry in `dart-sdk/CHANGELOG.md` with the new version if it is not already documented. The entry must focus on changes and enhancements relevant to the Dart package (e.g., newly translated APIs, Dart-specific improvements, or testing changes) rather than raw Python SDK commit messages or Python-specific updates.
        - Update any version badges (e.g., the pub package badge) in `dart-sdk/README.md` to reflect the new version.
     4. Check the git history in `python-sdk` (repository located at https://github.com/google-antigravity/antigravity-sdk-python).
     5. Identify all files under `python-sdk/google/antigravity` (source and tests) modified or added between the tracked commit hash and the current HEAD of `python-sdk`.
