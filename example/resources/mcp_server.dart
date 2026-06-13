@@ -35,6 +35,7 @@
 library;
 
 import 'dart:async';
+
 import 'package:mcp_dart/mcp_dart.dart';
 
 Future<void> main() async {
