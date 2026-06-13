@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../conversation/conversation.dart';
 import 'chunks.dart';
 import 'tool_call.dart';
 
@@ -7,9 +8,11 @@ class ChatResponse {
   final List<dynamic> _bufferedChunks = [];
   bool _isDone = false;
   Object? _error;
+  final Conversation? _conversation;
 
-  ChatResponse(Stream<dynamic> rawStream)
-    : _stream = rawStream.asBroadcastStream() {
+  ChatResponse(Stream<dynamic> rawStream, {Conversation? conversation})
+    : _stream = rawStream.asBroadcastStream(),
+      _conversation = conversation {
     _stream.listen(
       (chunk) {
         _bufferedChunks.add(chunk);
@@ -99,5 +102,11 @@ class ChatResponse {
         await Future.delayed(const Duration(milliseconds: 5));
       }
     }
+  }
+
+  /// Blocks until the stream completes and returns the final structured output.
+  Future<dynamic> structuredOutput() async {
+    await text(); // Await full stream consumption
+    return _conversation?.lastStructuredOutput;
   }
 }

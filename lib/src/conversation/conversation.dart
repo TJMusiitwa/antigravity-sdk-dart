@@ -74,6 +74,16 @@ class Conversation {
   /// Returns usage for the last turn.
   UsageMetadata get lastTurnUsage => _turnUsage ?? _zeroUsage();
 
+  /// Extracts the structured output payload from the most recent finish step.
+  dynamic get lastStructuredOutput {
+    for (final step in _history.reversed) {
+      if (step.type == StepType.finish) {
+        return step.structuredOutput;
+      }
+    }
+    return null;
+  }
+
   /// Sends a prompt to the agent and returns a streamable response.
   Future<ChatResponse> chat(
     ContentPrimitive? prompt, {
@@ -130,6 +140,25 @@ class Conversation {
 
     subscription = originalStream.listen(
       (step) {
+        if (step.id == 'idle_sentinel') {
+          // Check for post-turn hook
+          if (_hookRunner != null) {
+            final ctx = _hookRunner.createTurnContext();
+            final lastTextContent = _history.isEmpty
+                ? ''
+                : _history.last.content;
+            _hookRunner.dispatchPostTurn(ctx, lastTextContent).catchError((
+              Object err,
+              StackTrace st,
+            ) {
+              _logger.severe('Error in post-turn hook: $err', err, st);
+            });
+          }
+          unawaited(subscription.cancel());
+          controller.close();
+          return;
+        }
+
         _history.add(step);
         if (step.type == StepType.compaction) {
           _compactionIndices.add(_history.length - 1);
@@ -166,7 +195,12 @@ class Conversation {
           }
         }
 
-        if (step.status == StepStatus.done || step.status == StepStatus.error) {
+        final isError = step.status == StepStatus.error;
+        final isFinish = step.type == StepType.finish;
+
+        final isTurnComplete = isFinish || isError;
+
+        if (isTurnComplete) {
           // Check for post-turn hook
           if (_hookRunner != null) {
             final ctx = _hookRunner.createTurnContext();
@@ -183,6 +217,8 @@ class Conversation {
       },
       onError: (err) {
         controller.addError(err);
+        unawaited(subscription.cancel());
+        controller.close();
       },
       onDone: () {
         if (!controller.isClosed) {
@@ -194,7 +230,7 @@ class Conversation {
     // 5. Send to connection
     await _connection.send(prompt, kwargs: kwargs);
 
-    return ChatResponse(controller.stream);
+    return ChatResponse(controller.stream, conversation: this);
   }
 
   /// Proxies for Connection methods used in examples

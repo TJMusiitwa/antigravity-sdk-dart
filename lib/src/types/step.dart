@@ -1,8 +1,12 @@
+import 'dart:convert';
 import 'package:dart_mappable/dart_mappable.dart';
+import 'package:logging/logging.dart';
 
 import 'tool_call.dart';
 
 part 'step.mapper.dart';
+
+final _logger = Logger('antigravity.step');
 
 @MappableEnum(caseStyle: CaseStyle.upperCase, defaultValue: StepType.unknown)
 enum StepType {
@@ -178,24 +182,31 @@ class Step with StepMappable {
   });
 
   factory Step.fromMap(Map<String, dynamic> map) {
-    final updatedMap = Map<String, dynamic>.from(map);
+    // 1. Convert all keys from camelCase to snake_case
+    final updatedMap = <String, dynamic>{};
+    map.forEach((key, val) {
+      final snakeKey = _toSnakeCase(key);
+      updatedMap[snakeKey] = val;
+    });
 
-    // 1. Map 'text' to 'content'
+    // 2. Map 'text' to 'content'
     if (!updatedMap.containsKey('content') && updatedMap.containsKey('text')) {
       updatedMap['content'] = updatedMap['text'];
     }
 
-    // 2. Map 'text_delta' to 'content_delta'
+    // 3. Map 'text_delta' to 'content_delta'
     if (!updatedMap.containsKey('content_delta') &&
         updatedMap.containsKey('text_delta')) {
       updatedMap['content_delta'] = updatedMap['text_delta'];
     }
 
-    // 3. Extract nested error message
+    // 4. Extract nested error message
     if (updatedMap.containsKey('error')) {
       final errorField = updatedMap['error'];
       if (errorField is Map) {
-        updatedMap['error'] = errorField['error_message'] ?? '';
+        final errorMsg =
+            errorField['error_message'] ?? errorField['errorMessage'] ?? '';
+        updatedMap['error'] = errorMsg.toString();
       } else if (errorField is! String) {
         updatedMap['error'] = errorField.toString();
       }
@@ -203,7 +214,7 @@ class Step with StepMappable {
       updatedMap['error'] = updatedMap['error_message'];
     }
 
-    // 4. Map 'state' to 'status'
+    // 5. Map 'state' to 'status'
     if (updatedMap.containsKey('state')) {
       final stateStr = updatedMap['state'].toString();
       var statusVal = 'UNKNOWN';
@@ -222,7 +233,7 @@ class Step with StepMappable {
       updatedMap['status'] = statusVal;
     }
 
-    // 5. Map 'source'
+    // 6. Map 'source'
     if (updatedMap.containsKey('source')) {
       final sourceStr = updatedMap['source'].toString();
       var sourceVal = 'UNKNOWN';
@@ -236,7 +247,25 @@ class Step with StepMappable {
       updatedMap['source'] = sourceVal;
     }
 
-    // 6. Parse tool calls
+    // 7. Normalize 'usage_metadata' keys and parse String values to int
+    if (updatedMap.containsKey('usage_metadata') &&
+        updatedMap['usage_metadata'] is Map) {
+      final rawUsage = updatedMap['usage_metadata'] as Map;
+      final normalizedUsage = <String, dynamic>{};
+      rawUsage.forEach((k, v) {
+        final snakeK = _toSnakeCase(k.toString());
+        if (v != null) {
+          if (v is num) {
+            normalizedUsage[snakeK] = v.toInt();
+          } else {
+            normalizedUsage[snakeK] = int.tryParse(v.toString());
+          }
+        }
+      });
+      updatedMap['usage_metadata'] = normalizedUsage;
+    }
+
+    // 8. Parse tool calls
     const toolFields = {
       'create_file': 'create_file',
       'edit_file': 'edit_file',
@@ -253,26 +282,38 @@ class Step with StepMappable {
     final toolCalls = <Map<String, dynamic>>[];
     for (final entry in toolFields.entries) {
       final protoField = entry.key;
+      final protoFieldCamel = _toCamelCase(protoField);
       final toolName = entry.value;
-      if (updatedMap.containsKey(protoField) && updatedMap[protoField] is Map) {
-        final rawArgs = Map<String, dynamic>.from(
-          updatedMap[protoField] as Map,
-        );
+
+      final keyToUse = updatedMap.containsKey(protoField)
+          ? protoField
+          : (updatedMap.containsKey(protoFieldCamel) ? protoFieldCamel : null);
+
+      if (keyToUse != null && updatedMap[keyToUse] is Map) {
+        final rawArgs = Map<String, dynamic>.from(updatedMap[keyToUse] as Map);
 
         // Normalize file paths
         String? canonicalPath;
         const pathKeys = ['path', 'file_path', 'TargetFile', 'directory_path'];
         for (final pathKey in pathKeys) {
-          if (rawArgs.containsKey(pathKey) && rawArgs[pathKey] is String) {
-            final normalized = _normalizeWirePath(rawArgs[pathKey] as String);
-            rawArgs[pathKey] = normalized;
+          final snakePathKey = _toSnakeCase(pathKey);
+          final keyToCheck = rawArgs.containsKey(pathKey)
+              ? pathKey
+              : (rawArgs.containsKey(snakePathKey) ? snakePathKey : null);
+          if (keyToCheck != null && rawArgs[keyToCheck] is String) {
+            final normalized = _normalizeWirePath(
+              rawArgs[keyToCheck] as String,
+            );
+            rawArgs[keyToCheck] = normalized;
             canonicalPath = normalized;
           }
         }
 
         final trajId = updatedMap['trajectory_id'] ?? '';
         final stepIdx = updatedMap['step_index'] ?? 0;
-        final callId = trajId.isNotEmpty ? '$trajId:$stepIdx' : '$stepIdx';
+        final callId = trajId.toString().isNotEmpty
+            ? '$trajId:$stepIdx'
+            : '$stepIdx';
 
         toolCalls.add({
           'id': callId,
@@ -287,7 +328,7 @@ class Step with StepMappable {
       updatedMap['tool_calls'] = toolCalls;
     }
 
-    // 7. Determine StepType type
+    // 9. Determine StepType type
     if (!updatedMap.containsKey('type') ||
         updatedMap['type'] == null ||
         updatedMap['type'] == 'UNKNOWN') {
@@ -305,6 +346,35 @@ class Step with StepMappable {
       updatedMap['type'] = typeVal;
     }
 
+    // Extract structured output from finish payload
+    if (updatedMap['finish'] != null) {
+      final finishField = updatedMap['finish'];
+      if (finishField is Map) {
+        final outputString =
+            finishField['output_string'] ?? finishField['outputString'];
+        if (outputString != null && outputString.toString().isNotEmpty) {
+          try {
+            updatedMap['structured_output'] = jsonDecode(
+              outputString.toString(),
+            );
+          } catch (e) {
+            _logger.warning('Failed to parse structured output JSON: $e');
+          }
+        }
+      }
+    }
+
+    // Determine is_complete_response
+    final isFromModel = updatedMap['source'] == 'MODEL';
+    final isDone = updatedMap['status'] == 'DONE';
+    final hasText =
+        updatedMap['content'] != null &&
+        updatedMap['content'].toString().isNotEmpty;
+    final isTargetUser =
+        updatedMap['target'] == 'TARGET_USER' || updatedMap['target'] == 'user';
+    updatedMap['is_complete_response'] =
+        isFromModel && isDone && hasText && isTargetUser;
+
     return StepMapper.fromMap(updatedMap);
   }
 
@@ -314,6 +384,16 @@ class Step with StepMappable {
       return Uri.decodeComponent(uri.path);
     }
     return path;
+  }
+
+  static String _toSnakeCase(String camel) {
+    final exp = RegExp('(?<=[a-z0-9])[A-Z]');
+    return camel.replaceAllMapped(exp, (m) => '_${m.group(0)}').toLowerCase();
+  }
+
+  static String _toCamelCase(String snake) {
+    final exp = RegExp('_(.)');
+    return snake.replaceAllMapped(exp, (m) => m.group(1)!.toUpperCase());
   }
 
   factory Step.fromJson(String json) => StepMapper.fromJson(json);

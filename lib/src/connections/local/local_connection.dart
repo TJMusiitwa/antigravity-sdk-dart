@@ -179,12 +179,26 @@ class LocalConnectionStrategy extends ConnectionStrategy {
     final List<Map<String, dynamic>> toolsProtos = [];
     for (final name in _toolRunner.tools.keys) {
       final toolFn = _toolRunner.tools[name]!;
-      toolsProtos.add(toolFn.schema);
+      toolsProtos.add({
+        'name': toolFn.name,
+        'description': toolFn.description,
+        'parameters_json_schema': jsonEncode(toolFn.schema),
+      });
     }
 
     Map<String, dynamic>? systemInstructionsProto;
     if (_systemInstructions != null) {
-      systemInstructionsProto = _systemInstructions.toMap();
+      if (_systemInstructions is String) {
+        systemInstructionsProto = {
+          'custom': {
+            'part': [
+              {'text': _systemInstructions},
+            ],
+          },
+        };
+      } else {
+        systemInstructionsProto = _systemInstructions.toMap();
+      }
     }
 
     final geminiConfigProto = {
@@ -327,6 +341,8 @@ class LocalConnection extends Connection {
   final List<String> _stderrLines = [];
   bool _disconnecting = false;
   bool _idleState = true;
+  bool _parentIdle = true;
+  final Set<String> _activeSubagentIds = {};
   String _convId = '';
 
   @override
@@ -345,6 +361,16 @@ class LocalConnection extends Connection {
        _toolRunner = toolRunner,
        _hookRunner = hookRunner;
 
+  void _safeAdd(Step step) {
+    if (_disconnecting || _stepController.isClosed) return;
+    _stepController.add(step);
+  }
+
+  void _safeAddError(Object error) {
+    if (_disconnecting || _stepController.isClosed) return;
+    _stepController.addError(error);
+  }
+
   void _startStderrReader() {
     _process.stderr
         .transform(utf8.decoder)
@@ -361,6 +387,7 @@ class LocalConnection extends Connection {
   void _startReaderLoop() {
     _ws.listen(
       (message) async {
+        if (_disconnecting) return;
         try {
           if (message is String) {
             _logger.finest('<<< Received WebSocket message: $message');
@@ -369,7 +396,7 @@ class LocalConnection extends Connection {
           }
         } catch (e) {
           _logger.severe('Error in connection reader loop: $e');
-          _stepController.addError(
+          _safeAddError(
             AntigravityConnectionException(
               'Error in connection reader loop: $e',
             ),
@@ -380,7 +407,7 @@ class LocalConnection extends Connection {
         if (!_disconnecting) {
           final stderrTail = _stderrLines.join('\n');
           _logger.severe('WebSocket closed with error: $err');
-          _stepController.addError(
+          _safeAddError(
             AntigravityConnectionException(
               'WebSocket closed with error: $err.\nStderr tail:\n$stderrTail',
             ),
@@ -391,7 +418,7 @@ class LocalConnection extends Connection {
         if (!_disconnecting) {
           final stderrTail = _stderrLines.join('\n');
           _logger.warning('WebSocket connection closed prematurely');
-          _stepController.addError(
+          _safeAddError(
             AntigravityConnectionException(
               'WebSocket connection closed prematurely.\nStderr tail:\n$stderrTail',
             ),
@@ -403,9 +430,14 @@ class LocalConnection extends Connection {
   }
 
   Future<void> _handleEvent(Map<String, dynamic> event) async {
+    if (_disconnecting) return;
+    final normalizedEvent = _normalizeJsonKeys(event);
+
     // 1. Process step update
-    if (event.containsKey('step_update')) {
-      final stepJson = Map<String, dynamic>.from(event['step_update']);
+    if (normalizedEvent.containsKey('step_update')) {
+      final stepJson = Map<String, dynamic>.from(
+        normalizedEvent['step_update'],
+      );
       final step = Step.fromMap(stepJson);
 
       if (step.cascadeId.isNotEmpty) {
@@ -413,7 +445,7 @@ class LocalConnection extends Connection {
       }
 
       // Add step to stream
-      _stepController.add(step);
+      _safeAdd(step);
 
       // Handle interactive requests if in WAITING_FOR_USER status
       if (step.status == StepStatus.waitingForUser) {
@@ -427,20 +459,47 @@ class LocalConnection extends Connection {
     }
 
     // 2. Process trajectory state updates
-    if (event.containsKey('trajectory_state_update')) {
-      final update = event['trajectory_state_update'] as Map;
+    if (normalizedEvent.containsKey('trajectory_state_update')) {
+      final update = normalizedEvent['trajectory_state_update'] as Map;
       final state = update['state']?.toString();
-      if (state == 'STATE_IDLE' || state == 'IDLE') {
-        _idleState = true;
-      } else if (state == 'STATE_RUNNING' || state == 'RUNNING') {
-        _idleState = false;
+      final trajectoryId = update['trajectory_id']?.toString() ?? '';
+      if (_convId.isEmpty && trajectoryId.isNotEmpty) {
+        _convId = trajectoryId;
       }
-      _logger.fine('Trajectory state updated: $state');
+      final isSubagent = trajectoryId.isNotEmpty && trajectoryId != _convId;
+
+      if (state == 'STATE_RUNNING' || state == 'RUNNING') {
+        if (isSubagent) {
+          _activeSubagentIds.add(trajectoryId);
+        }
+        _idleState = false;
+      } else if (state == 'STATE_IDLE' || state == 'IDLE') {
+        if (isSubagent) {
+          _activeSubagentIds.remove(trajectoryId);
+        } else {
+          _parentIdle = true;
+        }
+
+        if (_parentIdle && _activeSubagentIds.isEmpty) {
+          _idleState = true;
+          _safeAdd(
+            Step(
+              id: 'idle_sentinel',
+              stepIndex: -1,
+              type: StepType.finish,
+              source: StepSource.system,
+              target: StepTarget.environment,
+              status: StepStatus.done,
+            ),
+          );
+        }
+      }
+      _logger.fine('Trajectory state updated: $state for $trajectoryId');
     }
 
     // 3. Process tool call execution requested by model
-    if (event.containsKey('tool_call')) {
-      final tcJson = Map<String, dynamic>.from(event['tool_call']);
+    if (normalizedEvent.containsKey('tool_call')) {
+      final tcJson = Map<String, dynamic>.from(normalizedEvent['tool_call']);
       final tc = ToolCall.fromMap(tcJson);
       _logger.info('Tool call requested: ${tc.name}');
       await _handleToolCall(tc);
@@ -499,7 +558,7 @@ class LocalConnection extends Connection {
         toolCalls: [toolCall],
         error: '',
       );
-      _stepController.add(step);
+      _safeAdd(step);
 
       // Pre-tool-call check policy
       bool allowed = true;
@@ -555,6 +614,7 @@ class LocalConnection extends Connection {
     Map<String, dynamic>? kwargs,
   }) async {
     _idleState = false;
+    _parentIdle = false;
     final List<Map<String, dynamic>> parts = [];
 
     if (prompt is String) {
@@ -665,5 +725,34 @@ class LocalConnection extends Connection {
       await Future.delayed(const Duration(milliseconds: 10));
     }
     return true;
+  }
+
+  Map<String, dynamic> _normalizeJsonKeys(Map<String, dynamic> map) {
+    final result = <String, dynamic>{};
+    map.forEach((key, val) {
+      final snakeKey = _toSnakeCase(key);
+      if (val is Map<String, dynamic>) {
+        result[snakeKey] = _normalizeJsonKeys(val);
+      } else if (val is Map) {
+        result[snakeKey] = _normalizeJsonKeys(Map<String, dynamic>.from(val));
+      } else if (val is List) {
+        result[snakeKey] = val.map((item) {
+          if (item is Map<String, dynamic>) {
+            return _normalizeJsonKeys(item);
+          } else if (item is Map) {
+            return _normalizeJsonKeys(Map<String, dynamic>.from(item));
+          }
+          return item;
+        }).toList();
+      } else {
+        result[snakeKey] = val;
+      }
+    });
+    return result;
+  }
+
+  String _toSnakeCase(String camel) {
+    final exp = RegExp('(?<=[a-z0-9])[A-Z]');
+    return camel.replaceAllMapped(exp, (m) => '_${m.group(0)}').toLowerCase();
   }
 }
