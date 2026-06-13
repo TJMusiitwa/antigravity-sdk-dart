@@ -25,6 +25,7 @@
 library;
 
 import 'dart:async';
+
 import 'package:antigravity/antigravity.dart';
 
 const String _passToken = "[PASS]";
@@ -38,6 +39,13 @@ const Duration _discussionTimeout = Duration(seconds: 40);
 Future<String> passTurn() async {
   return _passToken;
 }
+
+final passTurnTool = Tool(
+  name: 'passTurn',
+  description: 'Passes the turn if you have nothing to add.',
+  schema: {'type': 'object', 'properties': {}},
+  handler: (_, _) => passTurn(),
+);
 
 // ---------------------------------------------------------------------------
 // Async chat room — no rounds, fully reactive
@@ -192,7 +200,7 @@ Future<void> main() async {
 
     final config = LocalAgentConfig(
       systemInstructions: instructions,
-      tools: [passTurn],
+      tools: [passTurnTool],
     );
     agents[name] = Agent(config);
   }

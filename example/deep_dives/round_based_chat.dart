@@ -24,6 +24,7 @@
 library;
 
 import 'dart:async';
+
 import 'package:antigravity/antigravity.dart';
 
 const String _passToken = "[PASS]";
@@ -36,6 +37,13 @@ const int _maxRounds = 4;
 Future<String> passTurn() async {
   return _passToken;
 }
+
+final passTurnTool = Tool(
+  name: 'passTurn',
+  description: 'Passes the turn if you have nothing to add.',
+  schema: {'type': 'object', 'properties': {}},
+  handler: (_, _) => passTurn(),
+);
 
 // ---------------------------------------------------------------------------
 // Trigger: moderator nudge after a delay
@@ -180,7 +188,7 @@ Future<void> main() async {
 
     final config = LocalAgentConfig(
       systemInstructions: instructions,
-      tools: [passTurn],
+      tools: [passTurnTool],
       triggers: [every(const Duration(seconds: 60), moderatorNudge)],
     );
     agents[name] = Agent(config);

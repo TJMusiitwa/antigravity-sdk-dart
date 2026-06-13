@@ -44,13 +44,56 @@ Future<String> lookupUser(String email) async {
   return "User profile for $email: name=Alice, role=engineer, team=infra";
 }
 
+final lookupUserTool = Tool(
+  name: 'lookupUser',
+  description: 'Looks up a user by email address.',
+  schema: {
+    'type': 'object',
+    'properties': {
+      'email': {'type': 'string', 'description': 'The user email address.'},
+    },
+    'required': ['email'],
+  },
+  handler: (args, _) => lookupUser(args['email'] as String),
+);
+
 Future<String> sendNotification(String to, String message) async {
   return "Notification sent to $to: $message";
 }
 
+final sendNotificationTool = Tool(
+  name: 'sendNotification',
+  description: 'Sends a notification to a user.',
+  schema: {
+    'type': 'object',
+    'properties': {
+      'to': {'type': 'string', 'description': 'The user email or name.'},
+      'message': {'type': 'string', 'description': 'The message to send.'},
+    },
+    'required': ['to', 'message'],
+  },
+  handler: (args, _) =>
+      sendNotification(args['to'] as String, args['message'] as String),
+);
+
 Future<String> sendToUnknown(String name, String message) async {
   throw ArgumentError("Could not resolve '$name' to an email address");
 }
+
+final sendToUnknownTool = Tool(
+  name: 'sendToUnknown',
+  description: 'Sends a message to an unknown recipient.',
+  schema: {
+    'type': 'object',
+    'properties': {
+      'name': {'type': 'string'},
+      'message': {'type': 'string'},
+    },
+    'required': ['name', 'message'],
+  },
+  handler: (args, _) =>
+      sendToUnknown(args['name'] as String, args['message'] as String),
+);
 
 // ---------------------------------------------------------------------------
 // Hook: Rate Limiting (PreToolCallDecideHook)
@@ -157,7 +200,7 @@ Future<void> main() async {
   final config = LocalAgentConfig(
     systemInstructions:
         'You have access to user lookup, notification, and diagnostic tools. Use them as needed. Keep responses under 2 sentences.',
-    tools: [lookupUser, sendNotification, sendToUnknown],
+    tools: [lookupUserTool, sendNotificationTool, sendToUnknownTool],
     hooks: [rateLimitHook, auditHook, fallbackHook],
   );
 

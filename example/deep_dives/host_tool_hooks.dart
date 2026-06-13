@@ -22,6 +22,7 @@
 library;
 
 import 'dart:async';
+
 import 'package:antigravity/antigravity.dart';
 
 // =============================================================================
@@ -124,9 +125,29 @@ String greet(String name) {
   return "Hello, $name!";
 }
 
+final greetTool = Tool(
+  name: 'greet',
+  description: 'Greets a user by name.',
+  schema: {
+    'type': 'object',
+    'properties': {
+      'name': {'type': 'string', 'description': 'The name to greet.'},
+    },
+    'required': ['name'],
+  },
+  handler: (args, _) async => greet(args['name'] as String),
+);
+
 String brokenTool() {
   throw StateError("This tool is intentionally broken!");
 }
+
+final brokenToolWrapper = Tool(
+  name: 'brokenTool',
+  description: 'A tool that is intentionally broken.',
+  schema: {'type': 'object', 'properties': {}},
+  handler: (_, _) async => brokenTool(),
+);
 
 // =============================================================================
 // Helper to run a single prompt and print the response
@@ -166,7 +187,7 @@ Future<void> main() async {
       LogCompaction(),
       LogInteraction(),
     ],
-    tools: [greet, brokenTool],
+    tools: [greetTool, brokenToolWrapper],
     capabilities: CapabilitiesConfig(enableSubagents: true),
   );
 
