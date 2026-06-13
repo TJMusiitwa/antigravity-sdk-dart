@@ -235,6 +235,16 @@ class FakeConnection implements Connection {
         ),
       );
       _idle = true;
+      _stepController.add(
+        Step(
+          id: "idle_sentinel",
+          stepIndex: -1,
+          type: StepType.finish,
+          source: StepSource.system,
+          target: StepTarget.environment,
+          status: StepStatus.done,
+        ),
+      );
     });
   }
 

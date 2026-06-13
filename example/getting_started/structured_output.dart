@@ -40,7 +40,6 @@
 // ignore_for_file: avoid_print
 library;
 
-import 'dart:convert';
 import 'package:antigravity/antigravity.dart';
 
 // ---------------------------------------------------------------------------
@@ -137,15 +136,10 @@ Future<void> main() async {
     print('\n  Extracting structured meeting action items…');
 
     // Retrieve the structured JSON output from the completed response.
-    final rawText = await response.text();
-    Map<String, dynamic>? data;
-    try {
-      data = jsonDecode(rawText) as Map<String, dynamic>;
-    } catch (_) {
-      // If the model returned prose instead of JSON, fall back to printing it.
-    }
+    final data = await response.structuredOutput() as Map<String, dynamic>?;
 
     if (data == null) {
+      final rawText = await response.text();
       print('\n  Failed to extract structured summary natively.');
       print('  Final Text Response: $rawText');
       return;

@@ -160,6 +160,9 @@ Future<void> runPrompt(Agent agent, String prompt) async {
 
   await agent.conversation.send(prompt);
   await for (final step in agent.conversation.receiveSteps()) {
+    if (step.id == 'idle_sentinel') {
+      break;
+    }
     if (step.isCompleteResponse ?? false) {
       final cascadeId = step.cascadeId;
       final trajectoryId = step.trajectoryId;

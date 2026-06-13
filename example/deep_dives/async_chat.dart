@@ -68,6 +68,7 @@ class AsyncChatRoom {
   }
 
   void complete() {
+    if (_done || _changeController.isClosed) return;
     _done = true;
     _changeController.add(null);
     _changeController.close();
