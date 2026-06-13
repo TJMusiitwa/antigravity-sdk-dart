@@ -1,0 +1,21 @@
+name: antigravity
+description: "A native Dart client SDK for Google Antigravity, fully decoupled from the Flutter framework for server, CLI, and mobile compatibility."
+version: 0.0.1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  dart_mappable: ^4.8.0
+  mcp_dart: ^2.2.1
+  http: ^1.6.0
+  logging: ^1.3.0
+  path: ^1.9.1
+  web_socket_channel: ^3.0.3
+
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.31.1
+  build_runner: ^2.15.0
+  dart_mappable_builder: ^4.8.0

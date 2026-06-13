@@ -1,0 +1,57 @@
+name: Run Examples on Tag
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  run-examples:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Dart
+        uses: actions/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Run Getting Started examples
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          for f in example/getting_started/*.dart; do
+            # Skip interactive or environment-dependent examples
+            if [[ "$f" == *"human_in_the_loop.dart"* ]] || \
+               [[ "$f" == *"autonomous_shell.dart"* ]] || \
+               [[ "$f" == *"mcp_tools.dart"* ]]; then
+              echo "Skipping: $f"
+              continue
+            fi
+            echo "Running $f"
+            dart run "$f" || exit 1
+          done
+
+      - name: Run Deep Dive examples
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          for f in example/deep_dives/*.dart; do
+            # Skip interactive or complex agent examples
+            if [[ "$f" == *"interactive_cli.dart"* ]] || \
+               [[ "$f" == *"doc_maintenance_agent.dart"* ]] || \
+               [[ "$f" == *"docstring_maintenance_agent.dart"* ]]; then
+              echo "Skipping: $f"
+              continue
+            fi
+            echo "Running $f"
+            dart run "$f" || exit 1
+          done

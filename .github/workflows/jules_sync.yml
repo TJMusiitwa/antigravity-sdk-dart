@@ -1,0 +1,73 @@
+name: Sync Python SDK to Dart (Jules)
+
+on:
+  # schedule:
+  #   # Run weekly at midnight on Sunday
+  #   - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+jobs:
+  jules-sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # In case the Action token is used to open PRs
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Check for updates
+        id: check_updates
+        run: |
+          LAST_COMMIT=""
+          if [ -f .last_synced_python_commit ]; then
+            LAST_COMMIT=$(cat .last_synced_python_commit)
+          fi
+          echo "Last synced commit: $LAST_COMMIT"
+          
+          LATEST_COMMIT=$(curl -s https://api.github.com/repos/google-antigravity/antigravity-sdk-python/commits/main | jq -r '.sha')
+          echo "Latest Python commit: $LATEST_COMMIT"
+          
+          if [ "$LAST_COMMIT" = "$LATEST_COMMIT" ]; then
+            echo "No new updates found. Skipping Jules invocation."
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "New updates found. Proceeding with Jules invocation."
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Invoke Google Jules
+        if: steps.check_updates.outputs.has_changes == 'true'
+        uses: google-labs-code/jules-action@v1.0.0
+        with:
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          starting_branch: 'main'
+          prompt: |
+            Synchronize updates from the Python SDK repository (https://github.com/google-antigravity/antigravity-sdk-python) to this Dart SDK repository.
+
+            Follow these step-by-step instructions:
+            1. Read the commit hash stored in `.last_synced_python_commit` in the root of the repository.
+            2. Clone the Python SDK repository: `https://github.com/google-antigravity/antigravity-sdk-python`.
+            3. Identify all files under `google/antigravity` (source code and test files) that have been modified, added, or deleted between the commit recorded in `.last_synced_python_commit` and the current `HEAD` of the Python SDK repository.
+            4. For each modified/new Python source file:
+               - Map the module name to the corresponding Dart file in `lib/src/` (e.g., `google/antigravity/agent.py` -> `lib/src/agent.dart`, `google/antigravity/conversation/conversation.py` -> `lib/src/conversation/conversation.dart`).
+               - Translate the Python changes or the new Python file to Dart, maintaining consistency with existing Dart code, typing conventions, imports, and package structures.
+               - Use the `dart_mappable` package for model generation/serialization where applicable (look at existing classes in `lib/src/types` and `lib/src/types.dart` for patterns).
+            5. For each modified/new Python test file:
+               - Map it to a corresponding Dart test file under `test/` (e.g., `google/antigravity/agent_test.py` -> `test/agent_test.dart`).
+               - Translate the python tests (pytest or unittest style) to the native Dart `test` framework.
+
+            Measurable Validation Targets:
+            - Run `dart pub get` to install dependencies.
+            - Run `dart run build_runner build --delete-conflicting-outputs` to regenerate mappable model classes.
+            - Run `dart format --output=none --set-exit-if-changed .` to check code formatting.
+            - Run `dart analyze --fatal-infos` to ensure zero compilation warnings, info messages, or errors remain.
+            - Run `dart test` to verify all unit tests pass with a 100% success rate.
+
+            Execution Rules & Constraints:
+            - If static analysis or tests fail, analyze the compiler/test output, apply the necessary code corrections, and re-run all validation checks.
+            - Keep all changes focused strictly on the translation of Python updates. Do not modify unrelated Dart files.
+            - Do not alter public API signatures of existing Dart classes unless the corresponding Python class's public interface was changed.
+            - Format the code with `dart format .` as the final step before completion.
+            - Once and only once all validation targets pass successfully, update the contents of `.last_synced_python_commit` to the current `HEAD` commit hash of the Python SDK repository.

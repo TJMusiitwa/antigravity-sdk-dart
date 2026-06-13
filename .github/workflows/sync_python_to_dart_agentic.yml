@@ -1,0 +1,88 @@
+name: Sync Python SDK to Dart (Antigravity SDK Agent)
+
+on:
+  schedule:
+    # Run weekly at midnight on Sunday
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Dart SDK Repo
+        uses: actions/checkout@v6
+        with:
+          path: dart-sdk
+
+      - name: Check for updates
+        id: check_updates
+        run: |
+          LAST_COMMIT=""
+          if [ -f dart-sdk/.last_synced_python_commit ]; then
+            LAST_COMMIT=$(cat dart-sdk/.last_synced_python_commit)
+          fi
+          echo "Last synced commit: $LAST_COMMIT"
+          
+          LATEST_COMMIT=$(curl -s https://api.github.com/repos/google-antigravity/antigravity-sdk-python/commits/main | jq -r '.sha')
+          echo "Latest Python commit: $LATEST_COMMIT"
+          
+          if [ "$LAST_COMMIT" = "$LATEST_COMMIT" ]; then
+            echo "No new updates found. Skipping sync."
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "New updates found. Proceeding with sync."
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout Python SDK Repo
+        if: steps.check_updates.outputs.has_changes == 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: google-antigravity/antigravity-sdk-python
+          path: python-sdk
+
+      - name: Setup Python
+        if: steps.check_updates.outputs.has_changes == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python SDK
+        if: steps.check_updates.outputs.has_changes == 'true'
+        run: pip install google-antigravity
+
+      - name: Setup Dart
+        if: steps.check_updates.outputs.has_changes == 'true'
+        uses: actions/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install Dart Dependencies
+        if: steps.check_updates.outputs.has_changes == 'true'
+        run: |
+          cd dart-sdk
+          dart pub get
+
+      - name: Run Antigravity SDK Autonomous Agent
+        if: steps.check_updates.outputs.has_changes == 'true'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AGENT_MODEL: "gemini-3.1-pro"
+        run: |
+          # Run the script that spawns the Local Agent
+          python dart-sdk/scripts/sync_sdk_agent.py
+
+      - name: Create Pull Request
+        if: steps.check_updates.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          path: dart-sdk
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: sync python sdk updates to dart (agentic)"
+          title: "chore: automated python-to-dart sdk sync (agentic)"
+          body-path: sync_summary.txt
+          branch: antigravity-agent-sync-branch
+          delete-branch: true
