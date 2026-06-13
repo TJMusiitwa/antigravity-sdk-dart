@@ -2,19 +2,28 @@ import 'dart:async';
 import '../types/tool_call.dart';
 import 'tool_context.dart';
 
+/// Signature for a custom tool execution callback in the Google Antigravity SDK.
 typedef ToolHandler =
     FutureOr<dynamic> Function(
       Map<String, dynamic> arguments,
       ToolContext? context,
     );
 
-/// Represents a custom tool that can be executed by the Agent.
+/// Represents a custom tool that can be executed by an agent in the Google Antigravity SDK.
 class Tool {
+  /// The unique identifier/name of the tool.
   final String name;
+
+  /// A description of what the tool does, used by the model for selection.
   final String description;
+
+  /// The JSON schema representing the expected arguments for the tool.
   final Map<String, dynamic> schema;
+
+  /// The execution callback function.
   final ToolHandler handler;
 
+  /// Creates a new [Tool] instance.
   Tool({
     required this.name,
     required this.description,
@@ -23,11 +32,12 @@ class Tool {
   });
 }
 
-/// Registry and executor for custom tools.
+/// Registry and executor for custom tools in the Google Antigravity SDK.
 class ToolRunner {
   final Map<String, Tool> _tools = {};
   ToolContext? _context;
 
+  /// Creates a new [ToolRunner], registering any provided [tools].
   ToolRunner({List<Tool>? tools}) {
     if (tools != null) {
       for (final tool in tools) {

@@ -28,11 +28,19 @@ String get defaultAppDataDir {
   ],
 )
 class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
+  /// The Gemini model configuration, such as API key and model selection.
   final GeminiConfig geminiConfig;
+
+  /// Shorthand option to override the default model name.
   final String? model;
+
+  /// Shorthand option to override the Gemini API key.
   final String? apiKey;
+
+  /// Shorthand option to override the default localharness binary path.
   final String? binaryPath;
 
+  /// Creates a new [LocalAgentConfig] configuration for the Google Antigravity SDK.
   LocalAgentConfig({
     super.systemInstructions,
     CapabilitiesConfig? capabilities,

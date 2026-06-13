@@ -2,17 +2,19 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'harness_downloader.dart';
 
-/// Exception thrown when the pre-existing system binary is not found at any search path.
+/// Exception thrown when the pre-existing system binary is not found at any search path in the Google Antigravity SDK.
 class AntigravityBinaryNotFoundException implements Exception {
+  /// The descriptive error message.
   final String message;
 
+  /// Creates a new [AntigravityBinaryNotFoundException] with the given [message].
   AntigravityBinaryNotFoundException(this.message);
 
   @override
   String toString() => 'AntigravityBinaryNotFoundException: $message';
 }
 
-/// A utility to search for the pre-existing system binary dynamically.
+/// A utility to search for the pre-existing system binary dynamically within the Google Antigravity SDK.
 class BinaryDiscovery {
   /// Environment variable to check for the harness binary path.
   static const String harnessEnvVar = 'ANTIGRAVITY_HARNESS_PATH';

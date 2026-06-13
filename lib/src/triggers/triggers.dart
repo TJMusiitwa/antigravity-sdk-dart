@@ -3,11 +3,12 @@ import 'dart:io';
 import '../connections/connection.dart';
 import '../types/file_change.dart';
 
-/// Handle provided to every trigger at startup.
+/// Execution handle and context provided to every background trigger at startup in the Google Antigravity SDK.
 class TriggerContext {
   final Connection _connection;
   bool _isCancelled = false;
 
+  /// Creates a new [TriggerContext] instance wrapping the given [connection].
   TriggerContext(this._connection);
 
   /// Returns the active connection.
@@ -22,6 +23,7 @@ class TriggerContext {
     await _connection.sendTriggerNotification(content);
   }
 
+  /// Cancels the execution of the trigger.
   void cancel() {
     _isCancelled = true;
   }

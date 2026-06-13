@@ -11,7 +11,10 @@ import 'triggers/trigger_runner.dart';
 import 'triggers/triggers.dart';
 import 'types.dart';
 
-/// High-level Agent API for simplified interaction.
+/// A high-level agent coordinator for the Google Antigravity SDK.
+///
+/// The [Agent] manages the lifecycle of an agent session, including tools,
+/// connection strategies, safety policies, execution triggers, hooks, and MCP servers.
 class Agent {
   final AgentConfig _config;
   ConnectionStrategy? _strategy;
@@ -24,6 +27,10 @@ class Agent {
   final List<Hook> _pendingHooks = [];
   final List<Trigger> _pendingTriggers = [];
 
+  /// Creates a new [Agent] with the given [config].
+  ///
+  /// The configuration defines capabilities, safety policies, tools, and hooks
+  /// used by the agent during its execution session.
   Agent(AgentConfig config) : _config = config {
     if (_config.responseSchema != null) {
       if (_config.responseSchema is String) {

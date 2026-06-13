@@ -54,12 +54,13 @@ class McpTool extends Tool {
        );
 }
 
-/// Simplifies the lifecycle of MCP client sessions using the official Dart MCP SDK.
+/// Facilitates connecting to external Model Context Protocol (MCP) servers and exposes their tools to the Google Antigravity SDK.
 class McpBridge {
   final List<McpClient> _clients = [];
   final List<McpTool> _tools = [];
   final McpClient Function(Implementation)? _clientFactory;
 
+  /// Creates a new [McpBridge] instance with an optional [clientFactory].
   McpBridge({McpClient Function(Implementation)? clientFactory})
     : _clientFactory = clientFactory;
 

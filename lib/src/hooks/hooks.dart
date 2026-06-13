@@ -3,11 +3,13 @@ import '../types.dart';
 
 // --- Contexts ---
 
-/// Base context for hooks to share state.
+/// Base context for hooks to share state within the Google Antigravity SDK.
 class HookContext {
+  /// The parent hook context, if any, used for hierarchical state lookup.
   final HookContext? parent;
   final Map<String, dynamic> _store = {};
 
+  /// Creates a new [HookContext] instance, optionally specifying a [parent].
   HookContext({this.parent});
 
   /// Gets a value from the context or its parent hierarchy.
@@ -27,48 +29,60 @@ class HookContext {
   }
 }
 
-/// Context scoped to an entire agent session.
+/// Context scoped to an entire agent session in the Google Antigravity SDK.
 class SessionContext extends HookContext {
+  /// Creates a new [SessionContext] instance.
   SessionContext() : super(parent: null);
 }
 
-/// Context scoped to a single interaction turn.
+/// Context scoped to a single interaction turn in the Google Antigravity SDK.
 class TurnContext extends HookContext {
+  /// The active agent session context.
   final SessionContext sessionContext;
+
+  /// Creates a new [TurnContext] tied to a specific [sessionContext].
   TurnContext(this.sessionContext) : super(parent: sessionContext);
 }
 
-/// Context scoped to a single operation (e.g. a tool call).
+/// Context scoped to a single operation (e.g. a tool call) in the Google Antigravity SDK.
 class OperationContext extends HookContext {
+  /// The active interaction turn context.
   final TurnContext turnContext;
+
+  /// Creates a new [OperationContext] tied to a specific [turnContext].
   OperationContext(this.turnContext) : super(parent: turnContext);
 }
 
 // --- Base Hook Interfaces ---
 
-/// Base interface for all Hooks.
+/// Base interface for all Hooks in the Google Antigravity SDK.
 abstract class Hook {}
 
 /// Read-only, non-blocking hook for observability.
 abstract class InspectHook<T> implements Hook {
+  /// Executes the inspection hook logic with the given [context] and [data].
   Future<void> run(HookContext context, T data);
 }
 
 /// Read-only, blocking hook for policy decisions.
 abstract class DecideHook<T> implements Hook {
+  /// Executes the decision hook logic, returning a [HookResult] with the given [context] and [data].
   Future<HookResult> run(HookContext context, T data);
 }
 
 /// Modifying, blocking hook for data transformation.
 abstract class TransformHook<T, R> implements Hook {
+  /// Executes the transformation hook logic, transforming [data] into type [R] with the given [context].
   Future<R> run(HookContext context, T data);
 }
 
 // --- Functional Helpers / Implementations ---
 
-/// Helper class to adapt functions into InspectHooks.
+/// Helper class to adapt functions into [InspectHook]s.
 class FunctionInspectHook<T> implements InspectHook<T> {
   final FutureOr<void> Function(HookContext context, T data) _func;
+
+  /// Creates a new [FunctionInspectHook] instance from the given callback functions.
   FunctionInspectHook(this._func);
 
   @override
@@ -77,9 +91,11 @@ class FunctionInspectHook<T> implements InspectHook<T> {
   }
 }
 
-/// Helper class to adapt functions into DecideHooks.
+/// Helper class to adapt functions into [DecideHook]s.
 class FunctionDecideHook<T> implements DecideHook<T> {
   final FutureOr<HookResult> Function(HookContext context, T data) _func;
+
+  /// Creates a new [FunctionDecideHook] instance from the given callback function.
   FunctionDecideHook(this._func);
 
   @override
@@ -88,9 +104,11 @@ class FunctionDecideHook<T> implements DecideHook<T> {
   }
 }
 
-/// Helper class to adapt functions into TransformHooks.
+/// Helper class to adapt functions into [TransformHook]s.
 class FunctionTransformHook<T, R> implements TransformHook<T, R> {
   final FutureOr<R> Function(HookContext context, T data) _func;
+
+  /// Creates a new [FunctionTransformHook] instance from the given callback function.
   FunctionTransformHook(this._func);
 
   @override
@@ -101,32 +119,32 @@ class FunctionTransformHook<T, R> implements TransformHook<T, R> {
 
 // --- Concrete Hook Subclasses/Interfaces ---
 
-/// Invoked when the session starts.
+/// Invoked when the agent session starts.
 abstract class OnSessionStartHook extends InspectHook<void> {}
 
-/// Invoked when the session ends.
+/// Invoked when the agent session ends.
 abstract class OnSessionEndHook extends InspectHook<void> {}
 
-/// Invoked before a turn starts.
+/// Invoked before a conversation turn starts.
 abstract class PreTurnHook extends DecideHook<ContentPrimitive> {}
 
-/// Invoked after a completed turn ends.
+/// Invoked after a conversation turn successfully completes.
 abstract class PostTurnHook extends InspectHook<String> {}
 
-/// Invoked before a tool call to decide if it should proceed.
+/// Invoked before a tool call is executed to decide if it is allowed.
 abstract class PreToolCallDecideHook extends DecideHook<ToolCall> {}
 
 /// Invoked after a tool call completes successfully.
 abstract class PostToolCallHook extends InspectHook<ToolResult> {}
 
-/// Invoked when a tool fails, allowing recovery/transformation.
+/// Invoked when a tool fails, allowing recovery or transformation of the exception.
 abstract class OnToolErrorHook extends TransformHook<Exception, dynamic> {}
 
-/// Invoked when the agent needs user interaction.
+/// Invoked when the agent needs user interaction/questions answered.
 abstract class OnInteractionHook
     extends TransformHook<AskQuestionInteractionSpec, QuestionHookResult> {}
 
-/// Invoked when a context compaction event occurs.
+/// Invoked when a conversation context compaction event occurs.
 abstract class OnCompactionHook extends InspectHook<dynamic> {}
 
 // --- Hook Runner ---
@@ -146,6 +164,7 @@ class HookRunner {
   final SessionContext sessionContext = SessionContext();
   TurnContext? _currentTurnContext;
 
+  /// Creates a new [HookRunner] instance with optional lists of specialized lifecycle hooks.
   HookRunner({
     List<OnSessionStartHook>? onSessionStartHooks,
     List<OnSessionEndHook>? onSessionEndHooks,

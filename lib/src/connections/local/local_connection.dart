@@ -31,6 +31,10 @@ class LocalConnectionStrategy extends ConnectionStrategy {
   WebSocket? _ws;
   LocalConnection? _connection;
 
+  /// Creates a new [LocalConnectionStrategy] for the Google Antigravity SDK.
+  ///
+  /// Specifying [binaryPath] overrides the automatic detection of the localharness binary.
+  /// Takes [toolRunner] for execution and [hookRunner] to run interceptors.
   LocalConnectionStrategy({
     String? binaryPath,
     required ToolRunner toolRunner,
@@ -283,6 +287,7 @@ class HandshakeReader {
   late StreamSubscription<List<int>> _subscription;
   int? _targetLength;
 
+  /// Reads and parses the handshake configuration from the provided stdout [stream].
   Future<LocalHarnessProto> read(Stream<List<int>> stream) {
     _subscription = stream.listen(
       (data) {
@@ -351,6 +356,10 @@ class LocalConnection extends Connection {
   @override
   String get conversationId => _convId;
 
+  /// Creates a new [LocalConnection] session.
+  ///
+  /// Takes [process] (for managing the localharness process), [ws] (the WebSocket connection),
+  /// [toolRunner] to process incoming tool executions, and [hookRunner] to dispatch lifecycle events.
   LocalConnection({
     required Process process,
     required WebSocket ws,

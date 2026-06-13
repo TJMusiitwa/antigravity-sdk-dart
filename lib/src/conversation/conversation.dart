@@ -4,16 +4,19 @@ import 'package:antigravity/antigravity.dart';
 
 final _logger = Logger('antigravity.conversation');
 
-/// Manages a high-level stateful interaction between a user and an agent.
+/// Manages a high-level stateful interaction between a user and an agent in the Google Antigravity SDK.
 class Conversation {
   final Connection _connection;
   final HookRunner? _hookRunner;
   final List<Step> _history = [];
   final List<int> _compactionIndices = [];
+
+  /// The maximum number of processing steps retained in conversation history.
   int? maxHistorySize;
   UsageMetadata _cumulativeUsage = _zeroUsage();
   UsageMetadata? _turnUsage;
 
+  /// Creates a new [Conversation] on the given underlying connection.
   Conversation(this._connection, {HookRunner? hookRunner})
     : _hookRunner = hookRunner;
 

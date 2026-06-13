@@ -3,10 +3,13 @@ import 'dart:typed_data';
 
 /// Encodes and decodes the custom Protocol Buffer messages used in the standard input/output handshake.
 class LocalHarnessProto {
-  /// Result parsed from the `OutputConfig` message.
+  /// The TCP port used by the localharness WebSocket server.
   final int port;
+
+  /// The dynamic API key associated with the localharness backend session.
   final String apiKey;
 
+  /// Creates a new [LocalHarnessProto] instance.
   LocalHarnessProto({required this.port, required this.apiKey});
 
   /// Encodes a 32-bit unsigned integer as a Protobuf Varint.

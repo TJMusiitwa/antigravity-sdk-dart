@@ -2,7 +2,7 @@ import 'dart:async';
 import 'triggers.dart';
 import '../connections/connection.dart';
 
-/// Manages registration, startup, and shutdown of triggers.
+/// Manages registration, startup, and shutdown of background triggers in the Google Antigravity SDK.
 class TriggerRunner {
   final List<Trigger> _triggers;
   final Connection _connection;
@@ -10,6 +10,7 @@ class TriggerRunner {
   final List<Future<void>> _tasks = [];
   bool _isRunning = false;
 
+  /// Creates a new [TriggerRunner] instance.
   TriggerRunner({
     required List<Trigger> triggers,
     required Connection connection,

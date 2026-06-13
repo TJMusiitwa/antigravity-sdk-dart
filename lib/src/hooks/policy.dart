@@ -3,17 +3,36 @@ import 'dart:io';
 import '../types.dart';
 import 'hooks.dart';
 
-/// Outcomes that a policy can produce.
-enum Decision { approve, deny, askUser }
+/// Outcomes that a policy can produce in the Google Antigravity SDK.
+enum Decision {
+  /// Approve the tool execution without checking with the user.
+  approve,
 
-/// A single tool call policy rule.
+  /// Explicitly deny the tool execution immediately.
+  deny,
+
+  /// Prompt the user to approve or deny the tool execution.
+  askUser,
+}
+
+/// A single tool call policy rule in the Google Antigravity SDK.
 class Policy {
+  /// The tool name that this policy targets (or '*' for a wildcard match).
   final String tool;
+
+  /// The action/decision to apply when this policy matches.
   final Decision decision;
+
+  /// Optional condition callback to test if this policy is applicable.
   final FutureOr<bool> Function(ToolCall toolCall)? when;
+
+  /// Interactivity callback handler when the [decision] is [Decision.askUser].
   final FutureOr<bool> Function(ToolCall toolCall)? askUser;
+
+  /// The unique descriptive name of the policy rule.
   final String name;
 
+  /// Creates a new [Policy] rule.
   Policy({
     required this.tool,
     required this.decision,
@@ -202,9 +221,14 @@ int _bucketIndex(Policy p) {
   }
 }
 
+/// A security policy decision hook in the Google Antigravity SDK.
+///
+/// Pre-sorts policies into priority buckets and evaluates them sequentially
+/// to determine tool call authorization.
 class PolicyDecideHook extends PreToolCallDecideHook {
   final List<List<Policy>> _buckets;
 
+  /// Creates a new [PolicyDecideHook] instance.
   PolicyDecideHook(this._buckets);
 
   @override

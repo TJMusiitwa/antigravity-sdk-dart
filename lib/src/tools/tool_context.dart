@@ -8,6 +8,7 @@ class ToolContext {
   final Connection _connection;
   final Map<String, dynamic> _state = {};
 
+  /// Creates a new [ToolContext] instance wrapping the given [connection].
   ToolContext(this._connection);
 
   /// Returns the active connection.
