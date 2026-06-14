@@ -1,8 +1,10 @@
-import 'package:test/test.dart';
-import 'package:mcp_dart/mcp_dart.dart' as mcp;
 import 'package:antigravity/antigravity.dart';
+import 'package:mcp_dart/mcp_dart.dart' as mcp;
+import 'package:test/test.dart';
 
 class UnsupportedMockConfig extends McpServerConfig {
+  UnsupportedMockConfig() : super(name: 'mock-unsupported');
+
   @override
   String get type => 'unsupported_mock_type';
 
@@ -28,12 +30,17 @@ void main() {
       },
     );
 
-    test('Bridge attempts to connect and throws on invalid SSE endpoint', () {
+    test('Bridge attempts to connect and throws on invalid HTTP endpoint', () {
       final bridge = McpBridge();
-      // McpSseServer is now supported and will attempt connection,
+      // McpStreamableHttpServer will attempt connection,
       // throwing a network or host lookup exception for invalid hosts.
       expect(
-        () => bridge.connect(McpSseServer(url: 'http://unsupported')),
+        () => bridge.connect(
+          McpStreamableHttpServer(
+            name: 'unsupported-server',
+            url: 'http://unsupported',
+          ),
+        ),
         throwsException,
       );
     });
@@ -87,7 +94,9 @@ void main() {
           },
         );
 
-        await bridge.connect(McpSseServer(url: 'http://localhost:1234'));
+        await bridge.connect(
+          McpStreamableHttpServer(name: 'math', url: 'http://localhost:1234'),
+        );
 
         expect(bridge.tools, hasLength(1));
         final mcpTool = bridge.tools.first;
@@ -118,7 +127,9 @@ void main() {
         },
       );
 
-      await bridge.connect(McpSseServer(url: 'http://localhost:1234'));
+      await bridge.connect(
+        McpStreamableHttpServer(name: 'math', url: 'http://localhost:1234'),
+      );
       expect(bridge.tools, hasLength(1));
 
       expect(() => bridge.tools.first.handler({}, null), throwsException);
@@ -129,7 +140,9 @@ void main() {
         clientFactory: (impl) => FakeMcpClient(mockTools: []),
       );
 
-      await bridge.connect(McpStdioServer(command: 'echo', args: ['hello']));
+      await bridge.connect(
+        McpStdioServer(name: 'echo-server', command: 'echo', args: ['hello']),
+      );
 
       expect(bridge.tools, isEmpty);
     });
@@ -140,7 +153,10 @@ void main() {
       );
 
       await bridge.connect(
-        McpStreamableHttpServer(url: 'http://localhost:8080'),
+        McpStreamableHttpServer(
+          name: 'http-server',
+          url: 'http://localhost:8080',
+        ),
       );
 
       expect(bridge.tools, isEmpty);
@@ -152,7 +168,9 @@ void main() {
             FakeMcpClient(mockTools: [], shouldThrowOnClose: true),
       );
 
-      await bridge.connect(McpSseServer(url: 'http://localhost:1234'));
+      await bridge.connect(
+        McpStreamableHttpServer(name: 'math', url: 'http://localhost:1234'),
+      );
       // Should handle the error internally and not throw
       await bridge.stop();
     });

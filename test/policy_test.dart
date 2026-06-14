@@ -1,5 +1,5 @@
-import 'package:test/test.dart';
 import 'package:antigravity/antigravity.dart';
+import 'package:test/test.dart';
 
 void main() {
   // ---------------------------------------------------------------------------
@@ -513,6 +513,146 @@ void main() {
       final r = HookResult(allow: false, message: 'blocked');
       expect(r.allow, isFalse);
       expect(r.message, equals('blocked'));
+    });
+  });
+
+  group('MCP Policies and 9-Level Priority', () {
+    final mcpConfig = McpStdioServer(name: 'math', command: 'npx');
+    final mcpConfigAdv = McpStdioServer(name: 'math_advanced', command: 'npx');
+
+    test(
+      'allow(mcpConfig) produces a single wildcard policy in server/* format',
+      () {
+        final policies = allow(mcpConfig);
+        expect(policies, isA<List<Policy>>());
+        final list = policies as List<Policy>;
+        expect(list, hasLength(1));
+        expect(list.first.tool, equals('math/*'));
+        expect(list.first.decision, equals(Decision.approve));
+      },
+    );
+
+    test(
+      'allow(mcpConfig, mcpTools) produces policies in server/tool format',
+      () {
+        final policies = allow(mcpConfig, mcpTools: ['calc', 'multiply']);
+        expect(policies, isA<List<Policy>>());
+        final list = policies as List<Policy>;
+        expect(list, hasLength(2));
+        expect(list[0].tool, equals('math/calc'));
+        expect(list[1].tool, equals('math/multiply'));
+        expect(list[0].name, equals('approve_math_calc'));
+      },
+    );
+
+    test(
+      'deny(mcpConfig, mcpTools) produces policies in server/tool format',
+      () {
+        final policies = deny(mcpConfig, mcpTools: ['calc']);
+        expect(policies, isA<List<Policy>>());
+        final list = policies as List<Policy>;
+        expect(list, hasLength(1));
+        expect(list.first.tool, equals('math/calc'));
+        expect(list.first.decision, equals(Decision.deny));
+      },
+    );
+
+    test(
+      'askUser(mcpConfig, mcpTools) produces policies in server/tool format with handler',
+      () {
+        final policies = askUser(
+          mcpConfig,
+          mcpTools: ['calc'],
+          handler: (_) async => true,
+        );
+        expect(policies, isA<List<Policy>>());
+        final list = policies as List<Policy>;
+        expect(list, hasLength(1));
+        expect(list.first.tool, equals('math/calc'));
+        expect(list.first.decision, equals(Decision.askUser));
+        expect(list.first.askUser, isNotNull);
+      },
+    );
+
+    test(
+      'enforce() throws ArgumentError if MCP policies exist but mcpServers is missing/empty',
+      () {
+        final policies = allow(mcpConfig);
+        expect(
+          () => enforce(policies as List<Policy>),
+          throwsA(isA<ArgumentError>()),
+        );
+      },
+    );
+
+    test('enforce() flattens nested lists of policies', () {
+      final List<dynamic> policies = [
+        allow('read_file'),
+        allow(mcpConfig), // returns List<Policy>
+      ];
+      expect(() => enforce(policies, mcpServers: [mcpConfig]), returnsNormally);
+    });
+
+    test('secure longest-match matching logic for similar prefixes', () async {
+      final policies = [
+        allow(mcpConfig), // math/*
+        deny(mcpConfigAdv), // math_advanced/*
+      ];
+      final hook = enforce(policies, mcpServers: [mcpConfig, mcpConfigAdv]);
+      final ctx = HookContext();
+
+      final result1 = await hook.run(
+        ctx,
+        ToolCall(name: 'mcp_math_advanced_calc'),
+      );
+      expect(result1.allow, isFalse);
+
+      final result2 = await hook.run(ctx, ToolCall(name: 'mcp_math_calc'));
+      expect(result2.allow, isTrue);
+    });
+
+    test('9-level priority: specific allow beats prefix deny', () async {
+      final policies = [
+        allow(
+          mcpConfig,
+          mcpTools: ['calc'],
+        ), // math/calc -> specific allow (level 2)
+        deny(mcpConfig), // math/* -> prefix deny (level 3)
+      ];
+      final hook = enforce(policies, mcpServers: [mcpConfig]);
+      final ctx = HookContext();
+
+      final result1 = await hook.run(ctx, ToolCall(name: 'mcp_math_calc'));
+      expect(result1.allow, isTrue);
+
+      final result2 = await hook.run(ctx, ToolCall(name: 'mcp_math_multiply'));
+      expect(result2.allow, isFalse);
+    });
+
+    test('enforce() rejects invalid types in list', () {
+      final badPolicies1 = [
+        allow('read_file'),
+        ['not_a_policy'],
+      ];
+      expect(
+        () => enforce(badPolicies1, mcpServers: [mcpConfig]),
+        throwsA(isA<ArgumentError>()),
+      );
+
+      final badPolicies2 = [allow('read_file'), 123];
+      expect(
+        () => enforce(badPolicies2, mcpServers: [mcpConfig]),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('unregistered server prefix treated as standard tool', () async {
+      final policies = [allow('math/*')];
+      final hook = enforce(policies, mcpServers: [mcpConfig]);
+      final ctx = HookContext();
+
+      final result = await hook.run(ctx, ToolCall(name: 'mcp_unknown_calc'));
+      expect(result.allow, isTrue); // default open since no policy matches
     });
   });
 }

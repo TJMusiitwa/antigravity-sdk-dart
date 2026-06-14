@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import '../types.dart';
 import 'hooks.dart';
 
@@ -44,38 +45,147 @@ class Policy {
 
 // --- Builder Helpers ---
 
-/// Creates an APPROVE policy for [tool].
-Policy allow(
-  String tool, {
+List<Policy> _mcpPolicies(
+  Decision decision,
+  McpServerConfig mcpConfig,
+  List<String>? mcpTools, {
+  FutureOr<bool> Function(ToolCall toolCall)? when,
+  String name = '',
+  FutureOr<bool> Function(ToolCall toolCall)? handler,
+}) {
+  final server = mcpConfig.name;
+
+  if (mcpTools == null) {
+    final policyName = name.isNotEmpty
+        ? name
+        : '${decision.name.toLowerCase()}_${server}_all';
+    return [
+      Policy(
+        tool: '$server/*',
+        decision: decision,
+        when: when,
+        name: policyName,
+        askUser: handler,
+      ),
+    ];
+  }
+
+  final List<Policy> policies = [];
+  for (final t in mcpTools) {
+    final policyName = name.isNotEmpty
+        ? '${name}_$t'
+        : '${decision.name.toLowerCase()}_${server}_$t';
+    policies.add(
+      Policy(
+        tool: '$server/$t',
+        decision: decision,
+        when: when,
+        name: policyName,
+        askUser: handler,
+      ),
+    );
+  }
+  return policies;
+}
+
+/// Creates an APPROVE policy.
+///
+/// [tool] can be either a [String] tool name, or an [McpServerConfig] to allow tools on that MCP server.
+dynamic allow(
+  dynamic tool, {
+  List<String>? mcpTools,
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
 }) {
-  return Policy(tool: tool, decision: Decision.approve, when: when, name: name);
+  if (tool is String) {
+    if (mcpTools != null) {
+      throw ArgumentError(
+        'mcpTools cannot be specified when tool is a String.',
+      );
+    }
+    return Policy(
+      tool: tool,
+      decision: Decision.approve,
+      when: when,
+      name: name,
+    );
+  } else if (tool is McpServerConfig) {
+    return _mcpPolicies(
+      Decision.approve,
+      tool,
+      mcpTools,
+      when: when,
+      name: name,
+    );
+  } else {
+    throw ArgumentError(
+      'Expected String or McpServerConfig, got ${tool.runtimeType}',
+    );
+  }
 }
 
-/// Creates a DENY policy for [tool].
-Policy deny(
-  String tool, {
+/// Creates a DENY policy.
+///
+/// [tool] can be either a [String] tool name, or an [McpServerConfig] to deny tools on that MCP server.
+dynamic deny(
+  dynamic tool, {
+  List<String>? mcpTools,
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
 }) {
-  return Policy(tool: tool, decision: Decision.deny, when: when, name: name);
+  if (tool is String) {
+    if (mcpTools != null) {
+      throw ArgumentError(
+        'mcpTools cannot be specified when tool is a String.',
+      );
+    }
+    return Policy(tool: tool, decision: Decision.deny, when: when, name: name);
+  } else if (tool is McpServerConfig) {
+    return _mcpPolicies(Decision.deny, tool, mcpTools, when: when, name: name);
+  } else {
+    throw ArgumentError(
+      'Expected String or McpServerConfig, got ${tool.runtimeType}',
+    );
+  }
 }
 
-/// Creates an ASK_USER policy for [tool].
-Policy askUser(
-  String tool, {
+/// Creates an ASK_USER policy.
+///
+/// [tool] can be either a [String] tool name, or an [McpServerConfig] to ask confirmation for tools on that MCP server.
+dynamic askUser(
+  dynamic tool, {
+  List<String>? mcpTools,
   required FutureOr<bool> Function(ToolCall toolCall) handler,
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
 }) {
-  return Policy(
-    tool: tool,
-    decision: Decision.askUser,
-    when: when,
-    askUser: handler,
-    name: name,
-  );
+  if (tool is String) {
+    if (mcpTools != null) {
+      throw ArgumentError(
+        'mcpTools cannot be specified when tool is a String.',
+      );
+    }
+    return Policy(
+      tool: tool,
+      decision: Decision.askUser,
+      when: when,
+      askUser: handler,
+      name: name,
+    );
+  } else if (tool is McpServerConfig) {
+    return _mcpPolicies(
+      Decision.askUser,
+      tool,
+      mcpTools,
+      when: when,
+      name: name,
+      handler: handler,
+    );
+  } else {
+    throw ArgumentError(
+      'Expected String or McpServerConfig, got ${tool.runtimeType}',
+    );
+  }
 }
 
 /// Creates a policy that approves all tool calls without confirmation.
@@ -122,9 +232,6 @@ String _secureNormalizePath(String path) {
     if (dir.existsSync()) {
       return dir.resolveSymbolicLinksSync();
     }
-    // For non-existent paths, use Uri normalization to resolve .. and . segments
-    // File.absolute.path does NOT collapse .. in already-absolute paths on all
-    // platforms; Uri.normalizePath() correctly handles directory traversal.
     final absolutePath = file.absolute.path;
     return Uri.file(absolutePath).normalizePath().toFilePath();
   } catch (_) {
@@ -183,7 +290,11 @@ List<Policy> workspaceOnly(List<String> workspaces) {
   }
 
   return fileTools
-      .map((tool) => deny(tool, when: outsideWorkspace, name: 'workspace_only'))
+      .map(
+        (tool) =>
+            deny(tool, when: outsideWorkspace, name: 'workspace_only')
+                as Policy,
+      )
       .toList();
 }
 
@@ -205,20 +316,89 @@ Policy workspace(String workspacePath) {
 const int _levelSpecificDeny = 0;
 const int _levelSpecificAsk = 1;
 const int _levelSpecificAllow = 2;
-const int _levelWildcardDeny = 3;
-const int _levelWildcardAsk = 4;
-const int _levelWildcardAllow = 5;
+
+const int _levelPrefixDeny = 3;
+const int _levelPrefixAsk = 4;
+const int _levelPrefixAllow = 5;
+
+const int _levelGlobalDeny = 6;
+const int _levelGlobalAsk = 7;
+const int _levelGlobalAllow = 8;
+
+const int _numLevels = 9;
+
+bool _isGlobalWildcard(String tool) => tool == '*';
+
+bool _isPrefixWildcard(String tool) => tool.endsWith('/*');
 
 int _bucketIndex(Policy p) {
-  final isWildcard = p.tool == '*';
+  if (_isGlobalWildcard(p.tool)) {
+    switch (p.decision) {
+      case Decision.deny:
+        return _levelGlobalDeny;
+      case Decision.askUser:
+        return _levelGlobalAsk;
+      case Decision.approve:
+        return _levelGlobalAllow;
+    }
+  }
+  if (_isPrefixWildcard(p.tool)) {
+    switch (p.decision) {
+      case Decision.deny:
+        return _levelPrefixDeny;
+      case Decision.askUser:
+        return _levelPrefixAsk;
+      case Decision.approve:
+        return _levelPrefixAllow;
+    }
+  }
   switch (p.decision) {
     case Decision.deny:
-      return isWildcard ? _levelWildcardDeny : _levelSpecificDeny;
+      return _levelSpecificDeny;
     case Decision.askUser:
-      return isWildcard ? _levelWildcardAsk : _levelSpecificAsk;
+      return _levelSpecificAsk;
     case Decision.approve:
-      return isWildcard ? _levelWildcardAllow : _levelSpecificAllow;
+      return _levelSpecificAllow;
   }
+}
+
+bool _matchesTarget(String policyTool, String callTarget, bool isMcp) {
+  if (policyTool == '*') {
+    return true;
+  }
+
+  if (isMcp) {
+    if (_isPrefixWildcard(policyTool)) {
+      final policyServer = policyTool.substring(0, policyTool.length - 2);
+      final parts = callTarget.split('/');
+      if (parts.isEmpty) return false;
+      final callServer = parts[0];
+      return policyServer == callServer;
+    }
+    return policyTool == callTarget;
+  }
+
+  return policyTool == callTarget;
+}
+
+List<Policy> flattenPolicies(List<dynamic> policies) {
+  final List<Policy> flat = [];
+  for (final p in policies) {
+    if (p is Policy) {
+      flat.add(p);
+    } else if (p is Iterable) {
+      for (final subP in p) {
+        if (subP is Policy) {
+          flat.add(subP);
+        } else {
+          throw ArgumentError('Expected Policy, got ${subP.runtimeType}');
+        }
+      }
+    } else {
+      throw ArgumentError('Expected Policy or Iterable, got ${p.runtimeType}');
+    }
+  }
+  return flat;
 }
 
 /// A security policy decision hook in the Google Antigravity SDK.
@@ -227,9 +407,25 @@ int _bucketIndex(Policy p) {
 /// to determine tool call authorization.
 class PolicyDecideHook extends PreToolCallDecideHook {
   final List<List<Policy>> _buckets;
+  final List<String> _serverNames;
 
   /// Creates a new [PolicyDecideHook] instance.
-  PolicyDecideHook(this._buckets);
+  PolicyDecideHook(this._buckets, {List<String>? serverNames})
+    : _serverNames = List.from(serverNames ?? const [])
+        ..sort((a, b) => b.length.compareTo(a.length));
+
+  MapEntry<String, String>? _parseMcpTool(String toolName) {
+    if (!toolName.startsWith('mcp_')) {
+      return null;
+    }
+    final rest = toolName.substring(4);
+    for (final server in _serverNames) {
+      if (rest.startsWith('${server}_')) {
+        return MapEntry(server, rest.substring(server.length + 1));
+      }
+    }
+    return null;
+  }
 
   @override
   Future<HookResult> run(HookContext context, ToolCall toolCall) async {
@@ -252,7 +448,18 @@ class PolicyDecideHook extends PreToolCallDecideHook {
   }
 
   Future<HookResult?> _evaluatePolicy(Policy p, ToolCall toolCall) async {
-    if (p.tool != '*' && p.tool != toolCall.name) {
+    final mcpInfo = _parseMcpTool(toolCall.name);
+    final String callTarget;
+    final bool isMcp;
+    if (mcpInfo != null) {
+      callTarget = '${mcpInfo.key}/${mcpInfo.value}';
+      isMcp = true;
+    } else {
+      callTarget = toolCall.name;
+      isMcp = false;
+    }
+
+    if (!_matchesTarget(p.tool, callTarget, isMcp)) {
       return null;
     }
 
@@ -297,8 +504,25 @@ class PolicyDecideHook extends PreToolCallDecideHook {
 }
 
 /// Compiles list of Policies into a high-performance PreToolCallDecideHook.
-PreToolCallDecideHook enforce(List<Policy> policies) {
-  for (final p in policies) {
+PreToolCallDecideHook enforce(
+  List<dynamic> policies, {
+  List<McpServerConfig>? mcpServers,
+}) {
+  final flatPolicies = flattenPolicies(policies);
+
+  // Validate MCP policies against mcpServers (Fail-Closed Security Guard)
+  final hasMcpPolicy = flatPolicies.any(
+    (p) => p.tool.contains('/') && p.tool != '*',
+  );
+  if (hasMcpPolicy && (mcpServers == null || mcpServers.isEmpty)) {
+    throw ArgumentError(
+      "MCP policies (containing '/') were detected, but 'mcpServers' was not "
+      "provided to enforce(). You must pass the registered MCP servers to "
+      "enable secure policy matching and prevent silent bypasses.",
+    );
+  }
+
+  for (final p in flatPolicies) {
     if (p.decision == Decision.askUser && p.askUser == null) {
       throw ArgumentError(
         "ASK_USER policy '${p.name.isNotEmpty ? p.name : p.tool}' is missing an ask_user handler.",
@@ -306,10 +530,11 @@ PreToolCallDecideHook enforce(List<Policy> policies) {
     }
   }
 
-  final List<List<Policy>> buckets = List.generate(6, (_) => []);
-  for (final p in policies) {
+  final List<List<Policy>> buckets = List.generate(_numLevels, (_) => []);
+  for (final p in flatPolicies) {
     buckets[_bucketIndex(p)].add(p);
   }
 
-  return PolicyDecideHook(buckets);
+  final serverNames = mcpServers?.map((s) => s.name).toList();
+  return PolicyDecideHook(buckets, serverNames: serverNames);
 }

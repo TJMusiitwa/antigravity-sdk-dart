@@ -18,8 +18,10 @@
 library;
 
 import 'dart:async';
-import 'package:mcp_dart/mcp_dart.dart' hide Tool, Logger;
+
 import 'package:logging/logging.dart';
+import 'package:mcp_dart/mcp_dart.dart' hide Tool, Logger;
+
 import '../tools/tool_runner.dart';
 import '../types/mcp_config.dart';
 
@@ -69,7 +71,7 @@ class McpBridge {
 
   /// Connects to an MCP server based on its configuration type.
   Future<void> connect(McpServerConfig serverCfg) async {
-    final impl = Implementation(name: 'antigravity-dart-sdk', version: '0.0.1');
+    final impl = Implementation(name: 'antigravity-dart-sdk', version: '0.1.3');
     final client = _clientFactory != null
         ? _clientFactory(impl)
         : McpClient(impl);
@@ -82,17 +84,6 @@ class McpBridge {
       );
       transport = StdioClientTransport(
         StdioServerParameters(command: serverCfg.command, args: serverCfg.args),
-      );
-    } else if (serverCfg is McpSseServer) {
-      _logger.info('Connecting to MCP server via SSE: ${serverCfg.url}');
-      final opts = serverCfg.headers != null
-          ? StreamableHttpClientTransportOptions(
-              requestInit: {'headers': serverCfg.headers},
-            )
-          : null;
-      transport = StreamableHttpClientTransport(
-        Uri.parse(serverCfg.url),
-        opts: opts,
       );
     } else if (serverCfg is McpStreamableHttpServer) {
       _logger.info('Connecting to MCP server via HTTP: ${serverCfg.url}');
