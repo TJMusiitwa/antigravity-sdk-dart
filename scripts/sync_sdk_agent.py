@@ -23,27 +23,28 @@ async def main() -> None:
 
     Follow these step-by-step instructions:
     1. Read the commit hash stored in `dart-sdk/.last_synced_python_commit` (create the file if it doesn't exist).
-    2. Read the Python SDK package version number from `python-sdk/pyproject.toml` (under [project] version).
-    3. Synchronize the version number to the Dart SDK package:
-       - Update the version field in `dart-sdk/pubspec.yaml` to match the Python SDK version.
-       - Update the hardcoded version in `dart-sdk/lib/src/mcp/mcp_bridge.dart` (specifically in the Implementation instantiation) to match the Python SDK version.
+    2. Read the current Dart SDK package version number from `dart-sdk/pubspec.yaml` (under version).
+    3. Increment the minor version number of the Dart SDK package (e.g., `0.1.3` -> `0.2.0`).
+    4. Synchronize this new version number to the Dart SDK package:
+       - Update the version field in `dart-sdk/pubspec.yaml` to the new version.
+       - Update the hardcoded version in `dart-sdk/lib/src/mcp/mcp_bridge.dart` (specifically in the Implementation instantiation) to the new version.
        - Prepend a new release entry in `dart-sdk/CHANGELOG.md` with the new version if it is not already documented. The entry must focus on changes and enhancements relevant to the Dart package (e.g., newly translated APIs, Dart-specific improvements, or testing changes) rather than raw Python SDK commit messages or Python-specific updates.
        - Update any version badges (e.g., the pub package badge) in `dart-sdk/README.md` to reflect the new version.
-    4. Check the git history in `python-sdk` (repository located at https://github.com/google-antigravity/antigravity-sdk-python).
-    5. Identify all files under `python-sdk/google/antigravity` (source and tests) modified or added between the tracked commit hash and the current HEAD of `python-sdk`.
-    6. For each modified or new Python file:
+    5. Check the git history in `python-sdk` (repository located at https://github.com/google-antigravity/antigravity-sdk-python).
+    6. Identify all files under `python-sdk/google/antigravity` (source and tests) modified or added between the tracked commit hash and the current HEAD of `python-sdk`.
+    7. For each modified or new Python file:
        - Map the path to the Dart SDK equivalent under `dart-sdk/lib/src` or `dart-sdk/test` (e.g. google/antigravity/agent.py -> lib/src/agent.dart).
        - Translate the Python changes or the new Python file to Dart. Maintain Dart coding patterns, package layout, and use `dart_mappable` serialization where applicable.
        - Translate corresponding Python test files to the native Dart `test` package framework.
-    7. Verify the code:
+    8. Verify the code:
        - Run `dart pub get` inside `dart-sdk`
        - Run `dart run build_runner build --delete-conflicting-outputs` inside `dart-sdk` to regenerate model code.
        - Run `dart format --output=none --set-exit-if-changed .` inside `dart-sdk`.
        - Run `dart analyze --fatal-infos` inside `dart-sdk` to verify zero analysis warnings or errors.
        - Run `dart test` inside `dart-sdk` to verify all unit tests pass successfully.
-    8. If any analysis or tests fail, examine the errors, edit the Dart code to fix the issues, and re-run verification until all checks pass.
-    9. Once everything builds and passes tests successfully, update the contents of `dart-sdk/.last_synced_python_commit` with the latest commit hash of the Python SDK (`python-sdk`).
-    10. Inform me when the task is complete, summarizing which files were translated, which version was synchronized, and what checks were verified.
+    9. If any analysis or tests fail, examine the errors, edit the Dart code to fix the issues, and re-run verification until all checks pass.
+    10. Once everything builds and passes tests successfully, update the contents of `dart-sdk/.last_synced_python_commit` with the latest commit hash of the Python SDK (`python-sdk`).
+    11. Inform me when the task is complete, summarizing which files were translated, which version was synchronized, and what checks were verified.
     """
 
     print("Starting Antigravity SDK Local Agent session...")

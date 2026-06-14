@@ -203,6 +203,16 @@ For detailed information on how to configure and run each example, check out the
 
 ---
 
+## 🏷️ Versioning Strategy
+
+This SDK follows an **independent versioning scheme** to align with Dart ecosystem best practices:
+
+* **Patch Version Bumps (`0.1.x` → `0.1.y`)**: Staged for Dart-specific updates, dependency upgrades, formatting adjustments, or internal bug fixes. These changes are backward-compatible and unique to the Dart SDK implementation.
+* **Minor Version Bumps (`0.1.x` → `0.2.0`)**: Staged for synchronization updates with the upstream Google Antigravity Python SDK. This brings in new features, new protocol layers, or updated backend harness integrations.
+* **Major Version Bumps (`0.x.y` → `1.0.0`)**: Staged for public API breaking changes.
+
+---
+
 ## 📄 License
 
 This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
