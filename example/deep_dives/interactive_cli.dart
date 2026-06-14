@@ -231,6 +231,7 @@ Future<void> main(List<String> args) async {
   // Pirate math tools are served by the external MCP server (mcp_server.dart)
   // via the stdio transport, discovered automatically at agent start.
   final mcpServer = McpStdioServer(
+    name: 'npx',
     command: 'dart',
     args: ['run', _mcpServerPath()],
   );

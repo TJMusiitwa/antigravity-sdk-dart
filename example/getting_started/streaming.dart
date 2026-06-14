@@ -35,8 +35,7 @@ Future<void> main() async {
   await agent.start();
 
   try {
-    const prompt =
-        'Solve this riddle: I speak without a mouth and hear '
+    const prompt = 'Solve this riddle: I speak without a mouth and hear '
         'without ears. I have no body, but I come alive with wind. What am I? '
         'Explain your reasoning.';
     print('  User: $prompt\n');

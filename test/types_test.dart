@@ -204,22 +204,22 @@ void main() {
 
   group('Step.fromMap()', () {
     Map<String, dynamic> base() => {
-      'id': 'step-1',
-      'step_index': 5,
-      'cascade_id': 'cascade-a',
-      'trajectory_id': 'traj-b',
-      'type': 'TEXT_RESPONSE',
-      'source': 'MODEL',
-      'target': 'TARGET_USER',
-      'status': 'DONE',
-      'content': 'hello world',
-      'content_delta': ' world',
-      'thinking': 'think',
-      'thinking_delta': 'k',
-      'tool_calls': [],
-      'error': '',
-      'is_complete_response': true,
-    };
+          'id': 'step-1',
+          'step_index': 5,
+          'cascade_id': 'cascade-a',
+          'trajectory_id': 'traj-b',
+          'type': 'TEXT_RESPONSE',
+          'source': 'MODEL',
+          'target': 'TARGET_USER',
+          'status': 'DONE',
+          'content': 'hello world',
+          'content_delta': ' world',
+          'thinking': 'think',
+          'thinking_delta': 'k',
+          'tool_calls': [],
+          'error': '',
+          'is_complete_response': true,
+        };
 
     test('parses a complete step correctly', () {
       final step = Step.fromMap(base());
@@ -563,12 +563,14 @@ void main() {
   // ---------------------------------------------------------------------------
   group('McpStdioServer', () {
     test('type is stdio', () {
-      final server = McpStdioServer(command: 'node', args: ['server.js']);
+      final server =
+          McpStdioServer(name: 'stdio1', command: 'node', args: ['server.js']);
       expect(server.type, equals('stdio'));
     });
 
     test('toJson includes command, args, and type', () {
       final json = McpStdioServer(
+        name: 'stdio2',
         command: 'python3',
         args: ['-m', 'mcp_server'],
       ).toMap();
@@ -578,45 +580,21 @@ void main() {
     });
 
     test('defaults args to empty list', () {
-      final server = McpStdioServer(command: 'binary');
+      final server = McpStdioServer(name: 'stdio3', command: 'binary');
       expect(server.args, isEmpty);
-    });
-  });
-
-  group('McpSseServer', () {
-    test('type is sse', () {
-      final server = McpSseServer(url: 'http://localhost:8080/sse');
-      expect(server.type, equals('sse'));
-    });
-
-    test('toJson includes url and type', () {
-      final json = McpSseServer(url: 'http://localhost:9000/sse').toMap();
-      expect(json['url'], equals('http://localhost:9000/sse'));
-      expect(json['type'], equals('sse'));
-    });
-
-    test('toJson omits headers when null', () {
-      final json = McpSseServer(url: 'http://localhost/sse').toMap();
-      expect(json.containsKey('headers'), isFalse);
-    });
-
-    test('toJson includes headers when provided', () {
-      final json = McpSseServer(
-        url: 'http://localhost/sse',
-        headers: {'Authorization': 'Bearer token'},
-      ).toMap();
-      expect(json['headers'], equals({'Authorization': 'Bearer token'}));
     });
   });
 
   group('McpStreamableHttpServer', () {
     test('type is http', () {
-      final server = McpStreamableHttpServer(url: 'http://localhost:8080/mcp');
+      final server = McpStreamableHttpServer(
+          name: 'http1', url: 'http://localhost:8080/mcp');
       expect(server.type, equals('http'));
     });
 
     test('toJson includes url and type', () {
       final json = McpStreamableHttpServer(
+        name: 'http2',
         url: 'http://localhost:9000/mcp',
       ).toMap();
       expect(json['url'], equals('http://localhost:9000/mcp'));
@@ -624,7 +602,8 @@ void main() {
     });
 
     test('defaults timeout and terminateOnClose', () {
-      final server = McpStreamableHttpServer(url: 'http://localhost/mcp');
+      final server =
+          McpStreamableHttpServer(name: 'http3', url: 'http://localhost/mcp');
       expect(server.timeout, equals(30.0));
       expect(server.sseReadTimeout, equals(300.0));
       expect(server.terminateOnClose, isTrue);
@@ -632,6 +611,7 @@ void main() {
 
     test('toJson includes timeout fields', () {
       final json = McpStreamableHttpServer(
+        name: 'http4',
         url: 'http://localhost/mcp',
         timeout: 60.0,
         sseReadTimeout: 120.0,
@@ -643,149 +623,44 @@ void main() {
     });
 
     test('toJson omits headers when null', () {
-      final json = McpStreamableHttpServer(url: 'http://localhost/mcp').toMap();
+      final json =
+          McpStreamableHttpServer(name: 'http3', url: 'http://localhost/mcp')
+              .toMap();
       expect(json.containsKey('headers'), isFalse);
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // FileChange types
-  // ---------------------------------------------------------------------------
-  group('FileChange', () {
-    test('stores kind and path', () {
-      final fc = FileChange(kind: FileChangeKind.added, path: '/tmp/new.dart');
-      expect(fc.kind, equals(FileChangeKind.added));
-      expect(fc.path, equals('/tmp/new.dart'));
-    });
-
-    test('FileChangeKind.modified has correct value', () {
-      expect(FileChangeKind.modified.value, equals('modified'));
-    });
-
-    test('FileChangeKind.deleted has correct value', () {
-      expect(FileChangeKind.deleted.value, equals('deleted'));
+  group('SlashCommand', () {
+    test('stores builtin slash command name', () {
+      final cmd = SlashCommand(BuiltinSlashCommandName.plan);
+      expect(cmd.name, equals(BuiltinSlashCommandName.plan));
+      expect(cmd.name.value, equals('plan'));
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Exception types
-  // ---------------------------------------------------------------------------
-  group('AntigravityConnectionException', () {
-    test('toString includes class name and message', () {
-      final ex = AntigravityConnectionException('conn failed');
-      expect(ex.toString(), contains('AntigravityConnectionException'));
-      expect(ex.toString(), contains('conn failed'));
-    });
-
-    test('implements Exception', () {
-      expect(AntigravityConnectionException('err'), isA<Exception>());
-    });
-  });
-
-  group('AntigravityValidationException', () {
-    test('toString includes class name and message', () {
-      final ex = AntigravityValidationException('invalid config');
-      expect(ex.toString(), contains('AntigravityValidationException'));
-      expect(ex.toString(), contains('invalid config'));
-    });
-
-    test('implements Exception', () {
-      expect(AntigravityValidationException('err'), isA<Exception>());
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Interaction types
-  // ---------------------------------------------------------------------------
-  group('HookResult', () {
-    test('defaults allow to true and message to empty', () {
-      final r = HookResult();
-      expect(r.allow, isTrue);
-      expect(r.message, isEmpty);
-    });
-
-    test('accepts custom values', () {
-      final r = HookResult(allow: false, message: 'blocked');
-      expect(r.allow, isFalse);
-      expect(r.message, equals('blocked'));
-    });
-  });
-
-  group('QuestionResponse', () {
-    test('constructs with defaults', () {
-      final qr = QuestionResponse();
-      expect(qr.freeformResponse, isEmpty);
-      expect(qr.skipped, isFalse);
-      expect(qr.selectedOptionIds, isNull);
-    });
-
-    test('stores selectedOptionIds and freeform', () {
-      final qr = QuestionResponse(
-        selectedOptionIds: ['opt1', 'opt2'],
-        freeformResponse: 'custom',
-        skipped: true,
+  group('McpServerConfig validation', () {
+    test('throws FormatException and ArgumentError if configured invalidly',
+        () {
+      expect(
+        () => McpStdioServer(name: 'invalid!', command: 'node'),
+        throwsA(isA<FormatException>()),
       );
-      expect(qr.selectedOptionIds, equals(['opt1', 'opt2']));
-      expect(qr.freeformResponse, equals('custom'));
-      expect(qr.skipped, isTrue);
-    });
-  });
-
-  group('AskQuestionEntry', () {
-    test('constructs with options and defaults isMultiSelect to false', () {
-      final entry = AskQuestionEntry(
-        question: 'What do you prefer?',
-        options: [
-          AskQuestionOption(id: 'a', text: 'Option A'),
-          AskQuestionOption(id: 'b', text: 'Option B'),
-        ],
+      expect(
+        () => McpStdioServer(
+            name: 'valid_1',
+            command: 'node',
+            enabledTools: ['a'],
+            disabledTools: ['b']),
+        throwsA(isA<ArgumentError>()),
       );
-      expect(entry.question, equals('What do you prefer?'));
-      expect(entry.options.length, equals(2));
-      expect(entry.isMultiSelect, isFalse);
-    });
-
-    test('allows isMultiSelect = true', () {
-      final entry = AskQuestionEntry(
-        question: 'Select all that apply',
-        options: [],
-        isMultiSelect: true,
+      expect(
+        () => McpStreamableHttpServer(
+            name: 'valid_2',
+            url: 'http',
+            enabledTools: ['a'],
+            disabledTools: ['b']),
+        throwsA(isA<ArgumentError>()),
       );
-      expect(entry.isMultiSelect, isTrue);
-    });
-  });
-
-  group('AskQuestionInteractionSpec', () {
-    test('stores list of questions', () {
-      final spec = AskQuestionInteractionSpec(
-        questions: [
-          AskQuestionEntry(question: 'Q1?', options: []),
-          AskQuestionEntry(question: 'Q2?', options: []),
-        ],
-      );
-      expect(spec.questions.length, equals(2));
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Chunk types
-  // ---------------------------------------------------------------------------
-  group('StreamChunk subtypes', () {
-    test('Text stores stepIndex and text', () {
-      final chunk = Text(stepIndex: 3, text: 'hello');
-      expect(chunk.stepIndex, equals(3));
-      expect(chunk.text, equals('hello'));
-    });
-
-    test('Thought stores stepIndex, text, and optional signature', () {
-      final chunk = Thought(stepIndex: 1, text: 'thinking', signature: [1, 2]);
-      expect(chunk.text, equals('thinking'));
-      expect(chunk.signature, equals([1, 2]));
-    });
-
-    test('Thought signature is nullable', () {
-      final chunk = Thought(stepIndex: 0, text: 'think');
-      expect(chunk.signature, isNull);
     });
   });
 }

@@ -8,6 +8,11 @@ abstract class McpServerConfig with McpServerConfigMappable {
   McpServerConfig();
   String get type;
 
+  String get name;
+  int? get timeoutSeconds;
+  List<String>? get enabledTools;
+  List<String>? get disabledTools;
+
   static const fromMap = McpServerConfigMapper.fromMap;
   static const fromJson = McpServerConfigMapper.fromJson;
 }
@@ -22,31 +27,37 @@ class McpStdioServer extends McpServerConfig with McpStdioServerMappable {
   final List<String> args;
 
   @override
+  final String name;
+  @override
+  final int? timeoutSeconds;
+  @override
+  final List<String>? enabledTools;
+  @override
+  final List<String>? disabledTools;
+
+  @override
   String get type => 'stdio';
 
-  McpStdioServer({required this.command, List<String>? args})
-    : args = args ?? [];
+  McpStdioServer({
+    required this.name,
+    required this.command,
+    List<String>? args,
+    this.timeoutSeconds,
+    this.enabledTools,
+    this.disabledTools,
+  }) : args = args ?? [] {
+    final nameRegex = RegExp(r'^[a-zA-Z0-9_-]+$');
+    if (!nameRegex.hasMatch(name)) {
+      throw FormatException('Invalid MCP server name: $name');
+    }
+    if (enabledTools != null && disabledTools != null) {
+      throw ArgumentError(
+          "enabledTools and disabledTools should be mutually exclusive.");
+    }
+  }
 
   static const fromMap = McpStdioServerMapper.fromMap;
   static const fromJson = McpStdioServerMapper.fromJson;
-}
-
-@MappableClass(
-  caseStyle: CaseStyle.snakeCase,
-  discriminatorValue: 'sse',
-  ignoreNull: true,
-)
-class McpSseServer extends McpServerConfig with McpSseServerMappable {
-  final String url;
-  final Map<String, String>? headers;
-
-  @override
-  String get type => 'sse';
-
-  McpSseServer({required this.url, this.headers});
-
-  static const fromMap = McpSseServerMapper.fromMap;
-  static const fromJson = McpSseServerMapper.fromJson;
 }
 
 @MappableClass(
@@ -63,15 +74,37 @@ class McpStreamableHttpServer extends McpServerConfig
   final bool terminateOnClose;
 
   @override
+  final String name;
+  @override
+  final int? timeoutSeconds;
+  @override
+  final List<String>? enabledTools;
+  @override
+  final List<String>? disabledTools;
+
+  @override
   String get type => 'http';
 
   McpStreamableHttpServer({
+    required this.name,
     required this.url,
     this.headers,
     this.timeout = 30.0,
     this.sseReadTimeout = 300.0,
     this.terminateOnClose = true,
-  });
+    this.timeoutSeconds,
+    this.enabledTools,
+    this.disabledTools,
+  }) {
+    final nameRegex = RegExp(r'^[a-zA-Z0-9_-]+$');
+    if (!nameRegex.hasMatch(name)) {
+      throw FormatException('Invalid MCP server name: $name');
+    }
+    if (enabledTools != null && disabledTools != null) {
+      throw ArgumentError(
+          "enabledTools and disabledTools should be mutually exclusive.");
+    }
+  }
 
   static const fromMap = McpStreamableHttpServerMapper.fromMap;
   static const fromJson = McpStreamableHttpServerMapper.fromJson;

@@ -146,7 +146,7 @@ final brokenToolWrapper = Tool(
   name: 'brokenTool',
   description: 'A tool that is intentionally broken.',
   schema: {'type': 'object', 'properties': {}},
-  handler: (_, _) async => brokenTool(),
+  handler: (_, __) async => brokenTool(),
 );
 
 // =============================================================================

@@ -515,4 +515,91 @@ void main() {
       expect(r.message, equals('blocked'));
     });
   });
+  group('McpPolicyTest', () {
+    final mcpConfig = McpStdioServer(name: 'math', command: 'npx');
+    final mcpConfigAdv = McpStdioServer(name: 'math_advanced', command: 'npx');
+
+    test('allowMcp produces single wildcard policy in structured target format',
+        () {
+      final policies = allowMcp(mcpConfig);
+      expect(policies.length, equals(1));
+      expect(policies[0].tool, equals('math/*'));
+      expect(policies[0].decision, equals(Decision.approve));
+    });
+
+    test('allowMcp produces policies in server/tool format for specific tools',
+        () {
+      final policies = allowMcp(mcpConfig, mcpTools: ['calc', 'multiply']);
+      expect(policies.length, equals(2));
+      expect(policies[0].tool, equals('math/calc'));
+      expect(policies[1].tool, equals('math/multiply'));
+      expect(policies[0].name, equals('approve_math_calc'));
+    });
+
+    test('denyMcp produces policies in server/tool format', () {
+      final policies = denyMcp(mcpConfig, mcpTools: ['calc']);
+      expect(policies.length, equals(1));
+      expect(policies[0].tool, equals('math/calc'));
+      expect(policies[0].decision, equals(Decision.deny));
+    });
+
+    test('askUserMcp produces policies in server/tool format with handler',
+        () async {
+      bool dummyHandler(ToolCall tc) => true;
+      final policies =
+          askUserMcp(mcpConfig, mcpTools: ['calc'], handler: dummyHandler);
+      expect(policies.length, equals(1));
+      expect(policies[0].tool, equals('math/calc'));
+      expect(policies[0].decision, equals(Decision.askUser));
+      expect(policies[0].askUser, isNotNull);
+    });
+
+    test('builders append tool suffix to custom name for unique logging', () {
+      final policies = allowMcp(mcpConfig, mcpTools: ['calc'], name: 'custom');
+      expect(policies[0].name, equals('custom_calc'));
+    });
+
+    test('enforce fails closed on missing servers', () {
+      final policies = allowMcp(mcpConfig);
+      expect(
+        () => enforce(policies),
+        throwsA(isA<ArgumentError>().having((e) => e.message, 'message',
+            contains("'mcpServers' was not provided to enforce()"))),
+      );
+    });
+
+    test('secure longest match matching', () async {
+      final policies = [
+        ...allowMcp(mcpConfig),
+        ...denyMcp(mcpConfigAdv),
+      ];
+      final hook = enforce(policies, mcpServers: [mcpConfig, mcpConfigAdv]);
+      final ctx = HookContext();
+
+      final tcAdv = ToolCall(name: 'mcp_math_advanced_calc');
+      final resultAdv = await hook.run(ctx, tcAdv);
+      expect(resultAdv.allow, isFalse);
+
+      final tc = ToolCall(name: 'mcp_math_calc');
+      final result = await hook.run(ctx, tc);
+      expect(result.allow, isTrue);
+    });
+
+    test('specific allow beats prefix deny', () async {
+      final policies = [
+        ...allowMcp(mcpConfig, mcpTools: ['calc']),
+        ...denyMcp(mcpConfig),
+      ];
+      final hook = enforce(policies, mcpServers: [mcpConfig]);
+      final ctx = HookContext();
+
+      final tcCalc = ToolCall(name: 'mcp_math_calc');
+      final resultCalc = await hook.run(ctx, tcCalc);
+      expect(resultCalc.allow, isTrue);
+
+      final tcMult = ToolCall(name: 'mcp_math_multiply');
+      final resultMult = await hook.run(ctx, tcMult);
+      expect(resultMult.allow, isFalse);
+    });
+  });
 }

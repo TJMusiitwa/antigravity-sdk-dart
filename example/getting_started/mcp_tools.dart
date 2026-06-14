@@ -52,6 +52,7 @@ Future<void> mcpStdio() async {
       '${scriptDir.path}${Platform.pathSeparator}resources${Platform.pathSeparator}mcp_server.dart';
 
   final stdioServer = McpStdioServer(
+    name: 'math_server',
     command: 'dart',
     args: ['run', mcpServerPath],
   );

@@ -84,8 +84,8 @@ class Agent {
         activeTools = cfg.enabledTools!.toSet();
       } else if (cfg.disabledTools != null) {
         activeTools = BuiltinTools.values.toSet().difference(
-          cfg.disabledTools!.toSet(),
-        );
+              cfg.disabledTools!.toSet(),
+            );
       } else {
         activeTools = BuiltinTools.values.toSet();
       }
@@ -106,7 +106,8 @@ class Agent {
       }
 
       if (activePolicies.isNotEmpty) {
-        _hookRunner!.registerHook(policy.enforce(activePolicies));
+        _hookRunner!.registerHook(
+            policy.enforce(activePolicies, mcpServers: _config.mcpServers));
       }
 
       final allTools = List<Tool>.from(_config.tools);

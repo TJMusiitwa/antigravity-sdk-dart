@@ -101,8 +101,7 @@ final recordFruit = Tool(
 Future<void> main() async {
   final config = LocalAgentConfig(
     tools: [lookupFruitSku, recordFruit],
-    systemInstructions:
-        'You keep track of fruit inventory. To record fruits, '
+    systemInstructions: 'You keep track of fruit inventory. To record fruits, '
         'you MUST first look up the fruit\'s SKU using lookup_fruit_sku, and '
         'then use that SKU with record_fruit.',
     policies: [

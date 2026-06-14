@@ -94,8 +94,7 @@ Future<void> main(List<String> args) async {
   print('Target directory: ${p.relative(targetDir)}');
 
   bool isAllowedMdFile(ToolCall toolCall) {
-    var pathStr =
-        toolCall.canonicalPath ??
+    var pathStr = toolCall.canonicalPath ??
         toolCall.args['path'] ??
         toolCall.args['file_path'] ??
         '';

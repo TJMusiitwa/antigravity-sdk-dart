@@ -77,16 +77,15 @@ abstract class AgentConfig with AgentConfigMappable {
     this.appDataDir,
     this.responseSchema,
     List<String>? skillsPaths,
-  }) : capabilities =
-           capabilities ??
-           CapabilitiesConfig(enabledTools: BuiltinTools.readOnly()),
-       tools = tools ?? const [],
-       policies = policies ?? const [],
-       hooks = hooks ?? const [],
-       triggers = triggers ?? const [],
-       mcpServers = mcpServers ?? const [],
-       workspaces = workspaces ?? const [],
-       skillsPaths = skillsPaths ?? const [];
+  })  : capabilities = capabilities ??
+            CapabilitiesConfig(enabledTools: BuiltinTools.readOnly()),
+        tools = tools ?? const [],
+        policies = policies ?? const [],
+        hooks = hooks ?? const [],
+        triggers = triggers ?? const [],
+        mcpServers = mcpServers ?? const [],
+        workspaces = workspaces ?? const [],
+        skillsPaths = skillsPaths ?? const [];
 
   /// Creates the [ConnectionStrategy] for this configuration.
   ///

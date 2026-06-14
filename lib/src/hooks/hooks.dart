@@ -175,15 +175,15 @@ class HookRunner {
     List<OnToolErrorHook>? onToolErrorHooks,
     List<OnInteractionHook>? onInteractionHooks,
     List<OnCompactionHook>? onCompactionHooks,
-  }) : onSessionStartHooks = onSessionStartHooks ?? [],
-       onSessionEndHooks = onSessionEndHooks ?? [],
-       preTurnHooks = preTurnHooks ?? [],
-       postTurnHooks = postTurnHooks ?? [],
-       preToolCallDecideHooks = preToolCallDecideHooks ?? [],
-       postToolCallHooks = postToolCallHooks ?? [],
-       onToolErrorHooks = onToolErrorHooks ?? [],
-       onInteractionHooks = onInteractionHooks ?? [],
-       onCompactionHooks = onCompactionHooks ?? [];
+  })  : onSessionStartHooks = onSessionStartHooks ?? [],
+        onSessionEndHooks = onSessionEndHooks ?? [],
+        preTurnHooks = preTurnHooks ?? [],
+        postTurnHooks = postTurnHooks ?? [],
+        preToolCallDecideHooks = preToolCallDecideHooks ?? [],
+        postToolCallHooks = postToolCallHooks ?? [],
+        onToolErrorHooks = onToolErrorHooks ?? [],
+        onInteractionHooks = onInteractionHooks ?? [],
+        onCompactionHooks = onCompactionHooks ?? [];
 
   /// Registers a hook dynamically.
   void registerHook(Hook hook) {

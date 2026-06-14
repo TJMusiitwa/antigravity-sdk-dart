@@ -51,6 +51,9 @@ class LocalHarnessProto {
     required String storageDirectory,
     int port = 0,
     String bindAddress = 'localhost',
+    String? clientLanguage,
+    String? clientVersion,
+    String? clientLanguageVersion,
   }) {
     final List<int> bytes = [];
 
@@ -74,6 +77,36 @@ class LocalHarnessProto {
       final strBytes = utf8.encode(bindAddress);
       bytes.addAll(encodeVarint(strBytes.length));
       bytes.addAll(strBytes);
+    }
+
+    // Tag 4: client_info (ClientInfo message, wire type 2)
+    if (clientLanguage != null ||
+        clientVersion != null ||
+        clientLanguageVersion != null) {
+      final List<int> clientInfoBytes = [];
+      if (clientLanguage != null && clientLanguage.isNotEmpty) {
+        clientInfoBytes.addAll(encodeVarint((1 << 3) | 2));
+        final strBytes = utf8.encode(clientLanguage);
+        clientInfoBytes.addAll(encodeVarint(strBytes.length));
+        clientInfoBytes.addAll(strBytes);
+      }
+      if (clientVersion != null && clientVersion.isNotEmpty) {
+        clientInfoBytes.addAll(encodeVarint((2 << 3) | 2));
+        final strBytes = utf8.encode(clientVersion);
+        clientInfoBytes.addAll(encodeVarint(strBytes.length));
+        clientInfoBytes.addAll(strBytes);
+      }
+      if (clientLanguageVersion != null && clientLanguageVersion.isNotEmpty) {
+        clientInfoBytes.addAll(encodeVarint((3 << 3) | 2));
+        final strBytes = utf8.encode(clientLanguageVersion);
+        clientInfoBytes.addAll(encodeVarint(strBytes.length));
+        clientInfoBytes.addAll(strBytes);
+      }
+      if (clientInfoBytes.isNotEmpty) {
+        bytes.addAll(encodeVarint((4 << 3) | 2));
+        bytes.addAll(encodeVarint(clientInfoBytes.length));
+        bytes.addAll(clientInfoBytes);
+      }
     }
 
     return Uint8List.fromList(bytes);

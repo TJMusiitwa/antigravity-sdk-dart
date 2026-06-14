@@ -59,17 +59,17 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
     this.model,
     this.apiKey,
     this.binaryPath,
-  }) : geminiConfig = geminiConfig ?? GeminiConfig(),
-       super(
-         capabilities: capabilities ?? CapabilitiesConfig(),
-         tools: tools ?? [],
-         policies: policies ?? [],
-         hooks: hooks ?? [],
-         triggers: triggers ?? [],
-         mcpServers: mcpServers ?? [],
-         workspaces: workspaces ?? [Directory.current.absolute.path],
-         skillsPaths: skillsPaths ?? [],
-       ) {
+  })  : geminiConfig = geminiConfig ?? GeminiConfig(),
+        super(
+          capabilities: capabilities ?? CapabilitiesConfig(),
+          tools: tools ?? [],
+          policies: policies ?? [],
+          hooks: hooks ?? [],
+          triggers: triggers ?? [],
+          mcpServers: mcpServers ?? [],
+          workspaces: workspaces ?? [Directory.current.absolute.path],
+          skillsPaths: skillsPaths ?? [],
+        ) {
     _validateAndApplyShorthands();
     _applyWorkspacePolicies();
   }
@@ -115,9 +115,8 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
       models: geminiConfig.models.copyWith(defaultModelEntry: effectiveModel),
     );
 
-    final effectiveSaveDir = saveDir != null
-        ? Directory(saveDir!).absolute.path
-        : null;
+    final effectiveSaveDir =
+        saveDir != null ? Directory(saveDir!).absolute.path : null;
 
     return LocalConnectionStrategy(
       binaryPath: binaryPath,

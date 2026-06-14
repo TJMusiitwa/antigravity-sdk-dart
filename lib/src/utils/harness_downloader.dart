@@ -129,8 +129,7 @@ class HarnessDownloader {
     }
 
     // Determine target installation directory
-    final homeDir =
-        Platform.environment['HOME'] ??
+    final homeDir = Platform.environment['HOME'] ??
         Platform.environment['USERPROFILE'] ??
         '.';
     final installDir = Directory(p.join(homeDir, '.antigravity', 'bin'));

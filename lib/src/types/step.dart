@@ -311,9 +311,8 @@ class Step with StepMappable {
 
         final trajId = updatedMap['trajectory_id'] ?? '';
         final stepIdx = updatedMap['step_index'] ?? 0;
-        final callId = trajId.toString().isNotEmpty
-            ? '$trajId:$stepIdx'
-            : '$stepIdx';
+        final callId =
+            trajId.toString().isNotEmpty ? '$trajId:$stepIdx' : '$stepIdx';
 
         toolCalls.add({
           'id': callId,
@@ -367,8 +366,7 @@ class Step with StepMappable {
     // Determine is_complete_response
     final isFromModel = updatedMap['source'] == 'MODEL';
     final isDone = updatedMap['status'] == 'DONE';
-    final hasText =
-        updatedMap['content'] != null &&
+    final hasText = updatedMap['content'] != null &&
         updatedMap['content'].toString().isNotEmpty;
     final isTargetUser =
         updatedMap['target'] == 'TARGET_USER' || updatedMap['target'] == 'user';

@@ -33,25 +33,25 @@ class McpTool extends Tool {
     required Map<String, dynamic> schema,
     required McpClient client,
   }) : super(
-         schema: {
-           'name': name,
-           'description': description,
-           'input_schema': schema,
-         },
-         handler: (args, context) async {
-           final result = await client.callTool(
-             CallToolRequest(name: name, arguments: args),
-           );
-           if (result.isError == true) {
-             throw Exception('MCP tool call "$name" failed');
-           }
-           // Extract text content from MCP result
-           return result.content
-               .whereType<TextContent>()
-               .map((c) => c.text)
-               .join('\n');
-         },
-       );
+          schema: {
+            'name': name,
+            'description': description,
+            'input_schema': schema,
+          },
+          handler: (args, context) async {
+            final result = await client.callTool(
+              CallToolRequest(name: name, arguments: args),
+            );
+            if (result.isError == true) {
+              throw Exception('MCP tool call "$name" failed');
+            }
+            // Extract text content from MCP result
+            return result.content
+                .whereType<TextContent>()
+                .map((c) => c.text)
+                .join('\n');
+          },
+        );
 }
 
 /// Facilitates connecting to external Model Context Protocol (MCP) servers and exposes their tools to the Google Antigravity SDK.
@@ -62,17 +62,16 @@ class McpBridge {
 
   /// Creates a new [McpBridge] instance with an optional [clientFactory].
   McpBridge({McpClient Function(Implementation)? clientFactory})
-    : _clientFactory = clientFactory;
+      : _clientFactory = clientFactory;
 
   /// All tools discovered from all connected MCP servers.
   List<McpTool> get tools => List.unmodifiable(_tools);
 
   /// Connects to an MCP server based on its configuration type.
   Future<void> connect(McpServerConfig serverCfg) async {
-    final impl = Implementation(name: 'antigravity-dart-sdk', version: '0.0.1');
-    final client = _clientFactory != null
-        ? _clientFactory(impl)
-        : McpClient(impl);
+    final impl = Implementation(name: 'antigravity-dart-sdk', version: '0.1.3');
+    final client =
+        _clientFactory != null ? _clientFactory!(impl) : McpClient(impl);
 
     dynamic transport;
 
@@ -82,17 +81,6 @@ class McpBridge {
       );
       transport = StdioClientTransport(
         StdioServerParameters(command: serverCfg.command, args: serverCfg.args),
-      );
-    } else if (serverCfg is McpSseServer) {
-      _logger.info('Connecting to MCP server via SSE: ${serverCfg.url}');
-      final opts = serverCfg.headers != null
-          ? StreamableHttpClientTransportOptions(
-              requestInit: {'headers': serverCfg.headers},
-            )
-          : null;
-      transport = StreamableHttpClientTransport(
-        Uri.parse(serverCfg.url),
-        opts: opts,
       );
     } else if (serverCfg is McpStreamableHttpServer) {
       _logger.info('Connecting to MCP server via HTTP: ${serverCfg.url}');

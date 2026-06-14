@@ -30,10 +30,11 @@ void main() {
 
     test('Bridge attempts to connect and throws on invalid SSE endpoint', () {
       final bridge = McpBridge();
-      // McpSseServer is now supported and will attempt connection,
+      // McpStreamableHttpServer is now supported and will attempt connection,
       // throwing a network or host lookup exception for invalid hosts.
       expect(
-        () => bridge.connect(McpSseServer(url: 'http://unsupported')),
+        () => bridge.connect(McpStreamableHttpServer(
+            name: 'sse_mcp', url: 'http://unsupported')),
         throwsException,
       );
     });
@@ -87,7 +88,8 @@ void main() {
           },
         );
 
-        await bridge.connect(McpSseServer(url: 'http://localhost:1234'));
+        await bridge.connect(McpStreamableHttpServer(
+            name: 'sse_mcp', url: 'http://localhost:1234'));
 
         expect(bridge.tools, hasLength(1));
         final mcpTool = bridge.tools.first;
@@ -118,7 +120,8 @@ void main() {
         },
       );
 
-      await bridge.connect(McpSseServer(url: 'http://localhost:1234'));
+      await bridge.connect(McpStreamableHttpServer(
+          name: 'sse_mcp', url: 'http://localhost:1234'));
       expect(bridge.tools, hasLength(1));
 
       expect(() => bridge.tools.first.handler({}, null), throwsException);
@@ -129,7 +132,8 @@ void main() {
         clientFactory: (impl) => FakeMcpClient(mockTools: []),
       );
 
-      await bridge.connect(McpStdioServer(command: 'echo', args: ['hello']));
+      await bridge.connect(
+          McpStdioServer(name: 'echo', command: 'echo', args: ['hello']));
 
       expect(bridge.tools, isEmpty);
     });
@@ -140,7 +144,7 @@ void main() {
       );
 
       await bridge.connect(
-        McpStreamableHttpServer(url: 'http://localhost:8080'),
+        McpStreamableHttpServer(name: 'sse_mcp', url: 'http://localhost:8080'),
       );
 
       expect(bridge.tools, isEmpty);
@@ -152,7 +156,8 @@ void main() {
             FakeMcpClient(mockTools: [], shouldThrowOnClose: true),
       );
 
-      await bridge.connect(McpSseServer(url: 'http://localhost:1234'));
+      await bridge.connect(McpStreamableHttpServer(
+          name: 'sse_mcp', url: 'http://localhost:1234'));
       // Should handle the error internally and not throw
       await bridge.stop();
     });

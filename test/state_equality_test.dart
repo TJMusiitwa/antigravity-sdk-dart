@@ -63,6 +63,7 @@ void main() {
     test('McpServerConfig parses Stdio correctly', () {
       final map = {
         'type': 'stdio',
+        'name': 'stdio_test',
         'command': 'npx',
         'args': ['-y', '@modelcontextprotocol/server-everything'],
       };
@@ -70,18 +71,6 @@ void main() {
 
       expect(config, isA<McpStdioServer>());
       expect((config as McpStdioServer).command, equals('npx'));
-    });
-
-    test('McpServerConfig parses SSE correctly', () {
-      final map = {
-        'type': 'sse',
-        'url': 'http://localhost:8080/sse',
-        'headers': {'X-Auth': 'Token'},
-      };
-      final config = McpServerConfig.fromMap(map);
-
-      expect(config, isA<McpSseServer>());
-      expect((config as McpSseServer).headers?['X-Auth'], equals('Token'));
     });
 
     test('SystemInstructions polymorphic branching', () {

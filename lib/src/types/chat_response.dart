@@ -11,8 +11,8 @@ class ChatResponse {
   final Conversation? _conversation;
 
   ChatResponse(Stream<dynamic> rawStream, {Conversation? conversation})
-    : _stream = rawStream.asBroadcastStream(),
-      _conversation = conversation {
+      : _stream = rawStream.asBroadcastStream(),
+        _conversation = conversation {
     _stream.listen(
       (chunk) {
         _bufferedChunks.add(chunk);
@@ -105,6 +105,12 @@ class ChatResponse {
   }
 
   /// Blocks until the stream completes and returns the final structured output.
+  Future<void> cancel() async {
+    if (!_isDone) {
+      await _conversation?.cancel();
+    }
+  }
+
   Future<dynamic> structuredOutput() async {
     await text(); // Await full stream consumption
     return _conversation?.lastStructuredOutput;

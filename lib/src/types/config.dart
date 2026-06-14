@@ -44,7 +44,7 @@ class ModelEntry with ModelEntryMappable {
   final GenerationConfig generation;
 
   ModelEntry({required this.name, this.apiKey, GenerationConfig? generation})
-    : generation = generation ?? GenerationConfig();
+      : generation = generation ?? GenerationConfig();
 
   static const fromMap = ModelEntryMapper.fromMap;
   static const fromJson = ModelEntryMapper.fromJson;
@@ -62,10 +62,9 @@ class ModelConfig with ModelConfigMappable {
   ModelConfig({
     ModelEntry? defaultModelEntry,
     ModelEntry? imageGenerationModelEntry,
-  }) : defaultModelEntry = defaultModelEntry ?? ModelEntry(name: defaultModel),
-       imageGenerationModelEntry =
-           imageGenerationModelEntry ??
-           ModelEntry(name: defaultImageGenerationModel);
+  })  : defaultModelEntry = defaultModelEntry ?? ModelEntry(name: defaultModel),
+        imageGenerationModelEntry = imageGenerationModelEntry ??
+            ModelEntry(name: defaultImageGenerationModel);
 
   static const fromMap = ModelConfigMapper.fromMap;
   static const fromJson = ModelConfigMapper.fromJson;
@@ -78,7 +77,7 @@ class GeminiConfig with GeminiConfigMappable {
   final ModelConfig models;
 
   GeminiConfig({this.apiKey, ModelConfig? models})
-    : models = models ?? ModelConfig();
+      : models = models ?? ModelConfig();
 
   static const fromMap = GeminiConfigMapper.fromMap;
   static const fromJson = GeminiConfigMapper.fromJson;

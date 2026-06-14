@@ -224,5 +224,18 @@ class Video extends MediaContent {
 }
 
 /// Union representation of dynamic prompt inputs.
-typedef ContentPrimitive =
-    dynamic; // String, MediaContent, or List<ContentPrimitive>
+typedef ContentPrimitive
+    = dynamic; // String, MediaContent, or List<ContentPrimitive>
+
+enum BuiltinSlashCommandName {
+  plan('plan');
+
+  final String value;
+  const BuiltinSlashCommandName(this.value);
+}
+
+class SlashCommand {
+  final BuiltinSlashCommandName name;
+
+  SlashCommand(this.name);
+}

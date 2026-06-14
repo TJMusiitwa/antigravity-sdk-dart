@@ -25,6 +25,7 @@ class LocalConnectionStrategy extends ConnectionStrategy {
   final String? _saveDir;
   final List<String> _workspaces;
   final String? _appDataDir;
+  final List<McpServerConfig>? _mcpServers;
   final List<String> _skillsPaths;
 
   Process? _process;
@@ -48,17 +49,18 @@ class LocalConnectionStrategy extends ConnectionStrategy {
     String? appDataDir,
     required List<String> skillsPaths,
     List<McpServerConfig>? mcpServers,
-  }) : _configuredBinaryPath = binaryPath,
-       _toolRunner = toolRunner,
-       _hookRunner = hookRunner,
-       _geminiConfig = geminiConfig,
-       _systemInstructions = systemInstructions,
-       _capabilitiesConfig = capabilitiesConfig,
-       _conversationId = conversationId,
-       _saveDir = saveDir,
-       _workspaces = workspaces,
-       _appDataDir = appDataDir,
-       _skillsPaths = skillsPaths;
+  })  : _configuredBinaryPath = binaryPath,
+        _toolRunner = toolRunner,
+        _hookRunner = hookRunner,
+        _geminiConfig = geminiConfig,
+        _systemInstructions = systemInstructions,
+        _capabilitiesConfig = capabilitiesConfig,
+        _conversationId = conversationId,
+        _saveDir = saveDir,
+        _workspaces = workspaces,
+        _appDataDir = appDataDir,
+        _skillsPaths = skillsPaths,
+        _mcpServers = mcpServers;
 
   @override
   Connection connect() {
@@ -93,6 +95,9 @@ class LocalConnectionStrategy extends ConnectionStrategy {
     // 4. Send standard input handshake payload
     final inputConfigBytes = LocalHarnessProto.encodeInputConfig(
       storageDirectory: _saveDir ?? '',
+      clientLanguage: 'dart',
+      clientVersion: '0.1.3',
+      clientLanguageVersion: Platform.version,
     );
     final packedMessage = LocalHarnessProto.packMessage(inputConfigBytes);
     _process!.stdin.add(packedMessage);
@@ -133,9 +138,8 @@ class LocalConnectionStrategy extends ConnectionStrategy {
         attempt++;
         if (attempt >= maxRetries) {
           _process!.kill();
-          final stderrText = await _process!.stderr
-              .transform(utf8.decoder)
-              .join();
+          final stderrText =
+              await _process!.stderr.transform(utf8.decoder).join();
           throw Exception(
             'Failed to connect to WebSocket at $wsUrl after $maxRetries attempts. Stderr: $stderrText. Error: $e',
           );
@@ -211,11 +215,7 @@ class LocalConnectionStrategy extends ConnectionStrategy {
       if (_geminiConfig.models.defaultModelEntry.generation.thinkingLevel !=
           null)
         'thinking_level': _geminiConfig
-            .models
-            .defaultModelEntry
-            .generation
-            .thinkingLevel!
-            .value,
+            .models.defaultModelEntry.generation.thinkingLevel!.value,
     };
 
     final workspacesProto = _workspaces
@@ -225,6 +225,31 @@ class LocalConnectionStrategy extends ConnectionStrategy {
           },
         )
         .toList();
+
+    final List<Map<String, dynamic>> mcpServersProto = [];
+    if (_mcpServers != null) {
+      for (final serverCfg in _mcpServers!) {
+        final serverMap = <String, dynamic>{
+          'name': serverCfg.name,
+          'enabled_tools': serverCfg.enabledTools ?? [],
+          'disabled_tools': serverCfg.disabledTools ?? [],
+          'timeout_seconds': serverCfg.timeoutSeconds ?? 0,
+        };
+
+        if (serverCfg is McpStdioServer) {
+          serverMap['stdio'] = {
+            'command': serverCfg.command,
+            'args': serverCfg.args,
+          };
+        } else if (serverCfg is McpStreamableHttpServer) {
+          serverMap['http'] = {
+            'url': serverCfg.url,
+            'headers': serverCfg.headers ?? {},
+          };
+        }
+        mcpServersProto.add(serverMap);
+      }
+    }
 
     final cfg = _capabilitiesConfig;
 
@@ -275,6 +300,7 @@ class LocalConnectionStrategy extends ConnectionStrategy {
       'compaction_threshold': cfg.compactionThreshold ?? 0,
       'finish_tool_schema_json': cfg.finishToolSchemaJson ?? '',
       'app_data_dir': _appDataDir ?? '',
+      'mcp_servers': mcpServersProto,
     };
   }
 }
@@ -365,10 +391,10 @@ class LocalConnection extends Connection {
     required WebSocket ws,
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
-  }) : _process = process,
-       _ws = ws,
-       _toolRunner = toolRunner,
-       _hookRunner = hookRunner;
+  })  : _process = process,
+        _ws = ws,
+        _toolRunner = toolRunner,
+        _hookRunner = hookRunner;
 
   void _safeAdd(Step step) {
     if (_disconnecting || _stepController.isClosed) return;
@@ -385,12 +411,12 @@ class LocalConnection extends Connection {
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .listen((line) {
-          _stderrLines.add(line);
-          if (_stderrLines.length > 50) {
-            _stderrLines.removeAt(0);
-          }
-          _logger.fine('[Harness Stderr] $line');
-        }, cancelOnError: false);
+      _stderrLines.add(line);
+      if (_stderrLines.length > 50) {
+        _stderrLines.removeAt(0);
+      }
+      _logger.fine('[Harness Stderr] $line');
+    }, cancelOnError: false);
   }
 
   void _startReaderLoop() {
@@ -628,6 +654,10 @@ class LocalConnection extends Connection {
 
     if (prompt is String) {
       parts.add({'text': prompt});
+    } else if (prompt is SlashCommand) {
+      parts.add({
+        'slash_command': {'name': prompt.name.value}
+      });
     } else if (prompt is MediaContent) {
       parts.add({
         'media': {
@@ -640,6 +670,10 @@ class LocalConnection extends Connection {
       for (final p in prompt) {
         if (p is String) {
           parts.add({'text': p});
+        } else if (p is SlashCommand) {
+          parts.add({
+            'slash_command': {'name': p.name.value}
+          });
         } else if (p is MediaContent) {
           parts.add({
             'media': {

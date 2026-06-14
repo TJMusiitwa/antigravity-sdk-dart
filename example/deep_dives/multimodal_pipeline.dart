@@ -94,8 +94,7 @@ Future<void> main() async {
     ],
   );
 
-  const prompt =
-      "Generate an image of a white and orange Birman cat sitting "
+  const prompt = "Generate an image of a white and orange Birman cat sitting "
       "in front of a fish-shaped birthday cake with lit candles. "
       "Name it 'birman_birthday'.";
   print('>>> $prompt\n');
