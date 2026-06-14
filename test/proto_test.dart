@@ -1,5 +1,5 @@
-import 'package:test/test.dart';
 import 'package:antigravity/src/connections/local/localharness_proto.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('LocalHarnessProto – Varint Encoding', () {
@@ -133,6 +133,19 @@ void main() {
         bindAddress: '127.0.0.1',
       );
       expect(bytes.isNotEmpty, isTrue);
+    });
+
+    test('encodes client_info as tag 4 (wire type 2)', () {
+      final bytes = LocalHarnessProto.encodeInputConfig(
+        storageDirectory: '/tmp/storage',
+        port: 0,
+        bindAddress: 'localhost',
+        clientLanguage: 'dart',
+        clientVersion: '0.1.3',
+        clientLanguageVersion: '3.11.5',
+      );
+      // Tag 4 wire type 2 key: (4 << 3) | 2 = 34 = 0x22
+      expect(bytes.contains(0x22), isTrue);
     });
 
     test('encodes storage_directory as tag 1 (wire type 2)', () {

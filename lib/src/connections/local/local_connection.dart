@@ -2,14 +2,16 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:logging/logging.dart';
 import 'package:web_socket_channel/status.dart' as status;
+
+import '../../hooks/hooks.dart';
+import '../../tools/tool_runner.dart';
 import '../../types.dart';
 import '../../utils/binary_discovery.dart';
 import '../connection.dart';
 import 'localharness_proto.dart';
-import '../../hooks/hooks.dart';
-import '../../tools/tool_runner.dart';
 
 final _logger = Logger('antigravity.connection.local');
 
@@ -26,6 +28,7 @@ class LocalConnectionStrategy extends ConnectionStrategy {
   final List<String> _workspaces;
   final String? _appDataDir;
   final List<String> _skillsPaths;
+  final List<McpServerConfig> _mcpServers;
 
   Process? _process;
   WebSocket? _ws;
@@ -58,7 +61,8 @@ class LocalConnectionStrategy extends ConnectionStrategy {
        _saveDir = saveDir,
        _workspaces = workspaces,
        _appDataDir = appDataDir,
-       _skillsPaths = skillsPaths;
+       _skillsPaths = skillsPaths,
+       _mcpServers = mcpServers ?? const [];
 
   @override
   Connection connect() {
@@ -71,13 +75,27 @@ class LocalConnectionStrategy extends ConnectionStrategy {
   @override
   Future<void> start() async {
     // 1. Fail fast if no API key is available
+    final useVertex = _geminiConfig.vertex;
     final apiKey =
         _geminiConfig.apiKey ?? Platform.environment['GEMINI_API_KEY'];
-    if (apiKey == null || apiKey.isEmpty) {
+    if (!useVertex && (apiKey == null || apiKey.isEmpty)) {
       throw AntigravityValidationException(
         'A Gemini API key is required. Set it via GeminiConfig(apiKey: ...) '
         'or the GEMINI_API_KEY environment variable.',
       );
+    }
+    if (useVertex) {
+      final project = _geminiConfig.project;
+      final location = _geminiConfig.location;
+      if (apiKey == null &&
+          (project == null ||
+              project.isEmpty ||
+              location == null ||
+              location.isEmpty)) {
+        throw AntigravityValidationException(
+          'For Vertex AI, either a GCP project and location, or an API key (Express Mode) must be set.',
+        );
+      }
     }
 
     // 2. Discover the binary path dynamically
@@ -93,6 +111,9 @@ class LocalConnectionStrategy extends ConnectionStrategy {
     // 4. Send standard input handshake payload
     final inputConfigBytes = LocalHarnessProto.encodeInputConfig(
       storageDirectory: _saveDir ?? '',
+      clientLanguage: 'dart',
+      clientVersion: '0.1.3',
+      clientLanguageVersion: Platform.version,
     );
     final packedMessage = LocalHarnessProto.packMessage(inputConfigBytes);
     _process!.stdin.add(packedMessage);
@@ -178,7 +199,7 @@ class LocalConnectionStrategy extends ConnectionStrategy {
     _process = null;
   }
 
-  Map<String, dynamic> _buildHarnessConfig(String apiKey) {
+  Map<String, dynamic> _buildHarnessConfig(String? apiKey) {
     // Generate tool schemas from dynamic functions registered in L2
     final List<Map<String, dynamic>> toolsProtos = [];
     for (final name in _toolRunner.tools.keys) {
@@ -207,7 +228,10 @@ class LocalConnectionStrategy extends ConnectionStrategy {
 
     final geminiConfigProto = {
       'model_name': _geminiConfig.models.defaultModelEntry.name,
-      'api_key': apiKey,
+      'api_key': apiKey ?? '',
+      'use_vertex': _geminiConfig.vertex,
+      if (_geminiConfig.project != null) 'project': _geminiConfig.project,
+      if (_geminiConfig.location != null) 'location': _geminiConfig.location,
       if (_geminiConfig.models.defaultModelEntry.generation.thinkingLevel !=
           null)
         'thinking_level': _geminiConfig
@@ -264,6 +288,22 @@ class LocalConnectionStrategy extends ConnectionStrategy {
       },
     };
 
+    final List<Map<String, dynamic>> mcpServersProto = [];
+    for (final s in _mcpServers) {
+      final Map<String, dynamic> item = {
+        'name': s.name,
+        'enabled_tools': s.enabledTools ?? const [],
+        'disabled_tools': s.disabledTools ?? const [],
+        'timeout_seconds': s.timeoutSeconds ?? 0,
+      };
+      if (s is McpStdioServer) {
+        item['stdio'] = {'command': s.command, 'args': s.args};
+      } else if (s is McpStreamableHttpServer) {
+        item['http'] = {'url': s.url, 'headers': s.headers ?? const {}};
+      }
+      mcpServersProto.add(item);
+    }
+
     return {
       'cascade_id': _conversationId ?? '',
       'tools': toolsProtos,
@@ -275,6 +315,7 @@ class LocalConnectionStrategy extends ConnectionStrategy {
       'compaction_threshold': cfg.compactionThreshold ?? 0,
       'finish_tool_schema_json': cfg.finishToolSchemaJson ?? '',
       'app_data_dir': _appDataDir ?? '',
+      'mcp_servers': mcpServersProto,
     };
   }
 }
@@ -628,6 +669,10 @@ class LocalConnection extends Connection {
 
     if (prompt is String) {
       parts.add({'text': prompt});
+    } else if (prompt is SlashCommand) {
+      parts.add({
+        'slash_command': {'name': prompt.name.value},
+      });
     } else if (prompt is MediaContent) {
       parts.add({
         'media': {
@@ -640,6 +685,10 @@ class LocalConnection extends Connection {
       for (final p in prompt) {
         if (p is String) {
           parts.add({'text': p});
+        } else if (p is SlashCommand) {
+          parts.add({
+            'slash_command': {'name': p.name.value},
+          });
         } else if (p is MediaContent) {
           parts.add({
             'media': {

@@ -41,16 +41,54 @@ class LocalHarnessProto {
     return result;
   }
 
+  static List<int> _encodeClientInfo(
+    String language,
+    String version,
+    String languageVersion,
+  ) {
+    final List<int> bytes = [];
+
+    // Tag 1: language (string, wire type 2)
+    if (language.isNotEmpty) {
+      bytes.addAll(encodeVarint((1 << 3) | 2));
+      final strBytes = utf8.encode(language);
+      bytes.addAll(encodeVarint(strBytes.length));
+      bytes.addAll(strBytes);
+    }
+
+    // Tag 2: version (string, wire type 2)
+    if (version.isNotEmpty) {
+      bytes.addAll(encodeVarint((2 << 3) | 2));
+      final strBytes = utf8.encode(version);
+      bytes.addAll(encodeVarint(strBytes.length));
+      bytes.addAll(strBytes);
+    }
+
+    // Tag 3: language_version (string, wire type 2)
+    if (languageVersion.isNotEmpty) {
+      bytes.addAll(encodeVarint((3 << 3) | 2));
+      final strBytes = utf8.encode(languageVersion);
+      bytes.addAll(encodeVarint(strBytes.length));
+      bytes.addAll(strBytes);
+    }
+
+    return bytes;
+  }
+
   /// Encodes the `InputConfig` message as a Protobuf binary payload.
   ///
   /// `InputConfig` fields:
   /// - `storage_directory` (string, tag 1)
   /// - `port` (uint32, tag 2)
   /// - `bind_address` (string, tag 3, default "localhost")
+  /// - `client_info` (ClientInfo message, tag 4)
   static Uint8List encodeInputConfig({
     required String storageDirectory,
     int port = 0,
     String bindAddress = 'localhost',
+    String? clientLanguage,
+    String? clientVersion,
+    String? clientLanguageVersion,
   }) {
     final List<int> bytes = [];
 
@@ -74,6 +112,20 @@ class LocalHarnessProto {
       final strBytes = utf8.encode(bindAddress);
       bytes.addAll(encodeVarint(strBytes.length));
       bytes.addAll(strBytes);
+    }
+
+    // Tag 4: client_info (message, wire type 2)
+    if (clientLanguage != null &&
+        clientVersion != null &&
+        clientLanguageVersion != null) {
+      final infoBytes = _encodeClientInfo(
+        clientLanguage,
+        clientVersion,
+        clientLanguageVersion,
+      );
+      bytes.addAll(encodeVarint((4 << 3) | 2));
+      bytes.addAll(encodeVarint(infoBytes.length));
+      bytes.addAll(infoBytes);
     }
 
     return Uint8List.fromList(bytes);

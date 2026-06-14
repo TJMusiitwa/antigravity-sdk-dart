@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'connections/connection.dart';
 import 'conversation/conversation.dart';
 import 'hooks/hooks.dart';
 import 'hooks/policy.dart' as policy;
-import 'mcp/mcp_bridge.dart';
 import 'tools/tool_context.dart';
 import 'tools/tool_runner.dart';
 import 'triggers/trigger_runner.dart';
@@ -22,7 +22,6 @@ class Agent {
   ToolRunner? _toolRunner;
   HookRunner? _hookRunner;
   TriggerRunner? _triggerRunner;
-  McpBridge? _mcpBridge;
 
   final List<Hook> _pendingHooks = [];
   final List<Trigger> _pendingTriggers = [];
@@ -106,19 +105,12 @@ class Agent {
       }
 
       if (activePolicies.isNotEmpty) {
-        _hookRunner!.registerHook(policy.enforce(activePolicies));
+        _hookRunner!.registerHook(
+          policy.enforce(activePolicies, mcpServers: _config.mcpServers),
+        );
       }
 
       final allTools = List<Tool>.from(_config.tools);
-
-      // Connect MCP servers and collect their tools
-      if (_config.mcpServers.isNotEmpty) {
-        _mcpBridge = McpBridge();
-        for (final serverCfg in _config.mcpServers) {
-          await _mcpBridge!.connect(serverCfg);
-        }
-        allTools.addAll(_mcpBridge!.tools);
-      }
 
       _toolRunner = ToolRunner(tools: allTools);
 
@@ -168,10 +160,6 @@ class Agent {
     if (_strategy != null) {
       await _strategy!.stop();
       _strategy = null;
-    }
-    if (_mcpBridge != null) {
-      await _mcpBridge!.stop();
-      _mcpBridge = null;
     }
   }
 

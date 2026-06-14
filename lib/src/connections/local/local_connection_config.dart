@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:dart_mappable/dart_mappable.dart';
+
+import '../../hooks/hooks.dart';
 import '../../hooks/policy.dart';
+import '../../tools/tool_runner.dart';
+import '../../triggers/triggers.dart';
 import '../../types.dart';
 import '../connection.dart';
 import 'local_connection.dart';
-import '../../hooks/hooks.dart';
-import '../../tools/tool_runner.dart';
-import '../../triggers/triggers.dart';
 
 part 'local_connection_config.mapper.dart';
 
@@ -37,6 +39,15 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
   /// Shorthand option to override the Gemini API key.
   final String? apiKey;
 
+  /// Shorthand option to enable Vertex AI.
+  final bool? vertex;
+
+  /// Shorthand option to set Vertex AI GCP project.
+  final String? project;
+
+  /// Shorthand option to set Vertex AI location.
+  final String? location;
+
   /// Shorthand option to override the default localharness binary path.
   final String? binaryPath;
 
@@ -45,7 +56,7 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
     super.systemInstructions,
     CapabilitiesConfig? capabilities,
     List<Tool>? tools,
-    List<Policy>? policies,
+    super.policies,
     List<Hook>? hooks,
     List<Trigger>? triggers,
     List<McpServerConfig>? mcpServers,
@@ -58,12 +69,14 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
     GeminiConfig? geminiConfig,
     this.model,
     this.apiKey,
+    this.vertex,
+    this.project,
+    this.location,
     this.binaryPath,
   }) : geminiConfig = geminiConfig ?? GeminiConfig(),
        super(
          capabilities: capabilities ?? CapabilitiesConfig(),
          tools: tools ?? [],
-         policies: policies ?? [],
          hooks: hooks ?? [],
          triggers: triggers ?? [],
          mcpServers: mcpServers ?? [],
@@ -112,6 +125,9 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
 
     final effectiveGeminiConfig = geminiConfig.copyWith(
       apiKey: effectiveApiKey,
+      vertex: vertex ?? geminiConfig.vertex,
+      project: project ?? geminiConfig.project,
+      location: location ?? geminiConfig.location,
       models: geminiConfig.models.copyWith(defaultModelEntry: effectiveModel),
     );
 

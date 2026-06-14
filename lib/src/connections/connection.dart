@@ -1,10 +1,12 @@
 import 'dart:async';
+
 import 'package:dart_mappable/dart_mappable.dart';
-import '../types.dart';
+
 import '../hooks/hooks.dart';
 import '../hooks/policy.dart';
 import '../tools/tool_runner.dart';
 import '../triggers/triggers.dart';
+import '../types.dart';
 
 part 'connection.mapper.dart';
 
@@ -67,7 +69,7 @@ abstract class AgentConfig with AgentConfigMappable {
     this.systemInstructions,
     CapabilitiesConfig? capabilities,
     List<Tool>? tools,
-    List<Policy>? policies,
+    List<dynamic>? policies,
     List<Hook>? hooks,
     List<Trigger>? triggers,
     List<McpServerConfig>? mcpServers,
@@ -81,7 +83,7 @@ abstract class AgentConfig with AgentConfigMappable {
            capabilities ??
            CapabilitiesConfig(enabledTools: BuiltinTools.readOnly()),
        tools = tools ?? const [],
-       policies = policies ?? const [],
+       policies = flattenPolicies(policies ?? const []),
        hooks = hooks ?? const [],
        triggers = triggers ?? const [],
        mcpServers = mcpServers ?? const [],
