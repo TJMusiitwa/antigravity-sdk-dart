@@ -190,19 +190,91 @@ Future<void> runInteractiveLoop(Agent agent) async {
         break;
       }
 
-      final response = await agent.chat(userInput);
-      stdout.write("Agent: ");
-      await for (final chunk in response.chunks) {
-        if (chunk is Text) {
-          stdout.write(chunk.text);
+      await agent.conversation.send(userInput);
+
+      final spinner = Spinner(message: "Thinking...");
+      spinner.start();
+
+      Step? finalStep;
+      await for (final step in agent.conversation.receiveSteps()) {
+        if (step.type == StepType.toolCall) {
+          final toolName = step.toolCalls.isNotEmpty
+              ? step.toolCalls.first.name
+              : "tool";
+          spinner.update("Running tool '$toolName'...");
+        } else if (step.type == StepType.compaction) {
+          spinner.update("Compacting context...");
+        } else if (step.source == StepSource.model &&
+            step.thinkingDelta.isNotEmpty) {
+          spinner.update("Reasoning...");
+        }
+
+        if (step.isCompleteResponse == true) {
+          finalStep = step;
+          break;
         }
       }
-      print("");
+
+      spinner.stop();
+
+      if (finalStep != null) {
+        print("Agent: ${finalStep.content}");
+      }
     } on OSError catch (_) {
       print("\nGoodbye!");
       break;
     } catch (e) {
       print("Error: $e");
     }
+  }
+}
+
+/// A lightweight terminal spinner for async processing feedback.
+class Spinner {
+  String _currentMessage;
+  bool _running = false;
+  Timer? _timer;
+  final List<String> _frames = [
+    "⠋",
+    "⠙",
+    "⠹",
+    "⠸",
+    "⠼",
+    "⠴",
+    "⠦",
+    "⠧",
+    "⠇",
+    "⠏",
+  ];
+  final bool _enabled;
+
+  Spinner({String message = "Thinking..."})
+    : _currentMessage = message,
+      _enabled = stdout.hasTerminal;
+
+  void update(String message) {
+    _currentMessage = message;
+  }
+
+  void start() {
+    if (!_enabled) return;
+    _running = true;
+    int idx = 0;
+    _timer = Timer.periodic(const Duration(milliseconds: 80), (timer) {
+      if (!_running) {
+        timer.cancel();
+        return;
+      }
+      stdout.write("\r\x1b[K${_frames[idx]} $_currentMessage");
+      idx = (idx + 1) % _frames.length;
+    });
+  }
+
+  void stop() {
+    if (!_enabled) return;
+    _running = false;
+    _timer?.cancel();
+    _timer = null;
+    stdout.write("\r\x1b[K");
   }
 }
