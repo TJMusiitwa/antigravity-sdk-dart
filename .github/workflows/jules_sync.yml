@@ -47,14 +47,20 @@ jobs:
             Synchronize updates from the Python SDK repository (https://github.com/google-antigravity/antigravity-sdk-python) to this Dart SDK repository.
 
             Follow these step-by-step instructions:
-            1. Read the commit hash stored in `.last_synced_python_commit` in the root of the repository.
+            1. Read the commit hash stored in `.last_synced_python_commit` in the root of the repository (create the file if it doesn't exist).
             2. Clone the Python SDK repository: `https://github.com/google-antigravity/antigravity-sdk-python`.
-            3. Identify all files under `google/antigravity` (source code and test files) that have been modified, added, or deleted between the commit recorded in `.last_synced_python_commit` and the current `HEAD` of the Python SDK repository.
-            4. For each modified/new Python source file:
+            3. Read the Python SDK package version number from `pyproject.toml` (under [project] version) in the cloned Python repository.
+            4. Synchronize the version number to the Dart SDK package:
+               - Update the version field in `pubspec.yaml` to match the Python SDK version.
+               - Update the hardcoded version in `lib/src/mcp/mcp_bridge.dart` (specifically in the Implementation instantiation) to match the Python SDK version.
+               - Prepend a new release entry in `CHANGELOG.md` with the new version if it is not already documented. The entry must focus on changes and enhancements relevant to the Dart package (e.g., newly translated APIs, Dart-specific improvements, or testing changes) rather than raw Python SDK commit messages or Python-specific updates.
+               - Update any version badges (e.g., the pub package badge) in `README.md` to reflect the new version.
+            5. Identify all files under `google/antigravity` (source code and test files) that have been modified, added, or deleted between the commit recorded in `.last_synced_python_commit` and the current `HEAD` of the Python SDK repository.
+            6. For each modified/new Python source file:
                - Map the module name to the corresponding Dart file in `lib/src/` (e.g., `google/antigravity/agent.py` -> `lib/src/agent.dart`, `google/antigravity/conversation/conversation.py` -> `lib/src/conversation/conversation.dart`).
                - Translate the Python changes or the new Python file to Dart, maintaining consistency with existing Dart code, typing conventions, imports, and package structures.
                - Use the `dart_mappable` package for model generation/serialization where applicable (look at existing classes in `lib/src/types` and `lib/src/types.dart` for patterns).
-            5. For each modified/new Python test file:
+            7. For each modified/new Python test file:
                - Map it to a corresponding Dart test file under `test/` (e.g., `google/antigravity/agent_test.py` -> `test/agent_test.dart`).
                - Translate the python tests (pytest or unittest style) to the native Dart `test` framework.
 
