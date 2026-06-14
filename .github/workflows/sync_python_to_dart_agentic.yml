@@ -1,9 +1,9 @@
 name: Sync Python SDK to Dart (Antigravity SDK Agent)
 
 on:
-  schedule:
-    # Run weekly at midnight on Sunday
-    - cron: '0 0 * * 0'
+  # schedule:
+  #   # Run weekly at midnight on Sunday
+  #   - cron: '0 0 * * 0'
   workflow_dispatch:
 
 jobs:
