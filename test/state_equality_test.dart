@@ -1,5 +1,5 @@
-import 'package:test/test.dart';
 import 'package:antigravity/antigravity.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('State Equality & Copying (dart_mappable)', () {
@@ -63,6 +63,7 @@ void main() {
     test('McpServerConfig parses Stdio correctly', () {
       final map = {
         'type': 'stdio',
+        'name': 'std-srv',
         'command': 'npx',
         'args': ['-y', '@modelcontextprotocol/server-everything'],
       };
@@ -72,16 +73,20 @@ void main() {
       expect((config as McpStdioServer).command, equals('npx'));
     });
 
-    test('McpServerConfig parses SSE correctly', () {
+    test('McpServerConfig parses HTTP correctly', () {
       final map = {
-        'type': 'sse',
-        'url': 'http://localhost:8080/sse',
+        'type': 'http',
+        'name': 'http-srv',
+        'url': 'http://localhost:8080/mcp',
         'headers': {'X-Auth': 'Token'},
       };
       final config = McpServerConfig.fromMap(map);
 
-      expect(config, isA<McpSseServer>());
-      expect((config as McpSseServer).headers?['X-Auth'], equals('Token'));
+      expect(config, isA<McpStreamableHttpServer>());
+      expect(
+        (config as McpStreamableHttpServer).headers?['X-Auth'],
+        equals('Token'),
+      );
     });
 
     test('SystemInstructions polymorphic branching', () {

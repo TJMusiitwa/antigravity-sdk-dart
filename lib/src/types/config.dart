@@ -75,10 +75,18 @@ class ModelConfig with ModelConfigMappable {
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class GeminiConfig with GeminiConfigMappable {
   final String? apiKey;
+  final bool vertex;
+  final String? project;
+  final String? location;
   final ModelConfig models;
 
-  GeminiConfig({this.apiKey, ModelConfig? models})
-    : models = models ?? ModelConfig();
+  GeminiConfig({
+    this.apiKey,
+    this.vertex = false,
+    this.project,
+    this.location,
+    ModelConfig? models,
+  }) : models = models ?? ModelConfig();
 
   static const fromMap = GeminiConfigMapper.fromMap;
   static const fromJson = GeminiConfigMapper.fromJson;

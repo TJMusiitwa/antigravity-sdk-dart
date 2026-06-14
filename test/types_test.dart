@@ -563,60 +563,44 @@ void main() {
   // ---------------------------------------------------------------------------
   group('McpStdioServer', () {
     test('type is stdio', () {
-      final server = McpStdioServer(command: 'node', args: ['server.js']);
+      final server = McpStdioServer(
+        name: 'node-server',
+        command: 'node',
+        args: ['server.js'],
+      );
       expect(server.type, equals('stdio'));
     });
 
     test('toJson includes command, args, and type', () {
       final json = McpStdioServer(
+        name: 'py-server',
         command: 'python3',
         args: ['-m', 'mcp_server'],
       ).toMap();
+      expect(json['name'], equals('py-server'));
       expect(json['command'], equals('python3'));
       expect(json['args'], equals(['-m', 'mcp_server']));
       expect(json['type'], equals('stdio'));
     });
 
     test('defaults args to empty list', () {
-      final server = McpStdioServer(command: 'binary');
+      final server = McpStdioServer(name: 'bin-server', command: 'binary');
       expect(server.args, isEmpty);
-    });
-  });
-
-  group('McpSseServer', () {
-    test('type is sse', () {
-      final server = McpSseServer(url: 'http://localhost:8080/sse');
-      expect(server.type, equals('sse'));
-    });
-
-    test('toJson includes url and type', () {
-      final json = McpSseServer(url: 'http://localhost:9000/sse').toMap();
-      expect(json['url'], equals('http://localhost:9000/sse'));
-      expect(json['type'], equals('sse'));
-    });
-
-    test('toJson omits headers when null', () {
-      final json = McpSseServer(url: 'http://localhost/sse').toMap();
-      expect(json.containsKey('headers'), isFalse);
-    });
-
-    test('toJson includes headers when provided', () {
-      final json = McpSseServer(
-        url: 'http://localhost/sse',
-        headers: {'Authorization': 'Bearer token'},
-      ).toMap();
-      expect(json['headers'], equals({'Authorization': 'Bearer token'}));
     });
   });
 
   group('McpStreamableHttpServer', () {
     test('type is http', () {
-      final server = McpStreamableHttpServer(url: 'http://localhost:8080/mcp');
+      final server = McpStreamableHttpServer(
+        name: 'http-server',
+        url: 'http://localhost:8080/mcp',
+      );
       expect(server.type, equals('http'));
     });
 
     test('toJson includes url and type', () {
       final json = McpStreamableHttpServer(
+        name: 'http-server',
         url: 'http://localhost:9000/mcp',
       ).toMap();
       expect(json['url'], equals('http://localhost:9000/mcp'));
@@ -624,7 +608,10 @@ void main() {
     });
 
     test('defaults timeout and terminateOnClose', () {
-      final server = McpStreamableHttpServer(url: 'http://localhost/mcp');
+      final server = McpStreamableHttpServer(
+        name: 'http-server',
+        url: 'http://localhost/mcp',
+      );
       expect(server.timeout, equals(30.0));
       expect(server.sseReadTimeout, equals(300.0));
       expect(server.terminateOnClose, isTrue);
@@ -632,6 +619,7 @@ void main() {
 
     test('toJson includes timeout fields', () {
       final json = McpStreamableHttpServer(
+        name: 'http-server',
         url: 'http://localhost/mcp',
         timeout: 60.0,
         sseReadTimeout: 120.0,
@@ -643,7 +631,10 @@ void main() {
     });
 
     test('toJson omits headers when null', () {
-      final json = McpStreamableHttpServer(url: 'http://localhost/mcp').toMap();
+      final json = McpStreamableHttpServer(
+        name: 'http-server',
+        url: 'http://localhost/mcp',
+      ).toMap();
       expect(json.containsKey('headers'), isFalse);
     });
   });

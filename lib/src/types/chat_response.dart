@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import '../conversation/conversation.dart';
 import 'chunks.dart';
 import 'tool_call.dart';
@@ -108,5 +109,12 @@ class ChatResponse {
   Future<dynamic> structuredOutput() async {
     await text(); // Await full stream consumption
     return _conversation?.lastStructuredOutput;
+  }
+
+  /// Cancels the active execution turn and halts generation.
+  Future<void> cancel() async {
+    if (!_isDone && _conversation != null) {
+      await _conversation.cancel();
+    }
   }
 }

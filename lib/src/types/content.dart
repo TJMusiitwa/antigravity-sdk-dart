@@ -1,5 +1,9 @@
 import 'dart:io';
+
+import 'package:dart_mappable/dart_mappable.dart';
 import 'package:path/path.dart' as p;
+
+part 'content.mapper.dart';
 
 const supportedImageMimes = {
   "image/bmp",
@@ -225,4 +229,23 @@ class Video extends MediaContent {
 
 /// Union representation of dynamic prompt inputs.
 typedef ContentPrimitive =
-    dynamic; // String, MediaContent, or List<ContentPrimitive>
+    dynamic; // String, MediaContent, SlashCommand, or List<ContentPrimitive>
+
+@MappableEnum(caseStyle: CaseStyle.snakeCase)
+enum BuiltinSlashCommandName {
+  @MappableValue('plan')
+  plan('plan');
+
+  final String value;
+  const BuiltinSlashCommandName(this.value);
+}
+
+@MappableClass()
+class SlashCommand with SlashCommandMappable {
+  final BuiltinSlashCommandName name;
+
+  SlashCommand({required this.name});
+
+  static const fromMap = SlashCommandMapper.fromMap;
+  static const fromJson = SlashCommandMapper.fromJson;
+}

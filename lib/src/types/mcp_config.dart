@@ -5,7 +5,28 @@ part 'mcp_config.mapper.dart';
 /// Abstract base for all MCP server configurations.
 @MappableClass(discriminatorKey: 'type')
 abstract class McpServerConfig with McpServerConfigMappable {
-  McpServerConfig();
+  final String name;
+  final int? timeoutSeconds;
+  final List<String>? enabledTools;
+  final List<String>? disabledTools;
+
+  McpServerConfig({
+    required this.name,
+    this.timeoutSeconds,
+    this.enabledTools,
+    this.disabledTools,
+  }) {
+    if (enabledTools != null && disabledTools != null) {
+      throw ArgumentError(
+        'enabledTools and disabledTools should be mutually exclusive.',
+      );
+    }
+    final regex = RegExp(r'^[a-zA-Z0-9_-]+$');
+    if (!regex.hasMatch(name)) {
+      throw ArgumentError('name must match pattern ^[a-zA-Z0-9_-]+\$');
+    }
+  }
+
   String get type;
 
   static const fromMap = McpServerConfigMapper.fromMap;
@@ -24,29 +45,17 @@ class McpStdioServer extends McpServerConfig with McpStdioServerMappable {
   @override
   String get type => 'stdio';
 
-  McpStdioServer({required this.command, List<String>? args})
-    : args = args ?? [];
+  McpStdioServer({
+    required super.name,
+    required this.command,
+    List<String>? args,
+    super.timeoutSeconds,
+    super.enabledTools,
+    super.disabledTools,
+  }) : args = args ?? [];
 
   static const fromMap = McpStdioServerMapper.fromMap;
   static const fromJson = McpStdioServerMapper.fromJson;
-}
-
-@MappableClass(
-  caseStyle: CaseStyle.snakeCase,
-  discriminatorValue: 'sse',
-  ignoreNull: true,
-)
-class McpSseServer extends McpServerConfig with McpSseServerMappable {
-  final String url;
-  final Map<String, String>? headers;
-
-  @override
-  String get type => 'sse';
-
-  McpSseServer({required this.url, this.headers});
-
-  static const fromMap = McpSseServerMapper.fromMap;
-  static const fromJson = McpSseServerMapper.fromJson;
 }
 
 @MappableClass(
@@ -66,11 +75,15 @@ class McpStreamableHttpServer extends McpServerConfig
   String get type => 'http';
 
   McpStreamableHttpServer({
+    required super.name,
     required this.url,
     this.headers,
     this.timeout = 30.0,
     this.sseReadTimeout = 300.0,
     this.terminateOnClose = true,
+    super.timeoutSeconds,
+    super.enabledTools,
+    super.disabledTools,
   });
 
   static const fromMap = McpStreamableHttpServerMapper.fromMap;
