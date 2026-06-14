@@ -65,6 +65,12 @@ jobs:
         run: |
           cd dart-sdk
           dart pub get
+          
+      - name: Run build_runner
+        if: steps.check_updates.outputs.has_changes == 'true'
+        run: |
+          cd dart-sdk
+          dart run build_runner build --delete-conflicting-outputs
 
       - name: Run Antigravity SDK Autonomous Agent
         if: steps.check_updates.outputs.has_changes == 'true'
