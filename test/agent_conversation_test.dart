@@ -318,7 +318,8 @@ class FakeAgentConfig extends AgentConfig {
   ConnectionStrategy createStrategy({
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
-  }) => strategy;
+  }) =>
+      strategy;
 
   @override
   String toJson() => throw UnimplementedError();

@@ -9,6 +9,7 @@
 .history
 .svn/
 .idea/
+.env
 
 # IntelliJ related
 *.iml

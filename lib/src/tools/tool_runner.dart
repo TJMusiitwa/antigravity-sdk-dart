@@ -3,11 +3,10 @@ import '../types/tool_call.dart';
 import 'tool_context.dart';
 
 /// Signature for a custom tool execution callback in the Google Antigravity SDK.
-typedef ToolHandler =
-    FutureOr<dynamic> Function(
-      Map<String, dynamic> arguments,
-      ToolContext? context,
-    );
+typedef ToolHandler = FutureOr<dynamic> Function(
+  Map<String, dynamic> arguments,
+  ToolContext? context,
+);
 
 /// Represents a custom tool that can be executed by an agent in the Google Antigravity SDK.
 class Tool {

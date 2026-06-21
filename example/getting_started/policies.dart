@@ -57,8 +57,7 @@ bool _blockRmPredicate(ToolCall toolCall) {
 
 /// Returns true if the file path targets a critical / production file.
 bool _criticalFilePredicate(ToolCall toolCall) {
-  final path =
-      (toolCall.args['path'] ??
+  final path = (toolCall.args['path'] ??
               toolCall.args['file_path'] ??
               toolCall.args['TargetFile'])
           ?.toString() ??

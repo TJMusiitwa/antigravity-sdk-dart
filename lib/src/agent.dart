@@ -45,23 +45,6 @@ class Agent {
     _pendingTriggers.addAll(_config.triggers);
   }
 
-  /// Registers a hook on the agent.
-  void registerHook(Hook hook) {
-    if (_hookRunner == null) {
-      _pendingHooks.add(hook);
-      return;
-    }
-    _hookRunner!.registerHook(hook);
-  }
-
-  /// Registers a background event trigger.
-  void registerTrigger(Trigger trigger) {
-    if (_triggerRunner != null) {
-      throw StateError("Cannot register triggers after the agent has started.");
-    }
-    _pendingTriggers.add(trigger);
-  }
-
   /// Starts the agent session.
   Future<Agent> start() async {
     try {
@@ -83,8 +66,8 @@ class Agent {
         activeTools = cfg.enabledTools!.toSet();
       } else if (cfg.disabledTools != null) {
         activeTools = BuiltinTools.values.toSet().difference(
-          cfg.disabledTools!.toSet(),
-        );
+              cfg.disabledTools!.toSet(),
+            );
       } else {
         activeTools = BuiltinTools.values.toSet();
       }

@@ -46,6 +46,9 @@ abstract class AgentConfig with AgentConfigMappable {
   /// List of Server configurations using the Model Context Protocol (MCP).
   final List<McpServerConfig> mcpServers;
 
+  /// List of statically configured subagents available to the agent.
+  final List<SubagentConfig> subagents;
+
   /// Root directories representing the workspaces the agent is allowed to access.
   final List<String> workspaces;
 
@@ -73,22 +76,23 @@ abstract class AgentConfig with AgentConfigMappable {
     List<Hook>? hooks,
     List<Trigger>? triggers,
     List<McpServerConfig>? mcpServers,
+    List<SubagentConfig>? subagents,
     List<String>? workspaces,
     this.conversationId,
     this.saveDir,
     this.appDataDir,
     this.responseSchema,
     List<String>? skillsPaths,
-  }) : capabilities =
-           capabilities ??
-           CapabilitiesConfig(enabledTools: BuiltinTools.readOnly()),
-       tools = tools ?? const [],
-       policies = flattenPolicies(policies ?? const []),
-       hooks = hooks ?? const [],
-       triggers = triggers ?? const [],
-       mcpServers = mcpServers ?? const [],
-       workspaces = workspaces ?? const [],
-       skillsPaths = skillsPaths ?? const [];
+  })  : capabilities = capabilities ??
+            CapabilitiesConfig(enabledTools: BuiltinTools.readOnly()),
+        tools = tools ?? const [],
+        policies = flattenPolicies(policies ?? const []),
+        hooks = hooks ?? const [],
+        triggers = triggers ?? const [],
+        mcpServers = mcpServers ?? const [],
+        subagents = subagents ?? const [],
+        workspaces = workspaces ?? const [],
+        skillsPaths = skillsPaths ?? const [];
 
   /// Creates the [ConnectionStrategy] for this configuration.
   ///

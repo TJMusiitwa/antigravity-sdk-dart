@@ -1,6 +1,8 @@
-# Google Antigravity SDK Dart Examples 🚀
+# Google Antigravity SDK Dart — Getting Started Examples 🚀
 
-This directory contains high-fidelity getting-started examples for the **Google Antigravity Dart SDK**. These examples mirror the official Python SDK examples, demonstrating how to build powerful, stateful, and secure AI agents.
+This directory contains getting-started examples for the **Google Antigravity Dart SDK**. These examples mirror the official Python SDK examples, demonstrating how to build powerful, stateful, and secure AI agents.
+
+For advanced examples, see the [`deep_dives/`](deep_dives/README.md) directory.
 
 ---
 
@@ -21,13 +23,7 @@ Before running any of the examples, ensure you have set up your environment:
 
 ## 🏃 Running the Examples
 
-From the root of the project (`antigravity`), you can run the primary entry point index using:
-
-```bash
-dart run example/main.dart
-```
-
-Or execute any specific example script under `getting_started/`:
+From the root of the project (`antigravity`), run any specific example:
 
 ```bash
 dart run example/getting_started/hello_world.dart
@@ -36,8 +32,6 @@ dart run example/getting_started/hello_world.dart
 ---
 
 ## 📚 Example Catalog
-
-Below is a detailed guide to each example in the `example/getting_started/` directory:
 
 ### 1. Hello World (`hello_world.dart`)
 * **Focus**: The simplest agent flow.
@@ -175,80 +169,18 @@ Below is a detailed guide to each example in the `example/getting_started/` dire
   dart run example/getting_started/subagents.dart
   ```
 
----
-
-## 🔌 Advanced Deep Dive Catalog
-
-Below is a detailed guide to each advanced mini-application in the `example/deep_dives/` directory:
-
-### 1. Hook Middleware (`agent_middleware.dart`)
-* **Focus**: Transparent tool execution interception and composition.
-* **Details**: Illustrates how stacking multiple hooks creates emergent lifecycle behavior (enforcing rate limits, compiling audit trails, and running automatic recovery fallbacks) completely transparently to the agent.
+### 18. MCP Tools (`mcp_tools.dart`)
+* **Focus**: Connecting to external Model Context Protocol servers.
+* **Details**: Demonstrates how to connect an agent to an external MCP server using the stdio transport. The pirate math MCP server (`example/resources/mcp_server.dart`) is spawned automatically as a child process via `McpStdioServer`. The agent discovers its tools at startup and can call them during the conversation.
 * **Run Command**:
   ```bash
-  dart run example/deep_dives/agent_middleware.dart
+  dart run example/getting_started/mcp_tools.dart
   ```
 
-### 2. Host Tool Hooks (`host_tool_hooks.dart`)
-* **Focus**: Lifecycle event logging and inspection.
-* **Details**: Registers and executes a dedicated hook for every supported agent lifecycle event (session start/end, pre/post turns, tool decisions, compactions, questions, and subagents), printing detailed diagnostic trace outputs.
+### 19. Web Tools (`web_tools.dart`)
+* **Focus**: Grounded real-time web search.
+* **Details**: Demonstrates configuring an agent with the built-in `BuiltinTools.searchWeb` capability, enabling it to perform real-time Google Search queries and return grounded, sourced answers.
 * **Run Command**:
   ```bash
-  dart run example/deep_dives/host_tool_hooks.dart
-  ```
-
-### 3. Round-Based Chat Room (`round_based_chat.dart`)
-* **Focus**: Synchronized multi-agent debate coordination.
-* **Details**: Orchestrates a parallel discussion amongst three distinct agents (Pragmatic Priya, Visionary Vince, and Cautious Cora) using `Future.wait` for synchronized conversation rounds until all agents pass or maximum depth is reached.
-* **Run Command**:
-  ```bash
-  dart run example/deep_dives/round_based_chat.dart
-  ```
-
-### 4. Asynchronous Chat Room (`async_chat.dart`)
-* **Focus**: Fully reactive P2P agent discussion loops.
-* **Details**: Leverages a `StreamController.broadcast` event loop to coordinate agents communicating independently and reactively as peers in a chat room, where response ordering emerges dynamically.
-* **Run Command**:
-  ```bash
-  dart run example/deep_dives/async_chat.dart
-  ```
-
-### 5. Multimodal Pipeline (`multimodal_pipeline.dart`)
-* **Focus**: Context-isolated Generator/Discriminator collaboration.
-* **Details**: Chains two distinct agent workflows. First, a Generator agent builds an image via the `generate_image` tool; then, a separate Discriminator agent receives only the raw image bytes (with zero contextual filename leaks) and describes it in detail.
-* **Run Command**:
-  ```bash
-  dart run example/deep_dives/multimodal_pipeline.dart
-  ```
-
-### 6. Scoped Doc Maintenance (`doc_maintenance_agent.dart`)
-* **Focus**: Strict policy-scoped markdown editing.
-* **Details**: Runs an autonomous documentation audit agent with strict, file-type scoping policies (`allow` and `deny` rules using path predicates) configured to only permit reading and editing markdown (`.md`) files in the workspace.
-* **Run Command**:
-  ```bash
-  dart run example/deep_dives/doc_maintenance_agent.dart [optional_directory_path]
-  ```
-
-### 7. Scoped Docstring Maintenance (`docstring_maintenance_agent.dart`)
-* **Focus**: Nondestructive Dart code quality agent.
-* **Details**: Employs an agent that scans public symbols in a codebase to generate rich Dart doc comments (`///`) while disabling high-privilege built-in tools (such as `createFile` or `runCommand`) via `CapabilitiesConfig`.
-* **Run Command**:
-  ```bash
-  dart run example/deep_dives/docstring_maintenance_agent.dart [optional_directory_path]
-  ```
-
-### 8. Interactive CLI (`interactive_cli.dart`)
-* **Focus**: Full-featured interactive CLI with human-in-the-loop approvals.
-* **Details**: Implements an interactive terminal REPL loop displaying real-time streaming tokens and model thoughts. Connects custom tools (including custom pirate math tools) and intercepts execution requests for explicit user confirmation via an `askUser` policy.
-* **Run Command**:
-  ```bash
-  dart run example/deep_dives/interactive_cli.dart [--show_usage]
-  ```
-
-### 9. Multi-Conversation Coordination (`multi_conversation.dart`)
-* **Focus**: Running and branching isolated conversations.
-* **Details**: Demonstrates both primary patterns for managing separate chat contexts. Part A runs collaborative Layer 1 multi-agent flows (Wendy the Writer and Connor the Critic), while Part B instantiates multiple stateful Layer 2 `Conversation` sessions directly off separate connection strategies for complete context branching.
-* **Run Command**:
-  ```bash
-  dart run example/deep_dives/multi_conversation.dart
+  dart run example/getting_started/web_tools.dart
   ```

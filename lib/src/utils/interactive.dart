@@ -6,6 +6,7 @@ import '../agent.dart';
 import '../hooks/hooks.dart';
 import '../hooks/policy.dart' as policy_module;
 import '../types.dart';
+import '../connections/connection.dart';
 
 // A shared broadcast stream for stdin lines to prevent "Stream has already been listened to" errors.
 Stream<String>? _stdinLines;
@@ -130,10 +131,10 @@ class AskQuestionHook extends OnInteractionHook {
   }
 }
 
-void _upgradeToInteractiveConfirmation(Agent agent) {
-  final config = agent.config;
+List<policy_module.Policy> _upgradePoliciesList(
+    List<policy_module.Policy> policies) {
   final upgraded = <policy_module.Policy>[];
-  for (final p in config.policies) {
+  for (final p in policies) {
     if (p.tool == BuiltinTools.runCommand.value &&
         p.decision == policy_module.Decision.deny &&
         p.when == null) {
@@ -148,84 +149,83 @@ void _upgradeToInteractiveConfirmation(Agent agent) {
       upgraded.add(p);
     }
   }
-
-  config.policies.clear();
-  config.policies.addAll(upgraded);
-
-  final newHook = policy_module.enforce(upgraded);
-  final runner = agent.hookRunner;
-  if (runner == null) {
-    throw StateError("Agent must be started before upgrading policies.");
-  }
-
-  final list = runner.preToolCallDecideHooks;
-  for (var i = 0; i < list.length; i++) {
-    if (list[i] is policy_module.PolicyDecideHook) {
-      list[i] = newHook;
-      return;
-    }
-  }
-  list.add(newHook);
+  return upgraded;
 }
 
 /// Runs an interactive CLI loop for debugging and development.
-Future<void> runInteractiveLoop(Agent agent) async {
-  if (!agent.isStarted) {
-    throw StateError("Agent session not started. Call 'await agent.start()'.");
+Future<void> runInteractiveLoop(
+  AgentConfig config, {
+  Agent Function(AgentConfig config)? agentFactory,
+}) async {
+  final hooksList = List<Hook>.from(config.hooks);
+  if (!hooksList.any((hook) => hook is AskQuestionHook)) {
+    hooksList.add(AskQuestionHook());
   }
 
-  agent.registerHook(AskQuestionHook());
-  _upgradeToInteractiveConfirmation(agent);
+  final policiesList = _upgradePoliciesList(config.policies);
 
-  print("Starting interactive loop. Type 'exit' or 'quit' to end.");
-  while (true) {
-    try {
-      final userInput = (await asyncInput("User: ")).trim();
-      if (userInput.isEmpty) {
-        continue;
-      }
-      if (userInput.toLowerCase() == 'exit' ||
-          userInput.toLowerCase() == 'quit') {
-        print("Goodbye!");
-        break;
-      }
+  final upgradedConfig = config.copyWith(
+    hooks: hooksList,
+    policies: policiesList,
+  );
 
-      await agent.conversation.send(userInput);
+  final agent = agentFactory != null
+      ? agentFactory(upgradedConfig)
+      : Agent(upgradedConfig);
+  await agent.start();
 
-      final spinner = Spinner(message: "Thinking...");
-      spinner.start();
-
-      Step? finalStep;
-      await for (final step in agent.conversation.receiveSteps()) {
-        if (step.type == StepType.toolCall) {
-          final toolName = step.toolCalls.isNotEmpty
-              ? step.toolCalls.first.name
-              : "tool";
-          spinner.update("Running tool '$toolName'...");
-        } else if (step.type == StepType.compaction) {
-          spinner.update("Compacting context...");
-        } else if (step.source == StepSource.model &&
-            step.thinkingDelta.isNotEmpty) {
-          spinner.update("Reasoning...");
+  try {
+    print("Starting interactive loop. Type 'exit' or 'quit' to end.");
+    while (true) {
+      try {
+        final userInput = (await asyncInput("User: ")).trim();
+        if (userInput.isEmpty) {
+          continue;
         }
-
-        if (step.isCompleteResponse == true) {
-          finalStep = step;
+        if (userInput.toLowerCase() == 'exit' ||
+            userInput.toLowerCase() == 'quit') {
+          print("Goodbye!");
           break;
         }
-      }
 
-      spinner.stop();
+        await agent.conversation.send(userInput);
 
-      if (finalStep != null) {
-        print("Agent: ${finalStep.content}");
+        final spinner = Spinner(message: "Thinking...");
+        spinner.start();
+
+        Step? finalStep;
+        await for (final step in agent.conversation.receiveSteps()) {
+          if (step.type == StepType.toolCall) {
+            final toolName =
+                step.toolCalls.isNotEmpty ? step.toolCalls.first.name : "tool";
+            spinner.update("Running tool '$toolName'...");
+          } else if (step.type == StepType.compaction) {
+            spinner.update("Compacting context...");
+          } else if (step.source == StepSource.model &&
+              step.thinkingDelta.isNotEmpty) {
+            spinner.update("Reasoning...");
+          }
+
+          if (step.isCompleteResponse == true) {
+            finalStep = step;
+            break;
+          }
+        }
+
+        spinner.stop();
+
+        if (finalStep != null) {
+          print("Agent: ${finalStep.content}");
+        }
+      } on OSError catch (_) {
+        print("\nGoodbye!");
+        break;
+      } catch (e) {
+        print("Error: $e");
       }
-    } on OSError catch (_) {
-      print("\nGoodbye!");
-      break;
-    } catch (e) {
-      print("Error: $e");
     }
+  } finally {
+    await agent.stop();
   }
 }
 
@@ -249,8 +249,8 @@ class Spinner {
   final bool _enabled;
 
   Spinner({String message = "Thinking..."})
-    : _currentMessage = message,
-      _enabled = stdout.hasTerminal;
+      : _currentMessage = message,
+        _enabled = stdout.hasTerminal;
 
   void update(String message) {
     _currentMessage = message;

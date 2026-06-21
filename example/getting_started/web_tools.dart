@@ -12,42 +12,50 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Simple hello world example for the unofficial Dart Antigravity SDK.
-///
-/// This example demonstrates the simplest way to interact with an agent:
-/// - Creating a [LocalAgentConfig] (and how to explicitly select a model).
-/// - Starting and stopping an [Agent] session (Dart equivalent of Python's context manager pattern).
-/// - Sending a simple prompt and awaiting the full text response.
+/// Example demonstrating web search (SEARCH_WEB) using the Antigravity Dart SDK.
 ///
 /// To run:
-///   dart run example/getting_started/hello_world.dart
+/// ```sh
+/// dart run example/getting_started/web_tools.dart
+/// ```
+///
+/// The agent is configured with the built-in [BuiltinTools.searchWeb] capability,
+/// enabling it to perform grounded, real-time Google Search queries.
 ///
 /// Criteria for correct script performance:
 ///   1. The script exits cleanly with no unhandled exceptions.
-///   2. The agent produces a non-empty text response.
-///   3. The response contains "Hello World" or a close greeting variant.
+///   2. The agent uses the search_web tool to retrieve current information.
+///   3. The agent produces a non-empty response with search results.
+///   4. The response includes source attribution for the information provided.
 // ignore_for_file: avoid_print
 library;
 
 import 'package:antigravity/antigravity.dart';
 
 Future<void> main() async {
-  // To explicitly set the model, pass it to LocalAgentConfig:
-  // final config = LocalAgentConfig(model: 'gemini-3.5-flash');
-  final config = LocalAgentConfig();
+  // Configure the agent to use the web search tool.
+  final config = LocalAgentConfig(
+    capabilities: CapabilitiesConfig(
+      enabledTools: [BuiltinTools.searchWeb],
+    ),
+  );
 
   final agent = Agent(config);
   await agent.start();
 
   try {
-    const prompt = "Say 'Hello World!'";
-    print('  User: $prompt');
+    const prompt =
+        'What is the current weather and temperature in New York City right '
+        'now? Please provide the source.';
+
+    print('User: $prompt\n');
+    print('Agent is thinking and searching...');
 
     final response = await agent.chat(prompt);
 
     // Await the full aggregated text response.
     final responseText = await response.text();
-    print('  Agent: $responseText');
+    print('\nAgent Response:\n$responseText');
   } finally {
     await agent.stop();
   }

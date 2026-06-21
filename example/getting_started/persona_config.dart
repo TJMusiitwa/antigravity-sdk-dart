@@ -79,8 +79,7 @@ Future<void> runTemplatedExample() async {
   print('  === Templated System Instructions Example ===');
 
   // Override the Identity (Persona)
-  const identity =
-      'You are an expert Code Quality Reviewer.\n'
+  const identity = 'You are an expert Code Quality Reviewer.\n'
       'Your role is to review code for readability, maintainability, and adherence to style guides.';
 
   // Add custom sections. These sections are passed to the local harness as
@@ -89,8 +88,7 @@ Future<void> runTemplatedExample() async {
   // and makes it easier for the model to follow specific guidelines.
   final reviewCriteria = SystemInstructionSection(
     title: 'review_criteria',
-    content:
-        '- Focus on readability and simplicity.\n'
+    content: '- Focus on readability and simplicity.\n'
         '- Ensure meaningful variable and function names.',
   );
 
@@ -130,8 +128,7 @@ Future<void> runTemplatedExample() async {
 String buildSkillsInstructions(List<String> skillsPaths) {
   if (skillsPaths.isEmpty) return '';
 
-  var instructions =
-      '\n<skills>\n'
+  var instructions = '\n<skills>\n'
       'Skills enhance your abilities with specialized expertise and'
       ' repeatable workflows to help solve advanced workflows.\n'
       'When a task matches an available skill\'s description, you must inspect'
@@ -145,8 +142,7 @@ String buildSkillsInstructions(List<String> skillsPaths) {
     // 'description' field from the YAML frontmatter of the SKILL.md file on
     // disk. To keep this example concise and standalone, we use a static
     // description.
-    instructions +=
-        '* **$skillName** (located at `$path/SKILL.md`) — Provides'
+    instructions += '* **$skillName** (located at `$path/SKILL.md`) — Provides'
         ' guidelines for code readability, style compliance, and refactoring.\n';
   }
   instructions += '</skills>\n';
@@ -173,8 +169,7 @@ You are an expert Code Quality Reviewer agent. Your goal is to help developers m
   final appDataDir = '$home/.gemini/antigravity';
   final userEncoding = Platform.operatingSystem;
 
-  final userInfo =
-      '''
+  final userInfo = '''
 <user_information>
 Operating System: $userEncoding
 Active Workspace CWD: $cwd

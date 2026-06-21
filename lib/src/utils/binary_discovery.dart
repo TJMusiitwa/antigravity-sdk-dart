@@ -1,5 +1,7 @@
 import 'dart:io';
+
 import 'package:path/path.dart' as p;
+
 import 'harness_downloader.dart';
 
 /// Exception thrown when the pre-existing system binary is not found at any search path in the Google Antigravity SDK.
@@ -23,11 +25,7 @@ class BinaryDiscovery {
   static Map<String, String>? environmentOverride;
 
   /// Binary names to search for.
-  static const List<String> binaryNames = [
-    'antigravity-cli',
-    'agy',
-    'localharness',
-  ];
+  static const List<String> binaryNames = ['localharness'];
 
   /// Dynamically searches for the pre-existing system binary based on priorities.
   /// If not found and [autoDownload] is true, attempts to auto-download and install it from PyPI.

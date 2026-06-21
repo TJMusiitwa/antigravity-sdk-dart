@@ -15,8 +15,8 @@
 /// Multimodal example for the unofficial Dart Antigravity SDK.
 ///
 /// This example demonstrates:
-/// - Multimodal input: passing images and documents to the agent.
-/// - Multimodal output: enabling the agent to generate images.
+/// - Multimodal input: Passing images and documents to the agent.
+/// - Multimodal output: Enabling the agent to generate images.
 ///
 /// To run:
 ///   dart run example/getting_started/multimodal.dart
@@ -30,6 +30,7 @@
 library;
 
 import 'dart:io';
+
 import 'package:antigravity/antigravity.dart';
 
 Future<void> main() async {

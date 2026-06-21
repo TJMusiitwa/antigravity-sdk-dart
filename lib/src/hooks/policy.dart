@@ -56,9 +56,8 @@ List<Policy> _mcpPolicies(
   final server = mcpConfig.name;
 
   if (mcpTools == null) {
-    final policyName = name.isNotEmpty
-        ? name
-        : '${decision.name.toLowerCase()}_${server}_all';
+    final policyName =
+        name.isNotEmpty ? name : '${decision.name.toLowerCase()}_${server}_all';
     return [
       Policy(
         tool: '$server/*',
@@ -291,9 +290,8 @@ List<Policy> workspaceOnly(List<String> workspaces) {
 
   return fileTools
       .map(
-        (tool) =>
-            deny(tool, when: outsideWorkspace, name: 'workspace_only')
-                as Policy,
+        (tool) => deny(tool, when: outsideWorkspace, name: 'workspace_only')
+            as Policy,
       )
       .toList();
 }
@@ -411,8 +409,8 @@ class PolicyDecideHook extends PreToolCallDecideHook {
 
   /// Creates a new [PolicyDecideHook] instance.
   PolicyDecideHook(this._buckets, {List<String>? serverNames})
-    : _serverNames = List.from(serverNames ?? const [])
-        ..sort((a, b) => b.length.compareTo(a.length));
+      : _serverNames = List.from(serverNames ?? const [])
+          ..sort((a, b) => b.length.compareTo(a.length));
 
   MapEntry<String, String>? _parseMcpTool(String toolName) {
     if (!toolName.startsWith('mcp_')) {

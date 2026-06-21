@@ -11,7 +11,7 @@ class HarnessDownloader {
   static final Logger _logger = Logger('HarnessDownloader');
 
   /// Fallback version of google-antigravity to query if PyPI's latest resolution fails.
-  static const String defaultVersion = '0.1.3';
+  static const String defaultVersion = '0.1.4';
 
   /// Detects the current CPU architecture.
   static Future<String> getProcessorArchitecture() async {
@@ -129,8 +129,7 @@ class HarnessDownloader {
     }
 
     // Determine target installation directory
-    final homeDir =
-        Platform.environment['HOME'] ??
+    final homeDir = Platform.environment['HOME'] ??
         Platform.environment['USERPROFILE'] ??
         '.';
     final installDir = Directory(p.join(homeDir, '.antigravity', 'bin'));

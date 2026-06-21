@@ -32,12 +32,12 @@ class CustomSystemInstructions extends SystemInstructions
 
   @override
   Map<String, dynamic> toMap() => {
-    'custom': {
-      'part': [
-        {'text': text},
-      ],
-    },
-  };
+        'custom': {
+          'part': [
+            {'text': text},
+          ],
+        },
+      };
 }
 
 /// Appends sections to default system instructions.
@@ -54,9 +54,9 @@ class TemplatedSystemInstructions extends SystemInstructions
 
   @override
   Map<String, dynamic> toMap() => {
-    'appended': {
-      if (identity != null) 'custom_identity': identity,
-      'appended_sections': sections.map((s) => s.toMap()).toList(),
-    },
-  };
+        'appended': {
+          if (identity != null) 'custom_identity': identity,
+          'appended_sections': sections.map((s) => s.toMap()).toList(),
+        },
+      };
 }

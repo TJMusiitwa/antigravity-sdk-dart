@@ -18,7 +18,7 @@ class Conversation {
 
   /// Creates a new [Conversation] on the given underlying connection.
   Conversation(this._connection, {HookRunner? hookRunner})
-    : _hookRunner = hookRunner;
+      : _hookRunner = hookRunner;
 
   /// Creates and starts a new conversation using the provided strategy.
   static Future<Conversation> create(
@@ -109,7 +109,7 @@ class Conversation {
 
     // 3. Dispatch pre-turn hooks
     if (_hookRunner != null) {
-      final res = await _hookRunner.dispatchPreTurn(prompt);
+      final res = await _hookRunner!.dispatchPreTurn(prompt);
       if (!res.allow) {
         final message = res.message.isNotEmpty
             ? res.message
@@ -146,11 +146,10 @@ class Conversation {
         if (step.id == 'idle_sentinel') {
           // Check for post-turn hook
           if (_hookRunner != null) {
-            final ctx = _hookRunner.createTurnContext();
-            final lastTextContent = _history.isEmpty
-                ? ''
-                : _history.last.content;
-            _hookRunner.dispatchPostTurn(ctx, lastTextContent).catchError((
+            final ctx = _hookRunner!.createTurnContext();
+            final lastTextContent =
+                _history.isEmpty ? '' : _history.last.content;
+            _hookRunner!.dispatchPostTurn(ctx, lastTextContent).catchError((
               Object err,
               StackTrace st,
             ) {
@@ -206,8 +205,8 @@ class Conversation {
         if (isTurnComplete) {
           // Check for post-turn hook
           if (_hookRunner != null) {
-            final ctx = _hookRunner.createTurnContext();
-            _hookRunner.dispatchPostTurn(ctx, step.content).catchError((
+            final ctx = _hookRunner!.createTurnContext();
+            _hookRunner!.dispatchPostTurn(ctx, step.content).catchError((
               Object err,
               StackTrace st,
             ) {
@@ -267,18 +266,18 @@ class Conversation {
   Future<void> disconnect() async {
     // Session end hook
     if (_hookRunner != null) {
-      await _hookRunner.dispatchSessionEnd();
+      await _hookRunner!.dispatchSessionEnd();
     }
     await _connection.disconnect();
   }
 
   static UsageMetadata _zeroUsage() => UsageMetadata(
-    promptTokenCount: 0,
-    cachedContentTokenCount: 0,
-    candidatesTokenCount: 0,
-    thoughtsTokenCount: 0,
-    totalTokenCount: 0,
-  );
+        promptTokenCount: 0,
+        cachedContentTokenCount: 0,
+        candidatesTokenCount: 0,
+        thoughtsTokenCount: 0,
+        totalTokenCount: 0,
+      );
 
   UsageMetadata _addUsage(UsageMetadata a, UsageMetadata b) {
     return UsageMetadata(

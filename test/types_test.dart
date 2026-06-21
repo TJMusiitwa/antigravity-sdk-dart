@@ -204,22 +204,22 @@ void main() {
 
   group('Step.fromMap()', () {
     Map<String, dynamic> base() => {
-      'id': 'step-1',
-      'step_index': 5,
-      'cascade_id': 'cascade-a',
-      'trajectory_id': 'traj-b',
-      'type': 'TEXT_RESPONSE',
-      'source': 'MODEL',
-      'target': 'TARGET_USER',
-      'status': 'DONE',
-      'content': 'hello world',
-      'content_delta': ' world',
-      'thinking': 'think',
-      'thinking_delta': 'k',
-      'tool_calls': [],
-      'error': '',
-      'is_complete_response': true,
-    };
+          'id': 'step-1',
+          'step_index': 5,
+          'cascade_id': 'cascade-a',
+          'trajectory_id': 'traj-b',
+          'type': 'TEXT_RESPONSE',
+          'source': 'MODEL',
+          'target': 'TARGET_USER',
+          'status': 'DONE',
+          'content': 'hello world',
+          'content_delta': ' world',
+          'thinking': 'think',
+          'thinking_delta': 'k',
+          'tool_calls': [],
+          'error': '',
+          'is_complete_response': true,
+        };
 
     test('parses a complete step correctly', () {
       final step = Step.fromMap(base());
@@ -427,80 +427,77 @@ void main() {
       final nd = BuiltinTools.nondestructive().map((t) => t.value);
       expect(nd.contains('run_command'), isFalse);
     });
+
+    test('enum contains search_web', () {
+      expect(BuiltinTools.searchWeb.value, equals('search_web'));
+    });
   });
 
   // ---------------------------------------------------------------------------
   // Config types
   // ---------------------------------------------------------------------------
-  group('ThinkingLevel.fromString()', () {
-    test('parses known levels', () {
-      expect(
-        ThinkingLevel.fromString('minimal'),
-        equals(ThinkingLevel.minimal),
-      );
-      expect(ThinkingLevel.fromString('low'), equals(ThinkingLevel.low));
-      expect(ThinkingLevel.fromString('medium'), equals(ThinkingLevel.medium));
-      expect(ThinkingLevel.fromString('high'), equals(ThinkingLevel.high));
+  group('ModelTarget', () {
+    test('constructs text model properly', () {
+      final ep = GeminiAPIEndpoint(
+          apiKey: 'test-key',
+          options: GeminiModelOptions(thinkingLevel: ThinkingLevel.high));
+      final mt = ModelTarget(name: 'gemini-pro', endpoint: ep);
+      expect(mt.name, equals('gemini-pro'));
+      expect(mt.types, equals([ModelType.text]));
+      expect(mt.endpoint, isA<GeminiAPIEndpoint>());
+      expect((mt.endpoint as GeminiAPIEndpoint).apiKey, equals('test-key'));
     });
 
-    test('defaults to minimal for unknown string', () {
-      expect(ThinkingLevel.fromString('ultra'), equals(ThinkingLevel.minimal));
-      expect(ThinkingLevel.fromString(''), equals(ThinkingLevel.minimal));
-    });
-  });
-
-  group('GenerationConfig', () {
-    test('toJson is empty map when no thinking level', () {
-      final json = GenerationConfig().toMap();
-      expect(json, isEmpty);
+    test('constructs vertex endpoint properly', () {
+      final ep = VertexEndpoint(project: 'my-proj', location: 'us-east1');
+      final mt = ModelTarget(name: 'gemini-ultra', endpoint: ep);
+      expect(mt.endpoint, isA<VertexEndpoint>());
+      expect((mt.endpoint as VertexEndpoint).project, equals('my-proj'));
     });
 
-    test('toJson includes thinking_level when set', () {
-      final json = GenerationConfig(thinkingLevel: ThinkingLevel.high).toMap();
-      expect(json['thinking_level'], equals('high'));
+    test('constructs image model properly', () {
+      final mt = ModelTarget(name: 'imagen-3', types: [ModelType.image]);
+      expect(mt.types, equals([ModelType.image]));
     });
   });
 
-  group('ModelEntry', () {
+  group('SubagentCapabilities', () {
     test('constructs with defaults', () {
-      final entry = ModelEntry(name: 'gemini-3.5-flash');
-      expect(entry.name, equals('gemini-3.5-flash'));
-      expect(entry.apiKey, isNull);
+      final sc = SubagentCapabilities();
+      expect(sc.enabledTools, isNull);
+      expect(sc.disabledTools, isNull);
     });
 
-    test('toJson includes api_key when set', () {
-      final json = ModelEntry(name: 'gemini', apiKey: 'key123').toMap();
-      expect(json['api_key'], equals('key123'));
+    test('throws when both enabledTools and disabledTools are provided', () {
+      expect(
+        () => SubagentCapabilities(
+          enabledTools: [BuiltinTools.editFile],
+          disabledTools: [BuiltinTools.runCommand],
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
     });
 
-    test('toJson omits api_key when null', () {
-      final json = ModelEntry(name: 'gemini').toMap();
-      expect(json.containsKey('api_key'), isFalse);
-    });
-  });
-
-  group('ModelConfig', () {
-    test('uses sensible defaults', () {
-      final config = ModelConfig();
-      expect(config.defaultModelEntry.name, equals('gemini-3.5-flash'));
-    });
-
-    test('toJson contains default and image_generation keys', () {
-      final json = ModelConfig().toMap();
-      expect(json.containsKey('default'), isTrue);
-      expect(json.containsKey('image_generation'), isTrue);
+    test('allows enabledTools without disabledTools', () {
+      final sc = SubagentCapabilities(
+        enabledTools: [BuiltinTools.viewFile],
+      );
+      expect(sc.enabledTools, isNotNull);
     });
   });
 
-  group('GeminiConfig', () {
-    test('toJson includes api_key when provided', () {
-      final json = GeminiConfig(apiKey: 'MY_KEY').toMap();
-      expect(json['api_key'], equals('MY_KEY'));
-    });
-
-    test('toJson omits api_key when not set', () {
-      final json = GeminiConfig().toMap();
-      expect(json.containsKey('api_key'), isFalse);
+  group('SubagentConfig', () {
+    test('constructs properly', () {
+      final sc = SubagentConfig(
+        name: 'helper',
+        description: 'helpful agent',
+        systemInstructions: 'always help',
+      );
+      expect(sc.name, equals('helper'));
+      expect(sc.description, equals('helpful agent'));
+      expect(sc.systemInstructions, equals('always help'));
+      expect(sc.capabilities, isNull);
+      expect(sc.tools, isEmpty);
     });
   });
 
@@ -571,15 +568,17 @@ void main() {
       expect(server.type, equals('stdio'));
     });
 
-    test('toJson includes command, args, and type', () {
+    test('toJson includes command, args, env, and type', () {
       final json = McpStdioServer(
         name: 'py-server',
         command: 'python3',
         args: ['-m', 'mcp_server'],
+        env: {'DEBUG': '1'},
       ).toMap();
       expect(json['name'], equals('py-server'));
       expect(json['command'], equals('python3'));
       expect(json['args'], equals(['-m', 'mcp_server']));
+      expect(json['env'], equals({'DEBUG': '1'}));
       expect(json['type'], equals('stdio'));
     });
 

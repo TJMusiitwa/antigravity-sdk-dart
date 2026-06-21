@@ -1,93 +1,47 @@
 import 'package:dart_mappable/dart_mappable.dart';
 
+import 'capabilities.dart';
+
 part 'config.mapper.dart';
 
-const String defaultModel = 'gemini-3.5-flash';
-const String defaultImageGenerationModel = 'gemini-3.1-flash-image-preview';
+/// Capabilities configuration for subagents.
+@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+class SubagentCapabilities with SubagentCapabilitiesMappable {
+  final List<BuiltinTools>? enabledTools;
+  final List<BuiltinTools>? disabledTools;
 
-/// Thinking level for Gemini models that support extended thinking.
-@MappableEnum(defaultValue: ThinkingLevel.minimal)
-enum ThinkingLevel {
-  minimal('minimal'),
-  low('low'),
-  medium('medium'),
-  high('high');
-
-  final String value;
-  const ThinkingLevel(this.value);
-
-  static ThinkingLevel fromString(String val) {
-    try {
-      return ThinkingLevelMapper.fromValue(val);
-    } catch (_) {
-      return ThinkingLevel.minimal;
+  SubagentCapabilities({this.enabledTools, this.disabledTools}) {
+    if (enabledTools != null && disabledTools != null) {
+      throw ArgumentError(
+        'enabledTools and disabledTools should be mutually exclusive.',
+      );
     }
   }
+
+  static const fromMap = SubagentCapabilitiesMapper.fromMap;
+  static const fromJson = SubagentCapabilitiesMapper.fromJson;
 }
 
-/// Generation parameters for a model.
+/// Configuration for a static subagent.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
-class GenerationConfig with GenerationConfigMappable {
-  final ThinkingLevel? thinkingLevel;
-
-  GenerationConfig({this.thinkingLevel});
-
-  static const fromMap = GenerationConfigMapper.fromMap;
-  static const fromJson = GenerationConfigMapper.fromJson;
-}
-
-/// A model with optional auth and generation overrides.
-@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
-class ModelEntry with ModelEntryMappable {
+class SubagentConfig with SubagentConfigMappable {
   final String name;
-  final String? apiKey;
-  final GenerationConfig generation;
+  final String description;
+  final dynamic systemInstructions; // String or List<SystemInstructionSection>
+  final SubagentCapabilities? capabilities;
 
-  ModelEntry({required this.name, this.apiKey, GenerationConfig? generation})
-    : generation = generation ?? GenerationConfig();
+  /// Optional list of additional custom tools (string names of tools registered
+  /// on the main agent) to enable.
+  final List<String> tools;
 
-  static const fromMap = ModelEntryMapper.fromMap;
-  static const fromJson = ModelEntryMapper.fromJson;
-}
+  SubagentConfig({
+    required this.name,
+    required this.description,
+    this.systemInstructions,
+    this.capabilities,
+    List<String>? tools,
+  }) : tools = tools ?? [];
 
-/// Model selection for each capability.
-@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
-class ModelConfig with ModelConfigMappable {
-  @MappableField(key: 'default')
-  final ModelEntry defaultModelEntry;
-
-  @MappableField(key: 'image_generation')
-  final ModelEntry imageGenerationModelEntry;
-
-  ModelConfig({
-    ModelEntry? defaultModelEntry,
-    ModelEntry? imageGenerationModelEntry,
-  }) : defaultModelEntry = defaultModelEntry ?? ModelEntry(name: defaultModel),
-       imageGenerationModelEntry =
-           imageGenerationModelEntry ??
-           ModelEntry(name: defaultImageGenerationModel);
-
-  static const fromMap = ModelConfigMapper.fromMap;
-  static const fromJson = ModelConfigMapper.fromJson;
-}
-
-/// Configuration for the Gemini model backend.
-@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
-class GeminiConfig with GeminiConfigMappable {
-  final String? apiKey;
-  final bool vertex;
-  final String? project;
-  final String? location;
-  final ModelConfig models;
-
-  GeminiConfig({
-    this.apiKey,
-    this.vertex = false,
-    this.project,
-    this.location,
-    ModelConfig? models,
-  }) : models = models ?? ModelConfig();
-
-  static const fromMap = GeminiConfigMapper.fromMap;
-  static const fromJson = GeminiConfigMapper.fromJson;
+  static const fromMap = SubagentConfigMapper.fromMap;
+  static const fromJson = SubagentConfigMapper.fromJson;
 }
