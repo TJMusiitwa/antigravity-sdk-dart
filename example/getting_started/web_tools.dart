@@ -21,6 +21,12 @@
 ///
 /// The agent is configured with the built-in [BuiltinTools.searchWeb] capability,
 /// enabling it to perform grounded, real-time Google Search queries.
+///
+/// Criteria for correct script performance:
+///   1. The script exits cleanly with no unhandled exceptions.
+///   2. The agent uses the search_web tool to retrieve current information.
+///   3. The agent produces a non-empty response with search results.
+///   4. The response includes source attribution for the information provided.
 // ignore_for_file: avoid_print
 library;
 

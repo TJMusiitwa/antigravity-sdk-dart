@@ -21,6 +21,11 @@
 ///
 /// To run:
 ///   dart run example/getting_started/human_in_the_loop.dart
+///
+/// Criteria for correct script performance:
+///   1. The script exits cleanly with no unhandled exceptions.
+///   2. The agent presents interactive prompts to the user via stdin.
+///   3. The agent receives and processes user responses correctly.
 // ignore_for_file: avoid_print
 library;
 

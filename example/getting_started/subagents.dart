@@ -14,27 +14,36 @@
 
 /// Example demonstrating subagents in Google Antigravity SDK.
 ///
-/// This example shows how an agent can spawn a subagent to delegate a specific
-/// task, in this case, researching the examples directory to generate a lesson
-/// plan.
+/// This example shows two subagent scenarios:
+///   1. Dynamic Subagent: The agent dynamically spawns a clone of itself ("self")
+///      to delegate a heavy research task (listing/reading files), keeping its
+///      own context window clean.
+///   2. Custom Static Subagent: The agent is pre-configured with a custom, static
+///      subagent definition ('code_reviewer') that has its own system instructions
+///      and custom tools (e.g. get_reviewer_badge).
 ///
-/// Subagents are valuable for scoping context usage. By delegating a heavy research
-/// task to a subagent, the main agent avoids filling its own context window with
-/// all the raw documents, receiving only the synthesized result.
+/// Subagents are valuable for scoping context usage. By delegating heavy tasks
+/// to subagents, the main agent avoids filling its own context window with
+/// raw data, receiving only the synthesized result.
 ///
 /// To run:
 ///   dart run example/getting_started/subagents.dart
 ///
 /// Criteria for correct script performance:
-///   1. The script exits cleanly with return code 0 (no unhandled exceptions).
-///   2. The agent spawns a subagent to research the examples directory.
-///   3. The subagent hook logs fire when the subagent is created and completes.
-///   4. The agent produces a non-empty lesson plan based on the subagent's
-///      research.
+///   1. The script exits cleanly with no unhandled exceptions.
+///   2. In Scenario 1, the agent dynamically spawns a subagent to research the
+///      examples directory.
+///   3. In Scenario 1, the agent produces a non-empty lesson plan.
+///   4. In Scenario 2, the 'code_reviewer' subagent audits target_code.dart,
+///      producing warnings prefixed with '[AUDIT_WARNING]'.
+///   5. In Scenario 2, the subagent uses the 'get_reviewer_badge' tool to sign the
+///      report with 'Senior-L3-Auditor-Badge'.
+///   6. Subagent hook logs fire for both scenarios, showing start/done events.
 // ignore_for_file: avoid_print
 library;
 
 import 'dart:async';
+
 import 'package:antigravity/antigravity.dart';
 
 bool _subagentActive = false;

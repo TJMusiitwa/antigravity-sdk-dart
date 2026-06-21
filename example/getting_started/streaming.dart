@@ -14,6 +14,15 @@
 
 /// Example demonstrating streaming responses and thoughts.
 ///
+/// This example shows how to consume streamed content from the agent's response,
+/// including thoughts (reasoning), final text answers, and tool calls.
+///
+/// Available streaming APIs:
+/// - [ChatResponse.thoughts] — stream of reasoning/planning text
+/// - [ChatResponse.textStream] — stream of final response tokens
+/// - [ChatResponse.toolCalls] — stream of tool calls as they are invoked
+/// - [ChatResponse.chunks] — unified stream of all content types
+///
 /// To run:
 ///   dart run example/getting_started/streaming.dart
 ///
@@ -26,6 +35,7 @@
 library;
 
 import 'dart:io';
+
 import 'package:antigravity/antigravity.dart';
 
 Future<void> main() async {
@@ -55,9 +65,6 @@ Future<void> main() async {
       stdout.write(token);
     }
     print('\n  -------------------------------------------------------\n');
-
-    // Advanced: use response.chunkStream to get a unified raw stream of all
-    // content types (Text, Thought, ToolCall chunks).
   } finally {
     await agent.stop();
   }

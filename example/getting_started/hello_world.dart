@@ -16,7 +16,7 @@
 ///
 /// This example demonstrates the simplest way to interact with an agent:
 /// - Creating a [LocalAgentConfig] (and how to explicitly select a model).
-/// - Starting and stopping an [Agent] session.
+/// - Starting and stopping an [Agent] session (Dart equivalent of Python's context manager pattern).
 /// - Sending a simple prompt and awaiting the full text response.
 ///
 /// To run:
