@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import '../types.dart';
 
 // --- Contexts ---
@@ -13,18 +14,18 @@ class HookContext {
   HookContext({this.parent});
 
   /// Gets a value from the context or its parent hierarchy.
-  dynamic get(String key, [dynamic defaultValue]) {
+  dynamic getState(String key, [dynamic defaultValue]) {
     if (_store.containsKey(key)) {
       return _store[key];
     }
     if (parent != null) {
-      return parent!.get(key, defaultValue);
+      return parent!.getState(key, defaultValue);
     }
     return defaultValue;
   }
 
   /// Sets a value in the local context.
-  void set(String key, dynamic value) {
+  void setState(String key, dynamic value) {
     _store[key] = value;
   }
 }

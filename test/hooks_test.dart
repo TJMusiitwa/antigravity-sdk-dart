@@ -1,51 +1,51 @@
-import 'package:test/test.dart';
 import 'package:antigravity/antigravity.dart';
+import 'package:test/test.dart';
 
 void main() {
   // ---------------------------------------------------------------------------
   // HookContext
   // ---------------------------------------------------------------------------
   group('HookContext', () {
-    test('get returns defaultValue when key is not set', () {
+    test('getState returns defaultValue when key is not setState', () {
       final ctx = HookContext();
-      expect(ctx.get('missing'), isNull);
-      expect(ctx.get('missing', 42), equals(42));
+      expect(ctx.getState('missing'), isNull);
+      expect(ctx.getState('missing', 42), equals(42));
     });
 
-    test('set and get work for the same key', () {
+    test('setState and getState work for the same key', () {
       final ctx = HookContext();
-      ctx.set('key', 'value');
-      expect(ctx.get('key'), equals('value'));
+      ctx.setState('key', 'value');
+      expect(ctx.getState('key'), equals('value'));
     });
 
-    test('set overwrites previously stored value', () {
+    test('setState overwrites previously stored value', () {
       final ctx = HookContext();
-      ctx.set('k', 1);
-      ctx.set('k', 2);
-      expect(ctx.get('k'), equals(2));
+      ctx.setState('k', 1);
+      ctx.setState('k', 2);
+      expect(ctx.getState('k'), equals(2));
     });
 
     test('context inherits value from parent', () {
       final parent = HookContext();
-      parent.set('inherited', true);
+      parent.setState('inherited', true);
       final child = HookContext(parent: parent);
-      expect(child.get('inherited'), isTrue);
+      expect(child.getState('inherited'), isTrue);
     });
 
     test('local key shadows parent key', () {
       final parent = HookContext();
-      parent.set('key', 'parent_value');
+      parent.setState('key', 'parent_value');
       final child = HookContext(parent: parent);
-      child.set('key', 'child_value');
-      expect(child.get('key'), equals('child_value'));
+      child.setState('key', 'child_value');
+      expect(child.getState('key'), equals('child_value'));
     });
 
     test('grandparent value is reachable through two levels', () {
       final grand = HookContext();
-      grand.set('deep', 'grandparent');
+      grand.setState('deep', 'grandparent');
       final parent = HookContext(parent: grand);
       final child = HookContext(parent: parent);
-      expect(child.get('deep'), equals('grandparent'));
+      expect(child.getState('deep'), equals('grandparent'));
     });
 
     test('context without parent has null parent', () {
@@ -55,10 +55,10 @@ void main() {
 
     test('stores values of any type', () {
       final ctx = HookContext();
-      ctx.set('list', [1, 2, 3]);
-      ctx.set('map', {'a': 1});
-      expect(ctx.get('list'), equals([1, 2, 3]));
-      expect(ctx.get('map'), equals({'a': 1}));
+      ctx.setState('list', [1, 2, 3]);
+      ctx.setState('map', {'a': 1});
+      expect(ctx.getState('list'), equals([1, 2, 3]));
+      expect(ctx.getState('map'), equals({'a': 1}));
     });
   });
 
@@ -81,17 +81,17 @@ void main() {
 
     test('OperationContext can read from session through chain', () {
       final session = SessionContext();
-      session.set('sessionKey', 'sessionValue');
+      session.setState('sessionKey', 'sessionValue');
       final turn = TurnContext(session);
       final op = OperationContext(turn);
-      expect(op.get('sessionKey'), equals('sessionValue'));
+      expect(op.getState('sessionKey'), equals('sessionValue'));
     });
 
     test('TurnContext key does not leak into SessionContext', () {
       final session = SessionContext();
       final turn = TurnContext(session);
-      turn.set('turnOnly', true);
-      expect(session.get('turnOnly'), isNull);
+      turn.setState('turnOnly', true);
+      expect(session.getState('turnOnly'), isNull);
     });
   });
 
