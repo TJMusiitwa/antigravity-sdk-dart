@@ -41,6 +41,7 @@ abstract class McpServerConfig with McpServerConfigMappable {
 class McpStdioServer extends McpServerConfig with McpStdioServerMappable {
   final String command;
   final List<String> args;
+  final Map<String, String>? env;
 
   @override
   String get type => 'stdio';
@@ -49,6 +50,7 @@ class McpStdioServer extends McpServerConfig with McpStdioServerMappable {
     required super.name,
     required this.command,
     List<String>? args,
+    this.env,
     super.timeoutSeconds,
     super.enabledTools,
     super.disabledTools,

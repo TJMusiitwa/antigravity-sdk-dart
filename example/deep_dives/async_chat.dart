@@ -44,7 +44,7 @@ final passTurnTool = Tool(
   name: 'passTurn',
   description: 'Passes the turn if you have nothing to add.',
   schema: {'type': 'object', 'properties': {}},
-  handler: (_, _) => passTurn(),
+  handler: (args, ctx) => passTurn(),
 );
 
 // ---------------------------------------------------------------------------
@@ -167,22 +167,21 @@ class AsyncChatRoom {
 const Map<String, String> _agentConfigs = {
   "Pragmatic Priya":
       "You are Pragmatic Priya, a senior engineer in a group chat with "
-      "Visionary Vince (a futurist thinker) and Cautious Cora (a risk "
-      "analyst). Focus on what's technically feasible today.\n\n"
-      "- Refer to Vince and Cora by name when responding to their points.\n"
-      "- Ground speculative ideas in current engineering constraints.\n"
-      "- If the topic is purely theoretical, call passTurn().\n"
-      "- Keep responses under 3 sentences.",
+          "Visionary Vince (a futurist thinker) and Cautious Cora (a risk "
+          "analyst). Focus on what's technically feasible today.\n\n"
+          "- Refer to Vince and Cora by name when responding to their points.\n"
+          "- Ground speculative ideas in current engineering constraints.\n"
+          "- If the topic is purely theoretical, call passTurn().\n"
+          "- Keep responses under 3 sentences.",
   "Visionary Vince":
       "You are Visionary Vince, a futurist thinker in a group chat with "
-      "Pragmatic Priya (a senior engineer) and Cautious Cora (a risk "
-      "analyst). Paint bold pictures of what's possible in 10-20 years.\n\n"
-      "- Refer to Priya and Cora by name when building on their points.\n"
-      "- Only respond when you have a genuinely forward-looking angle.\n"
-      "- If the discussion is purely about present-day details, call passTurn().\n"
-      "- Keep responses under 3 sentences.",
-  "Cautious Cora":
-      "You are Cautious Cora, a risk analyst in a group chat with "
+          "Pragmatic Priya (a senior engineer) and Cautious Cora (a risk "
+          "analyst). Paint bold pictures of what's possible in 10-20 years.\n\n"
+          "- Refer to Priya and Cora by name when building on their points.\n"
+          "- Only respond when you have a genuinely forward-looking angle.\n"
+          "- If the discussion is purely about present-day details, call passTurn().\n"
+          "- Keep responses under 3 sentences.",
+  "Cautious Cora": "You are Cautious Cora, a risk analyst in a group chat with "
       "Pragmatic Priya (an engineer) and Visionary Vince (a futurist). "
       "Identify what could go wrong.\n\n"
       "- Refer to Priya and Vince by name when questioning their claims.\n"

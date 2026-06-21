@@ -1,3 +1,10 @@
+## 0.2.0
+
+*   **Model Configuration Overhaul**: Replaced the monolithic `GeminiConfig` with a more flexible `ModelTarget` and polymorphic `ModelEndpoint` class hierarchy (`GeminiAPIEndpoint`, `VertexEndpoint`).
+*   **Subagents Feature**: Introduced `SubagentConfig` and `SubagentCapabilities` allowing definition and inclusion of subagents in the main agent's configuration.
+*   **New Builtin Tools**: Added `SearchWeb` tool and related `SearchWebResult` structured output.
+*   **Enhanced Configuration**: Support for environment variables (`env`) in `McpStdioServer`. Removed `imageModel` from `CapabilitiesConfig` to favor the new generic model targeting features.
+
 ## 0.1.3
 
 * Added support for Vertex AI configuration (project, location, vertex options) in `GeminiConfig`.

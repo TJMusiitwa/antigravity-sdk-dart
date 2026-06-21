@@ -20,7 +20,7 @@ class LocalConnectionStrategy extends ConnectionStrategy {
   final String? _configuredBinaryPath;
   final ToolRunner _toolRunner;
   final HookRunner _hookRunner;
-  final GeminiConfig _geminiConfig;
+  final List<ModelTarget>? _models;
   final dynamic _systemInstructions;
   final CapabilitiesConfig _capabilitiesConfig;
   final String? _conversationId;
@@ -29,6 +29,7 @@ class LocalConnectionStrategy extends ConnectionStrategy {
   final String? _appDataDir;
   final List<String> _skillsPaths;
   final List<McpServerConfig> _mcpServers;
+  final List<SubagentConfig> _subagents;
 
   Process? _process;
   WebSocket? _ws;
@@ -42,7 +43,7 @@ class LocalConnectionStrategy extends ConnectionStrategy {
     String? binaryPath,
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
-    required GeminiConfig geminiConfig,
+    List<ModelTarget>? models,
     required dynamic systemInstructions,
     required CapabilitiesConfig capabilitiesConfig,
     String? conversationId,
@@ -51,18 +52,20 @@ class LocalConnectionStrategy extends ConnectionStrategy {
     String? appDataDir,
     required List<String> skillsPaths,
     List<McpServerConfig>? mcpServers,
-  }) : _configuredBinaryPath = binaryPath,
-       _toolRunner = toolRunner,
-       _hookRunner = hookRunner,
-       _geminiConfig = geminiConfig,
-       _systemInstructions = systemInstructions,
-       _capabilitiesConfig = capabilitiesConfig,
-       _conversationId = conversationId,
-       _saveDir = saveDir,
-       _workspaces = workspaces,
-       _appDataDir = appDataDir,
-       _skillsPaths = skillsPaths,
-       _mcpServers = mcpServers ?? const [];
+    List<SubagentConfig>? subagents,
+  })  : _configuredBinaryPath = binaryPath,
+        _toolRunner = toolRunner,
+        _hookRunner = hookRunner,
+        _models = models,
+        _systemInstructions = systemInstructions,
+        _capabilitiesConfig = capabilitiesConfig,
+        _conversationId = conversationId,
+        _saveDir = saveDir,
+        _workspaces = workspaces,
+        _appDataDir = appDataDir,
+        _skillsPaths = skillsPaths,
+        _mcpServers = mcpServers ?? const [],
+        _subagents = subagents ?? const [];
 
   @override
   Connection connect() {
@@ -74,27 +77,20 @@ class LocalConnectionStrategy extends ConnectionStrategy {
 
   @override
   Future<void> start() async {
-    // 1. Fail fast if no API key is available
-    final useVertex = _geminiConfig.vertex;
-    final apiKey =
-        _geminiConfig.apiKey ?? Platform.environment['GEMINI_API_KEY'];
-    if (!useVertex && (apiKey == null || apiKey.isEmpty)) {
-      throw AntigravityValidationException(
-        'A Gemini API key is required. Set it via GeminiConfig(apiKey: ...) '
-        'or the GEMINI_API_KEY environment variable.',
-      );
-    }
-    if (useVertex) {
-      final project = _geminiConfig.project;
-      final location = _geminiConfig.location;
-      if (apiKey == null &&
-          (project == null ||
-              project.isEmpty ||
-              location == null ||
-              location.isEmpty)) {
-        throw AntigravityValidationException(
-          'For Vertex AI, either a GCP project and location, or an API key (Express Mode) must be set.',
-        );
+    // 1. Validate all model endpoints
+    if (_models != null) {
+      for (final m in _models!) {
+        if (m.endpoint != null) {
+          try {
+            m.endpoint!.validateEndpoint();
+          } catch (e) {
+            throw AntigravityValidationException(e.toString());
+          }
+        } else {
+          throw AntigravityValidationException(
+            "Model '${m.name}' must have an endpoint configured.",
+          );
+        }
       }
     }
 
@@ -154,9 +150,8 @@ class LocalConnectionStrategy extends ConnectionStrategy {
         attempt++;
         if (attempt >= maxRetries) {
           _process!.kill();
-          final stderrText = await _process!.stderr
-              .transform(utf8.decoder)
-              .join();
+          final stderrText =
+              await _process!.stderr.transform(utf8.decoder).join();
           throw Exception(
             'Failed to connect to WebSocket at $wsUrl after $maxRetries attempts. Stderr: $stderrText. Error: $e',
           );
@@ -172,21 +167,41 @@ class LocalConnectionStrategy extends ConnectionStrategy {
     _ws = ws;
 
     // 7. Send InitializeConversationEvent JSON over WebSocket
-    final harnessConfig = _buildHarnessConfig(apiKey);
+    final harnessConfig = _buildHarnessConfig();
     final initEvent = {'config': harnessConfig};
     _ws!.add(jsonEncode(initEvent));
+
+    // 8. Wait for initialization response from the harness
+    final rawInitResp = await _ws!.first;
+    final initialHistory = <Step>[];
+    if (rawInitResp is String || rawInitResp is List<int>) {
+      final String respJson = rawInitResp is List<int>
+          ? utf8.decode(rawInitResp)
+          : rawInitResp as String;
+      final Map<String, dynamic> initRespEvent = jsonDecode(respJson);
+
+      if (initRespEvent.containsKey('initialize_conversation_response')) {
+        final initResp = initRespEvent['initialize_conversation_response']
+            as Map<String, dynamic>;
+        if (initResp.containsKey('history')) {
+          final historyList = initResp['history'] as List<dynamic>;
+          for (final stepUpdateProto in historyList) {
+            initialHistory
+                .add(Step.fromMap(stepUpdateProto as Map<String, dynamic>));
+          }
+        }
+      }
+    }
 
     _connection = LocalConnection(
       process: _process!,
       ws: _ws!,
       toolRunner: _toolRunner,
       hookRunner: _hookRunner,
+      initialHistory: initialHistory,
     );
     _connection!._startStderrReader();
     _connection!._startReaderLoop();
-
-    // Dispatch session-start hook if runner is set up
-    await _hookRunner.dispatchSessionStart();
   }
 
   @override
@@ -199,7 +214,7 @@ class LocalConnectionStrategy extends ConnectionStrategy {
     _process = null;
   }
 
-  Map<String, dynamic> _buildHarnessConfig(String? apiKey) {
+  Map<String, dynamic> _buildHarnessConfig() {
     // Generate tool schemas from dynamic functions registered in L2
     final List<Map<String, dynamic>> toolsProtos = [];
     for (final name in _toolRunner.tools.keys) {
@@ -226,21 +241,47 @@ class LocalConnectionStrategy extends ConnectionStrategy {
       }
     }
 
-    final geminiConfigProto = {
-      'model_name': _geminiConfig.models.defaultModelEntry.name,
-      'api_key': apiKey ?? '',
-      'use_vertex': _geminiConfig.vertex,
-      if (_geminiConfig.project != null) 'project': _geminiConfig.project,
-      if (_geminiConfig.location != null) 'location': _geminiConfig.location,
-      if (_geminiConfig.models.defaultModelEntry.generation.thinkingLevel !=
-          null)
-        'thinking_level': _geminiConfig
-            .models
-            .defaultModelEntry
-            .generation
-            .thinkingLevel!
-            .value,
-    };
+    final modelsProtos = <Map<String, dynamic>>[];
+    if (_models != null) {
+      for (final model in _models!) {
+        final protoMap = <String, dynamic>{};
+        if (model.name != null) {
+          protoMap['name'] = model.name;
+        }
+        if (model.types.isNotEmpty) {
+          protoMap['types'] = model.types
+              .map((t) => 'MODEL_TYPE_${t.value.toUpperCase()}')
+              .toList();
+        }
+        if (model.endpoint != null) {
+          if (model.endpoint is GeminiAPIEndpoint) {
+            final ep = model.endpoint as GeminiAPIEndpoint;
+            protoMap['gemini_api_endpoint'] = {
+              if (ep.baseUrl != null) 'base_url': ep.baseUrl,
+              if (ep.httpHeaders != null) 'http_headers': ep.httpHeaders,
+              if (ep.apiKey != null) 'api_key': ep.apiKey,
+              if (ep.options?.thinkingLevel != null)
+                'options': {
+                  'thinking_level': ep.options!.thinkingLevel!.value,
+                },
+            };
+          } else if (model.endpoint is VertexEndpoint) {
+            final ep = model.endpoint as VertexEndpoint;
+            protoMap['vertex_endpoint'] = {
+              if (ep.baseUrl != null) 'base_url': ep.baseUrl,
+              if (ep.httpHeaders != null) 'http_headers': ep.httpHeaders,
+              if (ep.project != null) 'project': ep.project,
+              if (ep.location != null) 'location': ep.location,
+              if (ep.options?.thinkingLevel != null)
+                'options': {
+                  'thinking_level': ep.options!.thinkingLevel!.value,
+                },
+            };
+          }
+        }
+        modelsProtos.add(protoMap);
+      }
+    }
 
     final workspacesProto = _workspaces
         .map(
@@ -284,8 +325,8 @@ class LocalConnectionStrategy extends ConnectionStrategy {
       'list_dir': {'enabled': activeTools.contains(BuiltinTools.listDirectory)},
       'generate_image': {
         'enabled': activeTools.contains(BuiltinTools.generateImage),
-        'model_name': cfg.imageModel,
       },
+      'search_web': {'enabled': activeTools.contains(BuiltinTools.searchWeb)},
     };
 
     final List<Map<String, dynamic>> mcpServersProto = [];
@@ -297,18 +338,105 @@ class LocalConnectionStrategy extends ConnectionStrategy {
         'timeout_seconds': s.timeoutSeconds ?? 0,
       };
       if (s is McpStdioServer) {
-        item['stdio'] = {'command': s.command, 'args': s.args};
+        item['stdio'] = {
+          'command': s.command,
+          'args': s.args,
+          if (s.env != null) 'env': s.env,
+        };
       } else if (s is McpStreamableHttpServer) {
         item['http'] = {'url': s.url, 'headers': s.headers ?? const {}};
       }
       mcpServersProto.add(item);
     }
 
+    final enabledHooks = <String>[];
+    if (_hookRunner.onSessionStartHooks.isNotEmpty) {
+      enabledHooks.add('LIFECYCLE_HOOK_ON_SESSION_START');
+    }
+    if (_hookRunner.onSessionEndHooks.isNotEmpty) {
+      enabledHooks.add('LIFECYCLE_HOOK_ON_SESSION_END');
+    }
+
+    final customAgentsProtos = <Map<String, dynamic>>[];
+    for (final subagent in _subagents) {
+      final activeSubTools = subagent.capabilities?.enabledTools?.toSet() ??
+          BuiltinTools.readOnly().toSet();
+
+      final resolvedSubagentTools = <Map<String, dynamic>>[];
+      for (final toolName in subagent.tools) {
+        if (!toolsProtos.any((t) => t['name'] == toolName)) {
+          throw ArgumentError(
+            "Subagent tool '$toolName' is not registered on the main agent "
+            "config. Any custom tools used by subagents must also be added "
+            "to the main agent's tools list.",
+          );
+        }
+        resolvedSubagentTools.add(
+          toolsProtos.firstWhere((t) => t['name'] == toolName),
+        );
+      }
+
+      final subagentSystemInstructionsProto = <String, dynamic>{};
+      if (subagent.systemInstructions != null) {
+        if (subagent.systemInstructions is String) {
+          subagentSystemInstructionsProto['appended'] = {
+            'appended_sections': [
+              {'title': 'System', 'content': subagent.systemInstructions},
+            ],
+          };
+        } else if (subagent.systemInstructions
+            is List<SystemInstructionSection>) {
+          subagentSystemInstructionsProto['appended'] = {
+            'appended_sections':
+                (subagent.systemInstructions as List<SystemInstructionSection>)
+                    .map((s) => {'title': s.title, 'content': s.content})
+                    .toList(),
+          };
+        }
+      }
+
+      customAgentsProtos.add({
+        'name': subagent.name,
+        'description': subagent.description,
+        if (subagentSystemInstructionsProto.isNotEmpty)
+          'system_instructions': subagentSystemInstructionsProto,
+        'harness_side_tools': {
+          'subagents': {'enabled': false},
+          'find': {'enabled': activeSubTools.contains(BuiltinTools.findFile)},
+          'run_command': {
+            'enabled': activeSubTools.contains(BuiltinTools.runCommand),
+          },
+          'edit_file': {
+            'enabled': activeSubTools.contains(BuiltinTools.editFile),
+          },
+          'view_file': {
+            'enabled': activeSubTools.contains(BuiltinTools.viewFile),
+          },
+          'create_file': {
+            'enabled': activeSubTools.contains(BuiltinTools.createFile),
+          },
+          'grep_search': {
+            'enabled': activeSubTools.contains(BuiltinTools.searchDirectory),
+          },
+          'list_dir': {
+            'enabled': activeSubTools.contains(BuiltinTools.listDirectory),
+          },
+          'generate_image': {
+            'enabled': activeSubTools.contains(BuiltinTools.generateImage),
+          },
+          'search_web': {
+            'enabled': activeSubTools.contains(BuiltinTools.searchWeb),
+          },
+        },
+        'tools': resolvedSubagentTools,
+      });
+    }
+
     return {
       'cascade_id': _conversationId ?? '',
       'tools': toolsProtos,
       'system_instructions': systemInstructionsProto,
-      'gemini_config': geminiConfigProto,
+      'models': modelsProtos,
       'workspaces': workspacesProto,
       'skills_paths': _skillsPaths,
       'harness_side_tools': harnessSideTools,
@@ -316,6 +444,8 @@ class LocalConnectionStrategy extends ConnectionStrategy {
       'finish_tool_schema_json': cfg.finishToolSchemaJson ?? '',
       'app_data_dir': _appDataDir ?? '',
       'mcp_servers': mcpServersProto,
+      'enabled_hooks': enabledHooks,
+      'custom_subagents': customAgentsProtos,
     };
   }
 }
@@ -406,10 +536,17 @@ class LocalConnection extends Connection {
     required WebSocket ws,
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
-  }) : _process = process,
-       _ws = ws,
-       _toolRunner = toolRunner,
-       _hookRunner = hookRunner;
+    List<Step>? initialHistory,
+  })  : _process = process,
+        _ws = ws,
+        _toolRunner = toolRunner,
+        _hookRunner = hookRunner {
+    if (initialHistory != null) {
+      for (final step in initialHistory) {
+        _stepController.add(step);
+      }
+    }
+  }
 
   void _safeAdd(Step step) {
     if (_disconnecting || _stepController.isClosed) return;
@@ -426,12 +563,12 @@ class LocalConnection extends Connection {
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .listen((line) {
-          _stderrLines.add(line);
-          if (_stderrLines.length > 50) {
-            _stderrLines.removeAt(0);
-          }
-          _logger.fine('[Harness Stderr] $line');
-        }, cancelOnError: false);
+      _stderrLines.add(line);
+      if (_stderrLines.length > 50) {
+        _stderrLines.removeAt(0);
+      }
+      _logger.fine('[Harness Stderr] $line');
+    }, cancelOnError: false);
   }
 
   void _startReaderLoop() {

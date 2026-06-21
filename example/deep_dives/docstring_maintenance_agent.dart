@@ -93,8 +93,7 @@ Future<void> main(List<String> args) async {
   print('Target directory: $targetDir');
 
   bool isAllowedDartFile(ToolCall toolCall) {
-    var path =
-        toolCall.canonicalPath ??
+    var path = toolCall.canonicalPath ??
         toolCall.args['path'] ??
         toolCall.args['file_path'] ??
         '';

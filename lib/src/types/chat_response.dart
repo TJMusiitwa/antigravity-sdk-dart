@@ -12,8 +12,8 @@ class ChatResponse {
   final Conversation? _conversation;
 
   ChatResponse(Stream<dynamic> rawStream, {Conversation? conversation})
-    : _stream = rawStream.asBroadcastStream(),
-      _conversation = conversation {
+      : _stream = rawStream.asBroadcastStream(),
+        _conversation = conversation {
     _stream.listen(
       (chunk) {
         _bufferedChunks.add(chunk);
@@ -114,7 +114,7 @@ class ChatResponse {
   /// Cancels the active execution turn and halts generation.
   Future<void> cancel() async {
     if (!_isDone && _conversation != null) {
-      await _conversation.cancel();
+      await _conversation!.cancel();
     }
   }
 }

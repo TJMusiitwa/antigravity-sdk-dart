@@ -7,6 +7,7 @@ export 'types/tool_call.dart';
 export 'types/step.dart';
 export 'types/interaction.dart';
 export 'types/chunks.dart';
+export 'models.dart';
 export 'types/content.dart';
 export 'types/chat_response.dart';
 export 'types/file_change.dart';

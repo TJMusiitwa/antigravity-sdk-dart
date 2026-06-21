@@ -415,7 +415,8 @@ class _SimpleSessionStartHook extends OnSessionStartHook {
 
 OnSessionStartHook _makeSessionStartHook(
   Future<void> Function(HookContext) fn,
-) => _SimpleSessionStartHook(fn);
+) =>
+    _SimpleSessionStartHook(fn);
 
 class _SimpleSessionEndHook extends OnSessionEndHook {
   final Future<void> Function(HookContext) _fn;
@@ -450,7 +451,8 @@ class _SimplePreTurnHook extends PreTurnHook {
 
 PreTurnHook _makePreTurnHook(
   Future<HookResult> Function(HookContext, dynamic) fn,
-) => _SimplePreTurnHook(fn);
+) =>
+    _SimplePreTurnHook(fn);
 
 class _SimplePreToolCallHook extends PreToolCallDecideHook {
   final Future<HookResult> Function(HookContext, ToolCall) _fn;
@@ -463,7 +465,8 @@ class _SimplePreToolCallHook extends PreToolCallDecideHook {
 
 PreToolCallDecideHook _makePreToolCallHook(
   Future<HookResult> Function(HookContext, ToolCall) fn,
-) => _SimplePreToolCallHook(fn);
+) =>
+    _SimplePreToolCallHook(fn);
 
 class _SimplePostToolCallHook extends PostToolCallHook {
   final Future<void> Function(HookContext, ToolResult) _fn;
@@ -475,7 +478,8 @@ class _SimplePostToolCallHook extends PostToolCallHook {
 
 PostToolCallHook _makePostToolCallHook(
   Future<void> Function(HookContext, ToolResult) fn,
-) => _SimplePostToolCallHook(fn);
+) =>
+    _SimplePostToolCallHook(fn);
 
 class _SimpleToolErrorHook extends OnToolErrorHook {
   final Future<dynamic> Function(HookContext, Exception) _fn;
@@ -488,7 +492,8 @@ class _SimpleToolErrorHook extends OnToolErrorHook {
 
 OnToolErrorHook _makeToolErrorHook(
   Future<dynamic> Function(HookContext, Exception) fn,
-) => _SimpleToolErrorHook(fn);
+) =>
+    _SimpleToolErrorHook(fn);
 
 class _SimpleCompactionHook extends OnCompactionHook {
   final Future<void> Function(HookContext, dynamic) _fn;
@@ -500,24 +505,26 @@ class _SimpleCompactionHook extends OnCompactionHook {
 
 OnCompactionHook _makeCompactionHook(
   Future<void> Function(HookContext, dynamic) fn,
-) => _SimpleCompactionHook(fn);
+) =>
+    _SimpleCompactionHook(fn);
 
 class _SimpleInteractionHook extends OnInteractionHook {
   final Future<QuestionHookResult> Function(
     HookContext,
     AskQuestionInteractionSpec,
-  )
-  _fn;
+  ) _fn;
   _SimpleInteractionHook(this._fn);
 
   @override
   Future<QuestionHookResult> run(
     HookContext context,
     AskQuestionInteractionSpec data,
-  ) => _fn(context, data);
+  ) =>
+      _fn(context, data);
 }
 
 OnInteractionHook _makeInteractionHook(
   Future<QuestionHookResult> Function(HookContext, AskQuestionInteractionSpec)
-  fn,
-) => _SimpleInteractionHook(fn);
+      fn,
+) =>
+    _SimpleInteractionHook(fn);

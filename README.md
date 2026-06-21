@@ -1,6 +1,6 @@
 # Antigravity SDK for Dart 🌌
 
-[![pub package](https://img.shields.io/badge/pub-v0.1.3-blue.svg)](https://pub.dev/)
+[![pub package](https://img.shields.io/badge/pub-v0.2.0-blue.svg)](https://pub.dev/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Dart CI](https://github.com/TJMusiitwa/antigravity-sdk-dart/actions/workflows/ci.yml/badge.svg)](https://github.com/TJMusiitwa/antigravity-sdk-dart/actions/workflows/ci.yml)
 

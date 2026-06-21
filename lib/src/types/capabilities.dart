@@ -26,6 +26,8 @@ enum BuiltinTools {
   startSubagent('start_subagent'),
   @MappableValue('generate_image')
   generateImage('generate_image'),
+  @MappableValue('search_web')
+  searchWeb('search_web'),
   @MappableValue('finish')
   finish('finish');
 
@@ -47,6 +49,7 @@ enum BuiltinTools {
       askQuestion,
       startSubagent,
       generateImage,
+      searchWeb,
       finish,
     ];
   }
@@ -67,7 +70,6 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
   final List<BuiltinTools>? enabledTools;
   final List<BuiltinTools>? disabledTools;
   final int? compactionThreshold;
-  final String imageModel;
   String? finishToolSchemaJson;
 
   CapabilitiesConfig({
@@ -75,7 +77,6 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
     this.enabledTools,
     this.disabledTools,
     this.compactionThreshold,
-    this.imageModel = 'gemini-3.1-flash-image-preview',
     this.finishToolSchemaJson,
   }) {
     if (enabledTools != null && disabledTools != null) {

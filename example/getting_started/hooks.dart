@@ -156,7 +156,7 @@ final brokenTool = Tool(
   name: 'broken_tool',
   description: 'Fails always with an exception.',
   schema: {'type': 'object', 'properties': {}},
-  handler: (_, _) async =>
+  handler: (args, ctx) async =>
       throw Exception('This tool is intentionally broken!'),
 );
 

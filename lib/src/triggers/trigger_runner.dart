@@ -14,8 +14,8 @@ class TriggerRunner {
   TriggerRunner({
     required List<Trigger> triggers,
     required Connection connection,
-  }) : _triggers = List.from(triggers),
-       _connection = connection;
+  })  : _triggers = List.from(triggers),
+        _connection = connection;
 
   /// True if triggers are active and running.
   bool get isRunning => _isRunning;

@@ -56,13 +56,13 @@ Trigger every(
 Trigger onFileChange(
   String path,
   FutureOr<void> Function(TriggerContext context, List<FileChange> changes)
-  callback,
+      callback,
 ) {
   return (ctx) async {
     final entity =
         FileSystemEntity.typeSync(path) == FileSystemEntityType.directory
-        ? Directory(path)
-        : File(path);
+            ? Directory(path)
+            : File(path);
 
     if (!entity.existsSync()) {
       throw FileSystemException("Path to watch does not exist", path);

@@ -30,17 +30,18 @@ String get defaultAppDataDir {
   ],
 )
 class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
-  /// The Gemini model configuration, such as API key and model selection.
-  final GeminiConfig geminiConfig;
+  /// Shorthand option to set explicit configuration targets for a single model or overrides.
+  /// Can be a string model name or a full [ModelTarget].
+  final dynamic model; // String or ModelTarget
 
-  /// Shorthand option to override the default model name.
-  final String? model;
+  /// Shorthand option to supply a list of configurations per model.
+  final List<ModelTarget>? models;
 
   /// Shorthand option to override the Gemini API key.
   final String? apiKey;
 
   /// Shorthand option to enable Vertex AI.
-  final bool? vertex;
+  final bool vertex;
 
   /// Shorthand option to set Vertex AI GCP project.
   final String? project;
@@ -60,49 +61,95 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
     List<Hook>? hooks,
     List<Trigger>? triggers,
     List<McpServerConfig>? mcpServers,
+    List<SubagentConfig>? subagents,
     List<String>? workspaces,
     super.conversationId,
     super.saveDir,
     super.appDataDir,
     super.responseSchema,
     List<String>? skillsPaths,
-    GeminiConfig? geminiConfig,
     this.model,
+    this.models,
     this.apiKey,
-    this.vertex,
+    this.vertex = false,
     this.project,
     this.location,
     this.binaryPath,
-  }) : geminiConfig = geminiConfig ?? GeminiConfig(),
-       super(
-         capabilities: capabilities ?? CapabilitiesConfig(),
-         tools: tools ?? [],
-         hooks: hooks ?? [],
-         triggers: triggers ?? [],
-         mcpServers: mcpServers ?? [],
-         workspaces: workspaces ?? [Directory.current.absolute.path],
-         skillsPaths: skillsPaths ?? [],
-       ) {
-    _validateAndApplyShorthands();
+  }) : super(
+          capabilities: capabilities ?? CapabilitiesConfig(),
+          tools: tools ?? [],
+          hooks: hooks ?? [],
+          triggers: triggers ?? [],
+          mcpServers: mcpServers ?? [],
+          subagents: subagents ?? [],
+          workspaces: workspaces ?? [Directory.current.absolute.path],
+          skillsPaths: skillsPaths ?? [],
+        ) {
     _applyWorkspacePolicies();
   }
 
-  void _validateAndApplyShorthands() {
-    // Top-level shorthand fields flow into geminiConfig
-    if (model != null) {
-      if (geminiConfig.models.defaultModelEntry.name != defaultModel) {
-        throw AntigravityValidationException(
-          "Cannot set both 'model' shorthand and 'geminiConfig.models.default'. Use one or the other.",
-        );
+  ModelEndpoint? _buildShorthandEndpoint() {
+    if (vertex) {
+      return VertexEndpoint(project: project, location: location);
+    }
+    return GeminiAPIEndpoint(apiKey: apiKey);
+  }
+
+  List<ModelTarget> _buildShorthandModels(ModelEndpoint? endpoint) {
+    if (model == null) return [];
+
+    if (model is ModelTarget) {
+      final shorthandModel = (model as ModelTarget).copyWith(
+        endpoint: (model as ModelTarget).endpoint ?? endpoint,
+      );
+      return [shorthandModel];
+    } else {
+      return [
+        ModelTarget(
+          name: model as String,
+          types: [ModelType.text],
+          endpoint: endpoint,
+        ),
+      ];
+    }
+  }
+
+  List<ModelTarget> _buildDefaultModels(ModelEndpoint? endpoint) {
+    return [
+      ModelTarget(
+        name: defaultModel,
+        types: [ModelType.text],
+        endpoint: endpoint,
+      ),
+      ModelTarget(
+        name: defaultImageGenerationModel,
+        types: [ModelType.image],
+        endpoint: endpoint,
+      ),
+    ];
+  }
+
+  List<ModelTarget> _mergeModelsList() {
+    final endpoint = _buildShorthandEndpoint();
+    final explicitModels = models ?? <ModelTarget>[];
+    final shorthandModels = _buildShorthandModels(endpoint);
+    final defaultModels = _buildDefaultModels(endpoint);
+
+    final mergedModels = List<ModelTarget>.from(explicitModels);
+    mergedModels.addAll(shorthandModels);
+
+    final existingTypes = <ModelType>{};
+    for (final m in mergedModels) {
+      existingTypes.addAll(m.types);
+    }
+
+    for (final defaultModel in defaultModels) {
+      if (!defaultModel.types.any((t) => existingTypes.contains(t))) {
+        mergedModels.add(defaultModel);
       }
     }
-    if (apiKey != null) {
-      if (geminiConfig.apiKey != null) {
-        throw AntigravityValidationException(
-          "Cannot set both 'apiKey' shorthand and 'geminiConfig.apiKey'. Use one or the other.",
-        );
-      }
-    }
+
+    return mergedModels;
   }
 
   void _applyWorkspacePolicies() {
@@ -117,29 +164,14 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
   }) {
-    // Merge shorthand into effective config for the strategy
-    final effectiveApiKey = apiKey ?? geminiConfig.apiKey;
-    final effectiveModel = model != null
-        ? ModelEntry(name: model!)
-        : geminiConfig.models.defaultModelEntry;
-
-    final effectiveGeminiConfig = geminiConfig.copyWith(
-      apiKey: effectiveApiKey,
-      vertex: vertex ?? geminiConfig.vertex,
-      project: project ?? geminiConfig.project,
-      location: location ?? geminiConfig.location,
-      models: geminiConfig.models.copyWith(defaultModelEntry: effectiveModel),
-    );
-
-    final effectiveSaveDir = saveDir != null
-        ? Directory(saveDir!).absolute.path
-        : null;
+    final effectiveSaveDir =
+        saveDir != null ? Directory(saveDir!).absolute.path : null;
 
     return LocalConnectionStrategy(
       binaryPath: binaryPath,
       toolRunner: toolRunner,
       hookRunner: hookRunner,
-      geminiConfig: effectiveGeminiConfig,
+      models: _mergeModelsList(),
       systemInstructions: systemInstructions,
       capabilitiesConfig: capabilities,
       conversationId: conversationId,
@@ -148,6 +180,7 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
       appDataDir: appDataDir ?? defaultAppDataDir,
       skillsPaths: skillsPaths,
       mcpServers: mcpServers,
+      subagents: subagents,
     );
   }
 }

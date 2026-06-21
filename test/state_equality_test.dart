@@ -3,25 +3,6 @@ import 'package:test/test.dart';
 
 void main() {
   group('State Equality & Copying (dart_mappable)', () {
-    test('GeminiConfig deep equality', () {
-      final c1 = GeminiConfig(apiKey: 'key1', models: ModelConfig());
-      final c2 = GeminiConfig(apiKey: 'key1', models: ModelConfig());
-      final c3 = GeminiConfig(apiKey: 'key2', models: ModelConfig());
-
-      expect(c1, equals(c2)); // Deep equality
-      expect(c1, isNot(equals(c3)));
-      expect(c1.hashCode, equals(c2.hashCode));
-    });
-
-    test('GeminiConfig copyWith branches correctly', () {
-      final original = GeminiConfig(apiKey: 'old-key');
-      final branched = original.copyWith(apiKey: 'new-key');
-
-      expect(branched.apiKey, equals('new-key'));
-      expect(original.apiKey, equals('old-key'));
-      expect(branched.models, equals(original.models)); // Unchanged sub-object
-    });
-
     test('CapabilitiesConfig deep equality with lists', () {
       final cfg1 = CapabilitiesConfig(
         enabledTools: [BuiltinTools.viewFile, BuiltinTools.editFile],

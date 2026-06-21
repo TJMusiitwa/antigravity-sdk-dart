@@ -228,8 +228,8 @@ class Video extends MediaContent {
 }
 
 /// Union representation of dynamic prompt inputs.
-typedef ContentPrimitive =
-    dynamic; // String, MediaContent, SlashCommand, or List<ContentPrimitive>
+typedef ContentPrimitive
+    = dynamic; // String, MediaContent, SlashCommand, or List<ContentPrimitive>
 
 @MappableEnum(caseStyle: CaseStyle.snakeCase)
 enum BuiltinSlashCommandName {
