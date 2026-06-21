@@ -166,40 +166,28 @@ class LocalConnectionStrategy extends ConnectionStrategy {
 
     _ws = ws;
 
-    // 7. Send InitializeConversationEvent JSON over WebSocket
-    final harnessConfig = _buildHarnessConfig();
-    final initEvent = {'config': harnessConfig};
-    _ws!.add(jsonEncode(initEvent));
+    try {
+      // 7. Send InitializeConversationEvent JSON over WebSocket
+      final harnessConfig = _buildHarnessConfig();
+      final initEvent = {'config': harnessConfig};
+      _ws!.add(jsonEncode(initEvent));
 
-    // 8. Wait for initialization response from the harness
-    final rawInitResp = await _ws!.first;
-    final initialHistory = <Step>[];
-    if (rawInitResp is String || rawInitResp is List<int>) {
-      final String respJson = rawInitResp is List<int>
-          ? utf8.decode(rawInitResp)
-          : rawInitResp as String;
-      final Map<String, dynamic> initRespEvent = jsonDecode(respJson);
-
-      if (initRespEvent.containsKey('initialize_conversation_response')) {
-        final initResp = initRespEvent['initialize_conversation_response']
-            as Map<String, dynamic>;
-        if (initResp.containsKey('history')) {
-          final historyList = initResp['history'] as List<dynamic>;
-          for (final stepUpdateProto in historyList) {
-            initialHistory
-                .add(Step.fromMap(stepUpdateProto as Map<String, dynamic>));
-          }
-        }
-      }
+      _connection = LocalConnection(
+        process: _process!,
+        ws: _ws!,
+        toolRunner: _toolRunner,
+        hookRunner: _hookRunner,
+      );
+    } catch (e) {
+      _process!.kill();
+      final stderrText = await _process!.stderr.transform(utf8.decoder).join();
+      _logger.severe(
+        'Failed to initialize conversation with localharness. Stderr: $stderrText',
+      );
+      throw Exception(
+        'Failed to initialize conversation with localharness process. Stderr: $stderrText. Error: $e',
+      );
     }
-
-    _connection = LocalConnection(
-      process: _process!,
-      ws: _ws!,
-      toolRunner: _toolRunner,
-      hookRunner: _hookRunner,
-      initialHistory: initialHistory,
-    );
     _connection!._startStderrReader();
     _connection!._startReaderLoop();
   }
@@ -444,8 +432,8 @@ class LocalConnectionStrategy extends ConnectionStrategy {
       'finish_tool_schema_json': cfg.finishToolSchemaJson ?? '',
       'app_data_dir': _appDataDir ?? '',
       'mcp_servers': mcpServersProto,
-      'enabled_hooks': enabledHooks,
-      'custom_subagents': customAgentsProtos,
+      if (enabledHooks.isNotEmpty) 'enabled_hooks': enabledHooks,
+      if (customAgentsProtos.isNotEmpty) 'custom_subagents': customAgentsProtos,
     };
   }
 }
