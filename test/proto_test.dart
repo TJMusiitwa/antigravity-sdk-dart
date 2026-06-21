@@ -141,7 +141,7 @@ void main() {
         port: 0,
         bindAddress: 'localhost',
         clientLanguage: 'dart',
-        clientVersion: '0.1.3',
+        clientVersion: '0.2.0',
         clientLanguageVersion: '3.11.5',
       );
       // Tag 4 wire type 2 key: (4 << 3) | 2 = 34 = 0x22
