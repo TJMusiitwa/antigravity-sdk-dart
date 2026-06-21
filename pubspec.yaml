@@ -1,6 +1,6 @@
 name: antigravity
 description: "A native Dart client SDK for Google Antigravity, fully decoupled from the Flutter framework for server, CLI, and mobile compatibility."
-version: 0.2.0
+version: 0.2.1
 repository: https://github.com/TJMusiitwa/antigravity-sdk-dart
 topics: 
   - antigravity

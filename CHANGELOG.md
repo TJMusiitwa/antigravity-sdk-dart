@@ -1,4 +1,8 @@
-## 0.2.0
+# 0.2.1
+
+* Reintroduce generated files in package
+
+# 0.2.0
 
 *   **Model Configuration Overhaul**: Replaced the monolithic `GeminiConfig` with a more flexible `ModelTarget` and polymorphic `ModelEndpoint` class hierarchy (`GeminiAPIEndpoint`, `VertexEndpoint`).
 *   **Subagents Feature**: Introduced `SubagentConfig` and `SubagentCapabilities` allowing definition and inclusion of subagents in the main agent's configuration.
