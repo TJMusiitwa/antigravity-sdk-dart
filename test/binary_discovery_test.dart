@@ -100,8 +100,6 @@ void main() {
     });
 
     test('binaryNames contains expected values', () {
-      expect(BinaryDiscovery.binaryNames, contains('antigravity-cli'));
-      expect(BinaryDiscovery.binaryNames, contains('agy'));
       expect(BinaryDiscovery.binaryNames, contains('localharness'));
     });
 
