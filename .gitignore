@@ -32,8 +32,6 @@
 /coverage/
 pubspec.lock
 
-*.g.dart
-*.mapper.dart
 *.pb.dart
 *.pbenum.dart
 *.pbjson.dart
