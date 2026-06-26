@@ -148,6 +148,12 @@ abstract class OnInteractionHook
 /// Invoked when a conversation context compaction event occurs.
 abstract class OnCompactionHook extends InspectHook<dynamic> {}
 
+/// Invoked when a step is first seen in the stream (internal).
+abstract class PreStepHook extends InspectHook<Step> {}
+
+/// Invoked when a step completes (internal).
+abstract class PostStepHook extends InspectHook<Step> {}
+
 // --- Hook Runner ---
 
 /// Coordinates registration and dispatch of lifecycle hooks.
@@ -161,6 +167,8 @@ class HookRunner {
   final List<OnToolErrorHook> onToolErrorHooks;
   final List<OnInteractionHook> onInteractionHooks;
   final List<OnCompactionHook> onCompactionHooks;
+  final List<PreStepHook> preStepHooks;
+  final List<PostStepHook> postStepHooks;
 
   final SessionContext sessionContext = SessionContext();
   TurnContext? _currentTurnContext;
@@ -176,6 +184,8 @@ class HookRunner {
     List<OnToolErrorHook>? onToolErrorHooks,
     List<OnInteractionHook>? onInteractionHooks,
     List<OnCompactionHook>? onCompactionHooks,
+    List<PreStepHook>? preStepHooks,
+    List<PostStepHook>? postStepHooks,
   })  : onSessionStartHooks = onSessionStartHooks ?? [],
         onSessionEndHooks = onSessionEndHooks ?? [],
         preTurnHooks = preTurnHooks ?? [],
@@ -184,7 +194,9 @@ class HookRunner {
         postToolCallHooks = postToolCallHooks ?? [],
         onToolErrorHooks = onToolErrorHooks ?? [],
         onInteractionHooks = onInteractionHooks ?? [],
-        onCompactionHooks = onCompactionHooks ?? [];
+        onCompactionHooks = onCompactionHooks ?? [],
+        preStepHooks = preStepHooks ?? [],
+        postStepHooks = postStepHooks ?? [];
 
   /// Registers a hook dynamically.
   void registerHook(Hook hook) {
@@ -206,6 +218,10 @@ class HookRunner {
       onInteractionHooks.add(hook);
     } else if (hook is OnCompactionHook) {
       onCompactionHooks.add(hook);
+    } else if (hook is PreStepHook) {
+      preStepHooks.add(hook);
+    } else if (hook is PostStepHook) {
+      postStepHooks.add(hook);
     } else {
       throw ArgumentError("Unknown hook type: ${hook.runtimeType}");
     }
@@ -221,7 +237,9 @@ class HookRunner {
       postToolCallHooks.isNotEmpty ||
       onToolErrorHooks.isNotEmpty ||
       onInteractionHooks.isNotEmpty ||
-      onCompactionHooks.isNotEmpty;
+      onCompactionHooks.isNotEmpty ||
+      preStepHooks.isNotEmpty ||
+      postStepHooks.isNotEmpty;
 
   /// Creates and returns a fresh [TurnContext].
   TurnContext createTurnContext() {
@@ -331,6 +349,22 @@ class HookRunner {
     final opContext = OperationContext(turnContext);
     for (final hook in onCompactionHooks) {
       await hook.run(opContext, data);
+    }
+  }
+
+  /// Dispatches internal pre-step observability events.
+  Future<void> dispatchPreStep(Step step) async {
+    final turnCtx = currentTurnContext;
+    for (final hook in preStepHooks) {
+      await hook.run(turnCtx, step);
+    }
+  }
+
+  /// Dispatches internal post-step observability events.
+  Future<void> dispatchPostStep(Step step) async {
+    final turnCtx = currentTurnContext;
+    for (final hook in postStepHooks) {
+      await hook.run(turnCtx, step);
     }
   }
 }

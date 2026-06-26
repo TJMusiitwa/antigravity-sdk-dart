@@ -28,6 +28,8 @@ enum BuiltinTools {
   generateImage('generate_image'),
   @MappableValue('search_web')
   searchWeb('search_web'),
+  @MappableValue('read_url_content')
+  readUrlContent('read_url_content'),
   @MappableValue('finish')
   finish('finish');
 
@@ -35,7 +37,14 @@ enum BuiltinTools {
   const BuiltinTools(this.value);
 
   static List<BuiltinTools> readOnly() {
-    return [listDirectory, searchDirectory, findFile, viewFile, finish];
+    return [
+      listDirectory,
+      searchDirectory,
+      findFile,
+      viewFile,
+      readUrlContent,
+      finish
+    ];
   }
 
   static List<BuiltinTools> nondestructive() {
@@ -50,6 +59,7 @@ enum BuiltinTools {
       startSubagent,
       generateImage,
       searchWeb,
+      readUrlContent,
       finish,
     ];
   }

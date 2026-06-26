@@ -37,10 +37,12 @@ class StepTypeMapper extends EnumMapper<StepType> {
         return StepType.compaction;
       case 'FINISH':
         return StepType.finish;
+      case 'THINKING':
+        return StepType.thinking;
       case r'UNKNOWN':
         return StepType.unknown;
       default:
-        return StepType.values[5];
+        return StepType.values[6];
     }
   }
 
@@ -57,6 +59,8 @@ class StepTypeMapper extends EnumMapper<StepType> {
         return 'COMPACTION';
       case StepType.finish:
         return 'FINISH';
+      case StepType.thinking:
+        return 'THINKING';
       case StepType.unknown:
         return r'UNKNOWN';
     }

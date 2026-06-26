@@ -137,6 +137,7 @@ void main() {
       );
       expect(StepType.fromString('COMPACTION'), equals(StepType.compaction));
       expect(StepType.fromString('FINISH'), equals(StepType.finish));
+      expect(StepType.fromString('THINKING'), equals(StepType.thinking));
       expect(StepType.fromString('UNKNOWN'), equals(StepType.unknown));
     });
 
@@ -146,6 +147,7 @@ void main() {
         equals(StepType.textResponse),
       );
       expect(StepType.fromString('toolCall'), equals(StepType.toolCall));
+      expect(StepType.fromString('thinking'), equals(StepType.thinking));
     });
 
     test('falls back to unknown for unrecognised string', () {
@@ -430,6 +432,15 @@ void main() {
 
     test('enum contains search_web', () {
       expect(BuiltinTools.searchWeb.value, equals('search_web'));
+    });
+
+    test('enum contains read_url_content', () {
+      expect(BuiltinTools.readUrlContent.value, equals('read_url_content'));
+      expect(BuiltinTools.readOnly().contains(BuiltinTools.readUrlContent),
+          isTrue);
+      expect(
+          BuiltinTools.nondestructive().contains(BuiltinTools.readUrlContent),
+          isTrue);
     });
   });
 

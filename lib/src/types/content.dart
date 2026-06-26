@@ -105,6 +105,24 @@ abstract class MediaContent {
     required this.data,
   });
 
+  static MediaContent fromBytes(
+    List<int> data,
+    String mimeType, {
+    String description = '',
+  }) {
+    if (supportedImageMimes.contains(mimeType)) {
+      return Image(mimeType: mimeType, description: description, data: data);
+    } else if (supportedDocumentMimes.contains(mimeType)) {
+      return Document(mimeType: mimeType, description: description, data: data);
+    } else if (supportedAudioMimes.contains(mimeType)) {
+      return Audio(mimeType: mimeType, description: description, data: data);
+    } else if (supportedVideoMimes.contains(mimeType)) {
+      return Video(mimeType: mimeType, description: description, data: data);
+    } else {
+      throw ArgumentError("Unsupported MIME type: '$mimeType'");
+    }
+  }
+
   static MediaContent fromFile(String path, {String description = ''}) {
     final file = File(path);
     if (!file.existsSync()) {

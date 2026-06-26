@@ -20,6 +20,8 @@ enum StepType {
   compaction('COMPACTION'),
   @MappableValue('FINISH')
   finish('FINISH'),
+  @MappableValue('THINKING')
+  thinking('THINKING'),
   unknown('UNKNOWN');
 
   final String value;
@@ -339,6 +341,9 @@ class Step with StepMappable {
         typeVal = 'FINISH';
       } else if (toolCalls.isNotEmpty) {
         typeVal = 'TOOL_CALL';
+      } else if (updatedMap['thinking'] != null &&
+          updatedMap['thinking'].toString().isNotEmpty) {
+        typeVal = 'THINKING';
       } else if (updatedMap['text'] != null &&
           updatedMap['text'].toString().isNotEmpty) {
         typeVal = 'TEXT_RESPONSE';

@@ -49,6 +49,8 @@ class BuiltinToolsMapper extends EnumMapper<BuiltinTools> {
         return BuiltinTools.generateImage;
       case 'search_web':
         return BuiltinTools.searchWeb;
+      case 'read_url_content':
+        return BuiltinTools.readUrlContent;
       case 'finish':
         return BuiltinTools.finish;
       default:
@@ -81,6 +83,8 @@ class BuiltinToolsMapper extends EnumMapper<BuiltinTools> {
         return 'generate_image';
       case BuiltinTools.searchWeb:
         return 'search_web';
+      case BuiltinTools.readUrlContent:
+        return 'read_url_content';
       case BuiltinTools.finish:
         return 'finish';
     }
