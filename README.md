@@ -2,7 +2,7 @@
 
 [![pub package](https://img.shields.io/badge/pub-v0.3.0-blue.svg)](https://pub.dev/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Dart CI](https://github.com/TJMusiitwa/antigravity-sdk-dart/actions/workflows/publish.yml/badge.svg)](https://github.com/TJMusiitwa/antigravity-sdk-dart/actions/workflows/publish.yml)
+[![Publish to pub.dev](https://github.com/TJMusiitwa/antigravity-sdk-dart/actions/workflows/publish.yml/badge.svg)](https://github.com/TJMusiitwa/antigravity-sdk-dart/actions/workflows/publish.yml)
 
 > [!IMPORTANT]
 > **Disclaimer:** This is a community-maintained, unofficial Dart & Flutter port of the Google Antigravity SDK. It is not affiliated with, sponsored by, or endorsed by Google or the official Antigravity team.

@@ -1,9 +1,9 @@
 name: Run Examples on Tag
 
 on:
-  push:
-    tags:
-      - '*'
+  # push:
+  #   tags:
+  #     - '*'
   workflow_dispatch:
 
 jobs:
