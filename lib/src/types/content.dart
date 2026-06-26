@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:io' if (dart.library.html) 'dart:async';
 
 import 'package:dart_mappable/dart_mappable.dart';
 import 'package:path/path.dart' as p;

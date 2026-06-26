@@ -1,3 +1,7 @@
+# 0.2.2
+
+* Update to support web platform use 
+
 # 0.2.1
 
 * Reintroduce generated files in package
