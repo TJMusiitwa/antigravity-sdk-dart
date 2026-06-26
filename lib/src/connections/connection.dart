@@ -111,6 +111,9 @@ abstract class Connection {
   /// Returns the current conversation identifier.
   String get conversationId;
 
+  /// Returns the pre-existing session steps restored during handshake.
+  List<Step> get initialHistory => const [];
+
   /// Returns true if the session is idle (waiting for user input or periodic task).
   bool get isIdle;
 

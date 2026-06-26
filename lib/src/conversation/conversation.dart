@@ -18,7 +18,19 @@ class Conversation {
 
   /// Creates a new [Conversation] on the given underlying connection.
   Conversation(this._connection, {HookRunner? hookRunner})
-      : _hookRunner = hookRunner;
+      : _hookRunner = hookRunner {
+    _history.addAll(_connection.initialHistory);
+    for (var i = 0; i < _connection.initialHistory.length; i++) {
+      final step = _connection.initialHistory[i];
+      if (step.type == StepType.compaction) {
+        _compactionIndices.add(i);
+      }
+      if (step.usageMetadata != null) {
+        _accumulateUsage(step.usageMetadata!);
+      }
+    }
+    _enforceMaxHistory();
+  }
 
   /// Creates and starts a new conversation using the provided strategy.
   static Future<Conversation> create(

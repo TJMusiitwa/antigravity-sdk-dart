@@ -146,6 +146,47 @@ void main() {
 
       await agent.stop();
     });
+
+    test('Conversation absorbs initialHistory and metadata on start', () async {
+      final mockStep1 = Step(
+        id: 'hist-1',
+        stepIndex: 1,
+        type: StepType.textResponse,
+        source: StepSource.user,
+        target: StepTarget.environment,
+        status: StepStatus.done,
+        content: 'Pre-existing user input',
+      );
+      final mockStep2 = Step(
+        id: 'hist-2',
+        stepIndex: 2,
+        type: StepType.compaction,
+        source: StepSource.system,
+        target: StepTarget.environment,
+        status: StepStatus.done,
+        usageMetadata: UsageMetadata(
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        ),
+      );
+
+      strategy.connection.initialHistory.addAll([mockStep1, mockStep2]);
+
+      final config = FakeAgentConfig(strategy, policies: [allowAll()]);
+      final agent = Agent(config);
+      await agent.start();
+
+      expect(agent.conversation.history.length, equals(2));
+      expect(agent.conversation.history[0].id, equals('hist-1'));
+      expect(agent.conversation.history[1].type, equals(StepType.compaction));
+      expect(agent.conversation.compactionIndices, contains(1));
+      expect(agent.conversation.totalUsage.promptTokenCount, equals(10));
+      expect(agent.conversation.totalUsage.candidatesTokenCount, equals(20));
+      expect(agent.conversation.totalUsage.totalTokenCount, equals(30));
+
+      await agent.stop();
+    });
   });
 
   group('MediaContent fromFile and MIME verification', () {
@@ -179,6 +220,18 @@ void main() {
       expect(img.data, equals([1, 2, 3, 4]));
     });
 
+    test('Loads media correctly from bytes and MIME type', () {
+      final media = MediaContent.fromBytes(
+        [5, 6, 7, 8],
+        'image/jpeg',
+        description: 'Test bytes',
+      );
+      expect(media, isA<Image>());
+      expect(media.mimeType, equals('image/jpeg'));
+      expect(media.description, equals('Test bytes'));
+      expect(media.data, equals([5, 6, 7, 8]));
+    });
+
     test('Subclass MIME type validation throws on mismatch', () {
       expect(
         () => Image(mimeType: 'application/pdf', description: '', data: []),
@@ -196,9 +249,13 @@ class FakeConnection implements Connection {
   final _stepController = StreamController<Step>.broadcast();
   bool _idle = true;
   bool _isClosed = false;
+  final List<Step> _initialHistory = [];
 
   @override
   String get conversationId => "fake-conv-id";
+
+  @override
+  List<Step> get initialHistory => _initialHistory;
 
   @override
   bool get isIdle => _idle;

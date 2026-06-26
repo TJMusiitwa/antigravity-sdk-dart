@@ -12,6 +12,7 @@ import '../../types.dart';
 import '../../utils/binary_discovery.dart';
 import '../connection.dart';
 import 'localharness_proto.dart';
+import 'hook_router.dart';
 
 final _logger = Logger('antigravity.connection.local');
 
@@ -108,7 +109,7 @@ class LocalConnectionStrategy extends ConnectionStrategy {
     final inputConfigBytes = LocalHarnessProto.encodeInputConfig(
       storageDirectory: _saveDir ?? '',
       clientLanguage: 'dart',
-      clientVersion: '0.2.2',
+      clientVersion: '0.3.0',
       clientLanguageVersion: Platform.version,
     );
     final packedMessage = LocalHarnessProto.packMessage(inputConfigBytes);
@@ -167,16 +168,74 @@ class LocalConnectionStrategy extends ConnectionStrategy {
     _ws = ws;
 
     try {
+      final initCompleter = Completer<List<Step>>();
+      final messageController = StreamController<dynamic>();
+
+      // Listen to the WebSocket immediately to capture the first handshake message.
+      ws!.listen(
+        (message) {
+          if (!initCompleter.isCompleted) {
+            try {
+              if (message is String) {
+                final Map<String, dynamic> parsed = jsonDecode(message);
+                final normalized = LocalConnection._normalizeJsonKeys(parsed);
+                if (normalized
+                    .containsKey('initialize_conversation_response')) {
+                  final initResp = Map<String, dynamic>.from(
+                    normalized['initialize_conversation_response'] as Map,
+                  );
+                  final List<Step> initialHistory = [];
+                  if (initResp.containsKey('history')) {
+                    final historyList = initResp['history'] as List;
+                    for (final stepJson in historyList) {
+                      initialHistory.add(
+                        Step.fromMap(
+                            Map<String, dynamic>.from(stepJson as Map)),
+                      );
+                    }
+                  }
+                  initCompleter.complete(initialHistory);
+                  return; // Discard from forwarding as it's the startup handshake response.
+                }
+              }
+            } catch (e) {
+              initCompleter.completeError(e);
+            }
+            if (!initCompleter.isCompleted) {
+              initCompleter.complete([]);
+            }
+          }
+          messageController.add(message);
+        },
+        onError: (err) {
+          if (!initCompleter.isCompleted) {
+            initCompleter.completeError(err);
+          }
+          messageController.addError(err);
+        },
+        onDone: () {
+          if (!initCompleter.isCompleted) {
+            initCompleter.complete([]);
+          }
+          messageController.close();
+        },
+      );
+
       // 7. Send InitializeConversationEvent JSON over WebSocket
       final harnessConfig = _buildHarnessConfig();
       final initEvent = {'config': harnessConfig};
       _ws!.add(jsonEncode(initEvent));
 
+      // Wait for the initialization response to resolve.
+      final List<Step> initialHistory = await initCompleter.future;
+
       _connection = LocalConnection(
         process: _process!,
         ws: _ws!,
+        messageStream: messageController.stream,
         toolRunner: _toolRunner,
         hookRunner: _hookRunner,
+        initialHistory: initialHistory,
       );
     } catch (e) {
       _process!.kill();
@@ -315,6 +374,9 @@ class LocalConnectionStrategy extends ConnectionStrategy {
         'enabled': activeTools.contains(BuiltinTools.generateImage),
       },
       'search_web': {'enabled': activeTools.contains(BuiltinTools.searchWeb)},
+      'read_url_content': {
+        'enabled': activeTools.contains(BuiltinTools.readUrlContent),
+      },
     };
 
     final List<Map<String, dynamic>> mcpServersProto = [];
@@ -343,6 +405,21 @@ class LocalConnectionStrategy extends ConnectionStrategy {
     }
     if (_hookRunner.onSessionEndHooks.isNotEmpty) {
       enabledHooks.add('LIFECYCLE_HOOK_ON_SESSION_END');
+    }
+    if (_hookRunner.preTurnHooks.isNotEmpty) {
+      enabledHooks.add('LIFECYCLE_HOOK_PRE_TURN');
+    }
+    if (_hookRunner.postTurnHooks.isNotEmpty) {
+      enabledHooks.add('LIFECYCLE_HOOK_POST_TURN');
+    }
+    if (_hookRunner.preToolCallDecideHooks.isNotEmpty) {
+      enabledHooks.add('LIFECYCLE_HOOK_PRE_TOOL');
+    }
+    if (_hookRunner.postToolCallHooks.isNotEmpty) {
+      enabledHooks.add('LIFECYCLE_HOOK_POST_TOOL');
+    }
+    if (_hookRunner.onToolErrorHooks.isNotEmpty) {
+      enabledHooks.add('LIFECYCLE_HOOK_ON_TOOL_ERROR');
     }
 
     final customAgentsProtos = <Map<String, dynamic>>[];
@@ -497,8 +574,11 @@ class HandshakeReader {
 class LocalConnection extends Connection {
   final Process _process;
   final WebSocket _ws;
+  final Stream<dynamic> _messageStream;
   final ToolRunner _toolRunner;
   final HookRunner _hookRunner;
+  HookRouter? _hookRouter;
+  final Map<String, _StepTracker> _stepTrackers = {};
 
   final StreamController<Step> _stepController =
       StreamController<Step>.broadcast();
@@ -508,6 +588,7 @@ class LocalConnection extends Connection {
   bool _parentIdle = true;
   final Set<String> _activeSubagentIds = {};
   String _convId = '';
+  final List<Step> _initialHistory = [];
 
   @override
   bool get isIdle => _idleState;
@@ -515,24 +596,39 @@ class LocalConnection extends Connection {
   @override
   String get conversationId => _convId;
 
+  @override
+  List<Step> get initialHistory => List.unmodifiable(_initialHistory);
+
   /// Creates a new [LocalConnection] session.
   ///
   /// Takes [process] (for managing the localharness process), [ws] (the WebSocket connection),
-  /// [toolRunner] to process incoming tool executions, and [hookRunner] to dispatch lifecycle events.
+  /// [messageStream] to receive WebSocket events, [toolRunner] to process incoming tool executions,
+  /// and [hookRunner] to dispatch lifecycle events.
   LocalConnection({
     required Process process,
     required WebSocket ws,
+    required Stream<dynamic> messageStream,
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
     List<Step>? initialHistory,
   })  : _process = process,
         _ws = ws,
+        _messageStream = messageStream,
         _toolRunner = toolRunner,
         _hookRunner = hookRunner {
     if (initialHistory != null) {
-      for (final step in initialHistory) {
-        _stepController.add(step);
-      }
+      _initialHistory.addAll(initialHistory);
+    }
+    if (hookRunner.hasHooks) {
+      _hookRouter = HookRouter(
+        hookRunner,
+        (evt) async {
+          if (!_disconnecting) {
+            _ws.add(jsonEncode(evt));
+          }
+        },
+        resultExtractor: extractToolResult,
+      );
     }
   }
 
@@ -560,7 +656,7 @@ class LocalConnection extends Connection {
   }
 
   void _startReaderLoop() {
-    _ws.listen(
+    _messageStream.listen(
       (message) async {
         if (_disconnecting) return;
         try {
@@ -608,7 +704,25 @@ class LocalConnection extends Connection {
     if (_disconnecting) return;
     final normalizedEvent = _normalizeJsonKeys(event);
 
-    // 1. Process step update
+    // 1. Process call hook requests
+    if (normalizedEvent.containsKey('call_hook_request')) {
+      final req = Map<String, dynamic>.from(
+          normalizedEvent['call_hook_request'] as Map);
+      if (_hookRouter != null) {
+        unawaited(_hookRouter!.handle(req));
+      } else {
+        final requestId = req['request_id']?.toString() ?? '';
+        _ws.add(jsonEncode({
+          'call_hook_response': {
+            'request_id': requestId,
+            'empty_result': {},
+          }
+        }));
+      }
+      return;
+    }
+
+    // 2. Process step update
     if (normalizedEvent.containsKey('step_update')) {
       final stepJson = Map<String, dynamic>.from(
         normalizedEvent['step_update'],
@@ -622,6 +736,29 @@ class LocalConnection extends Connection {
       // Add step to stream
       _safeAdd(step);
 
+      // Track step state transitions and dispatch pre/post step hooks
+      final trajectoryId = stepJson['trajectory_id']?.toString() ?? '';
+      final stepIndex =
+          int.tryParse((stepJson['step_index'] ?? '0').toString()) ?? 0;
+      final stepKey = '$trajectoryId:$stepIndex';
+      final tracker = _stepTrackers.putIfAbsent(stepKey, () => _StepTracker());
+      final stateStr = (stepJson['state'] ?? 'STATE_UNSPECIFIED').toString();
+      tracker.updateState(stateStr);
+
+      if (!tracker.preStepDispatched && stateStr != 'STATE_UNSPECIFIED') {
+        tracker.preStepDispatched = true;
+        unawaited(_hookRunner.dispatchPreStep(step));
+      }
+
+      final isTerminal = stateStr == 'STATE_DONE' ||
+          stateStr == 'DONE' ||
+          stateStr == 'STATE_ERROR' ||
+          stateStr == 'ERROR';
+      if (isTerminal && !tracker.postStepDispatched) {
+        tracker.postStepDispatched = true;
+        unawaited(_hookRunner.dispatchPostStep(step));
+      }
+
       // Handle interactive requests if in WAITING_FOR_USER status
       if (step.status == StepStatus.waitingForUser) {
         if (stepJson.containsKey('questions_request')) {
@@ -633,7 +770,7 @@ class LocalConnection extends Connection {
       }
     }
 
-    // 2. Process trajectory state updates
+    // 3. Process trajectory state updates
     if (normalizedEvent.containsKey('trajectory_state_update')) {
       final update = normalizedEvent['trajectory_state_update'] as Map;
       final state = update['state']?.toString();
@@ -668,11 +805,38 @@ class LocalConnection extends Connection {
             ),
           );
         }
+
+        if (update.containsKey('error') &&
+            update['error'].toString().isNotEmpty) {
+          final errMsg = update['error'].toString();
+          if (isSubagent) {
+            _logger.info('Subagent trajectory failed with error: $errMsg');
+          } else {
+            _safeAddError(AntigravityExecutionException(errMsg));
+          }
+        }
+      } else if (state == 'STATE_CANCELLED' || state == 'CANCELLED') {
+        final errMsg =
+            update.containsKey('error') && update['error'].toString().isNotEmpty
+                ? update['error'].toString()
+                : 'Turn cancelled';
+        _safeAddError(AntigravityExecutionException(errMsg));
+        _idleState = true;
+        _safeAdd(
+          Step(
+            id: 'idle_sentinel',
+            stepIndex: -1,
+            type: StepType.finish,
+            source: StepSource.system,
+            target: StepTarget.environment,
+            status: StepStatus.done,
+          ),
+        );
       }
       _logger.fine('Trajectory state updated: $state for $trajectoryId');
     }
 
-    // 3. Process tool call execution requested by model
+    // 4. Process tool call execution requested by model
     if (normalizedEvent.containsKey('tool_call')) {
       final tcJson = Map<String, dynamic>.from(normalizedEvent['tool_call']);
       final tc = ToolCall.fromMap(tcJson);
@@ -910,7 +1074,7 @@ class LocalConnection extends Connection {
     return true;
   }
 
-  Map<String, dynamic> _normalizeJsonKeys(Map<String, dynamic> map) {
+  static Map<String, dynamic> _normalizeJsonKeys(Map<String, dynamic> map) {
     final result = <String, dynamic>{};
     map.forEach((key, val) {
       final snakeKey = _toSnakeCase(key);
@@ -934,8 +1098,85 @@ class LocalConnection extends Connection {
     return result;
   }
 
-  String _toSnakeCase(String camel) {
+  static String _toSnakeCase(String camel) {
     final exp = RegExp('(?<=[a-z0-9])[A-Z]');
     return camel.replaceAllMapped(exp, (m) => '_${m.group(0)}').toLowerCase();
   }
+}
+
+class _StepTracker {
+  String state = 'STATE_UNSPECIFIED';
+  final Set<String> handledRequests = {};
+  bool preStepDispatched = false;
+  bool postStepDispatched = false;
+
+  void updateState(String newState) {
+    if (state == 'STATE_WAITING_FOR_USER' &&
+        newState != 'STATE_WAITING_FOR_USER') {
+      handledRequests.clear();
+    }
+    state = newState;
+  }
+}
+
+dynamic extractToolResult(Map<String, dynamic> stepUpdate) {
+  if (stepUpdate.containsKey('run_command')) {
+    final rc = stepUpdate['run_command'];
+    if (rc is Map && rc.containsKey('combined_output')) {
+      return RunCommandResult(output: rc['combined_output'].toString());
+    }
+  } else if (stepUpdate.containsKey('list_directory')) {
+    final ld = stepUpdate['list_directory'];
+    if (ld is Map && ld.containsKey('results')) {
+      final results = ld['results'] as List;
+      final entries = results.map((r) {
+        if (r is Map) {
+          return ListDirectoryEntry(
+            name: (r['name'] ?? '').toString(),
+            isDirectory: r['is_directory'] == true || r['isDirectory'] == true,
+            fileSize: int.tryParse(
+                    (r['file_size'] ?? r['fileSize'] ?? '0').toString()) ??
+                0,
+          );
+        }
+        return const ListDirectoryEntry();
+      }).toList();
+      return ListDirectoryResult(entries: entries);
+    }
+  } else if (stepUpdate.containsKey('find_file')) {
+    final ff = stepUpdate['find_file'];
+    if (ff is Map && ff.containsKey('output')) {
+      return FindFileResult(output: ff['output'].toString());
+    }
+  } else if (stepUpdate.containsKey('search_directory')) {
+    final sd = stepUpdate['search_directory'];
+    if (sd is Map && sd.containsKey('num_results')) {
+      return SearchDirectoryResult(
+        numResults: int.tryParse(
+                (sd['num_results'] ?? sd['numResults'] ?? '0').toString()) ??
+            0,
+      );
+    }
+  } else if (stepUpdate.containsKey('edit_file')) {
+    final ef = stepUpdate['edit_file'];
+    if (ef is Map && ef.containsKey('diff_block')) {
+      return EditFileResult(summary: (stepUpdate['text'] ?? '').toString());
+    }
+  } else if (stepUpdate.containsKey('generate_image')) {
+    final gi = stepUpdate['generate_image'];
+    if (gi is Map) {
+      return GenerateImageResult.fromMap(Map<String, dynamic>.from(gi));
+    }
+  } else if (stepUpdate.containsKey('search_web')) {
+    final sw = stepUpdate['search_web'];
+    if (sw is Map) {
+      return SearchWebResult.fromMap(Map<String, dynamic>.from(sw));
+    }
+  } else if (stepUpdate.containsKey('read_url_content')) {
+    final ruc = stepUpdate['read_url_content'];
+    if (ruc is Map) {
+      return ReadUrlContentResult.fromMap(Map<String, dynamic>.from(ruc));
+    }
+  }
+  return null;
 }

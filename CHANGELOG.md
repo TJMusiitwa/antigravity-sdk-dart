@@ -1,3 +1,14 @@
+# 0.3.0
+
+* **Synchronize updates from Python SDK (v0.1.5)**:
+  - Added new `read_url_content` builtin tool and its `ReadUrlContentResult` structured output.
+  - Added `StepType.thinking` to enum representation for telemetry tracking.
+  - Implemented the `HookRouter` to process WebSocket-based `CallHookRequest` turn and tool lifecycle hooks delegated by the harness.
+  - Added support for telemetry `PreStepHook` and `PostStepHook` inside `HookRunner` and connection parser.
+  - Implemented `_StepTracker` to prevent duplicate step hooks or non-linear state transitions.
+  - Supported error and cancelled propagation in `trajectory_state_update` events.
+  - **Historical Step Absorption**: Aligned startup handshake to await and parse pre-existing conversation history and usage metadata from `initialize_conversation_response`, populating them immediately in `Conversation` on start.
+
 # 0.2.2
 
 * Update to support web platform use 
