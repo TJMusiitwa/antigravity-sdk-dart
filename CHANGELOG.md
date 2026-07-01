@@ -1,3 +1,13 @@
+# 0.3.1
+
+* **Dart 3 Modernization**:
+  - Refactored core classes `Connection` and `ConnectionStrategy` to use Dart 3 `abstract interface class` modifiers.
+  - Marked `MediaContent` as a `sealed class` to restrict subclass hierarchy and support compiler-level exhaustiveness checks.
+  - Modernized `registerHook`, `allow`, `deny`, and `askUser` to leverage case type pattern matching inside switch statements.
+  - Refactored policy bucket index resolution (`_bucketIndex`), file change triggers (`onFileChange`), shorthand model builder (`_buildShorthandModels`), and step state mappings (`Step.fromMap`) to use clean switch expressions and logical OR patterns.
+  - Updated local connection classes to implement rather than extend the new interface classes.
+  - Added conditional imports in `lib/src/types/content.dart` to support running the package on the web.
+
 # 0.3.0
 
 * **Synchronize updates from Python SDK (v0.1.5)**:
