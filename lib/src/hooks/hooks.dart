@@ -200,30 +200,31 @@ class HookRunner {
 
   /// Registers a hook dynamically.
   void registerHook(Hook hook) {
-    if (hook is OnSessionStartHook) {
-      onSessionStartHooks.add(hook);
-    } else if (hook is OnSessionEndHook) {
-      onSessionEndHooks.add(hook);
-    } else if (hook is PreTurnHook) {
-      preTurnHooks.add(hook);
-    } else if (hook is PostTurnHook) {
-      postTurnHooks.add(hook);
-    } else if (hook is PreToolCallDecideHook) {
-      preToolCallDecideHooks.add(hook);
-    } else if (hook is PostToolCallHook) {
-      postToolCallHooks.add(hook);
-    } else if (hook is OnToolErrorHook) {
-      onToolErrorHooks.add(hook);
-    } else if (hook is OnInteractionHook) {
-      onInteractionHooks.add(hook);
-    } else if (hook is OnCompactionHook) {
-      onCompactionHooks.add(hook);
-    } else if (hook is PreStepHook) {
-      preStepHooks.add(hook);
-    } else if (hook is PostStepHook) {
-      postStepHooks.add(hook);
-    } else {
-      throw ArgumentError("Unknown hook type: ${hook.runtimeType}");
+    switch (hook) {
+      case OnSessionStartHook h:
+        onSessionStartHooks.add(h);
+      case OnSessionEndHook h:
+        onSessionEndHooks.add(h);
+      case PreTurnHook h:
+        preTurnHooks.add(h);
+      case PostTurnHook h:
+        postTurnHooks.add(h);
+      case PreToolCallDecideHook h:
+        preToolCallDecideHooks.add(h);
+      case PostToolCallHook h:
+        postToolCallHooks.add(h);
+      case OnToolErrorHook h:
+        onToolErrorHooks.add(h);
+      case OnInteractionHook h:
+        onInteractionHooks.add(h);
+      case OnCompactionHook h:
+        onCompactionHooks.add(h);
+      case PreStepHook h:
+        preStepHooks.add(h);
+      case PostStepHook h:
+        postStepHooks.add(h);
+      default:
+        throw ArgumentError("Unknown hook type: ${hook.runtimeType}");
     }
   }
 

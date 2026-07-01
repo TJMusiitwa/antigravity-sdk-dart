@@ -96,22 +96,22 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
   }
 
   List<ModelTarget> _buildShorthandModels(ModelEndpoint? endpoint) {
-    if (model == null) return [];
-
-    if (model is ModelTarget) {
-      final shorthandModel = (model as ModelTarget).copyWith(
-        endpoint: (model as ModelTarget).endpoint ?? endpoint,
-      );
-      return [shorthandModel];
-    } else {
-      return [
-        ModelTarget(
-          name: model as String,
-          types: [ModelType.text],
-          endpoint: endpoint,
+    return switch (model) {
+      null => [],
+      ModelTarget mt => [
+          mt.copyWith(endpoint: mt.endpoint ?? endpoint),
+        ],
+      String name => [
+          ModelTarget(
+            name: name,
+            types: [ModelType.text],
+            endpoint: endpoint,
+          ),
+        ],
+      _ => throw ArgumentError(
+          'Expected ModelTarget or String for model, got ${model.runtimeType}',
         ),
-      ];
-    }
+    };
   }
 
   List<ModelTarget> _buildDefaultModels(ModelEndpoint? endpoint) {

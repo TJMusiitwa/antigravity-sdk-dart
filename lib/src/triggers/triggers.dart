@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import '../connections/connection.dart';
 import '../types/file_change.dart';
 
@@ -71,19 +72,11 @@ Trigger onFileChange(
     final subscription = entity.watch().listen((event) async {
       if (ctx.isCancelled) return;
 
-      FileChangeKind kind;
-      switch (event.type) {
-        case FileSystemEvent.create:
-          kind = FileChangeKind.added;
-          break;
-        case FileSystemEvent.delete:
-          kind = FileChangeKind.deleted;
-          break;
-        case FileSystemEvent.modify:
-        default:
-          kind = FileChangeKind.modified;
-          break;
-      }
+      final kind = switch (event.type) {
+        FileSystemEvent.create => FileChangeKind.added,
+        FileSystemEvent.delete => FileChangeKind.deleted,
+        _ => FileChangeKind.modified,
+      };
 
       final change = FileChange(kind: kind, path: event.path);
       try {

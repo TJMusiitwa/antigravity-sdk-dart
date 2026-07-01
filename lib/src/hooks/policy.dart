@@ -96,30 +96,31 @@ dynamic allow(
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
 }) {
-  if (tool is String) {
-    if (mcpTools != null) {
-      throw ArgumentError(
-        'mcpTools cannot be specified when tool is a String.',
+  switch (tool) {
+    case String s:
+      if (mcpTools != null) {
+        throw ArgumentError(
+          'mcpTools cannot be specified when tool is a String.',
+        );
+      }
+      return Policy(
+        tool: s,
+        decision: Decision.approve,
+        when: when,
+        name: name,
       );
-    }
-    return Policy(
-      tool: tool,
-      decision: Decision.approve,
-      when: when,
-      name: name,
-    );
-  } else if (tool is McpServerConfig) {
-    return _mcpPolicies(
-      Decision.approve,
-      tool,
-      mcpTools,
-      when: when,
-      name: name,
-    );
-  } else {
-    throw ArgumentError(
-      'Expected String or McpServerConfig, got ${tool.runtimeType}',
-    );
+    case McpServerConfig mcp:
+      return _mcpPolicies(
+        Decision.approve,
+        mcp,
+        mcpTools,
+        when: when,
+        name: name,
+      );
+    default:
+      throw ArgumentError(
+        'Expected String or McpServerConfig, got ${tool.runtimeType}',
+      );
   }
 }
 
@@ -132,19 +133,20 @@ dynamic deny(
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
 }) {
-  if (tool is String) {
-    if (mcpTools != null) {
+  switch (tool) {
+    case String s:
+      if (mcpTools != null) {
+        throw ArgumentError(
+          'mcpTools cannot be specified when tool is a String.',
+        );
+      }
+      return Policy(tool: s, decision: Decision.deny, when: when, name: name);
+    case McpServerConfig mcp:
+      return _mcpPolicies(Decision.deny, mcp, mcpTools, when: when, name: name);
+    default:
       throw ArgumentError(
-        'mcpTools cannot be specified when tool is a String.',
+        'Expected String or McpServerConfig, got ${tool.runtimeType}',
       );
-    }
-    return Policy(tool: tool, decision: Decision.deny, when: when, name: name);
-  } else if (tool is McpServerConfig) {
-    return _mcpPolicies(Decision.deny, tool, mcpTools, when: when, name: name);
-  } else {
-    throw ArgumentError(
-      'Expected String or McpServerConfig, got ${tool.runtimeType}',
-    );
   }
 }
 
@@ -158,32 +160,33 @@ dynamic askUser(
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
 }) {
-  if (tool is String) {
-    if (mcpTools != null) {
-      throw ArgumentError(
-        'mcpTools cannot be specified when tool is a String.',
+  switch (tool) {
+    case String s:
+      if (mcpTools != null) {
+        throw ArgumentError(
+          'mcpTools cannot be specified when tool is a String.',
+        );
+      }
+      return Policy(
+        tool: s,
+        decision: Decision.askUser,
+        when: when,
+        askUser: handler,
+        name: name,
       );
-    }
-    return Policy(
-      tool: tool,
-      decision: Decision.askUser,
-      when: when,
-      askUser: handler,
-      name: name,
-    );
-  } else if (tool is McpServerConfig) {
-    return _mcpPolicies(
-      Decision.askUser,
-      tool,
-      mcpTools,
-      when: when,
-      name: name,
-      handler: handler,
-    );
-  } else {
-    throw ArgumentError(
-      'Expected String or McpServerConfig, got ${tool.runtimeType}',
-    );
+    case McpServerConfig mcp:
+      return _mcpPolicies(
+        Decision.askUser,
+        mcp,
+        mcpTools,
+        when: when,
+        name: name,
+        handler: handler,
+      );
+    default:
+      throw ArgumentError(
+        'Expected String or McpServerConfig, got ${tool.runtimeType}',
+      );
   }
 }
 
@@ -329,36 +332,17 @@ bool _isGlobalWildcard(String tool) => tool == '*';
 
 bool _isPrefixWildcard(String tool) => tool.endsWith('/*');
 
-int _bucketIndex(Policy p) {
-  if (_isGlobalWildcard(p.tool)) {
-    switch (p.decision) {
-      case Decision.deny:
-        return _levelGlobalDeny;
-      case Decision.askUser:
-        return _levelGlobalAsk;
-      case Decision.approve:
-        return _levelGlobalAllow;
-    }
-  }
-  if (_isPrefixWildcard(p.tool)) {
-    switch (p.decision) {
-      case Decision.deny:
-        return _levelPrefixDeny;
-      case Decision.askUser:
-        return _levelPrefixAsk;
-      case Decision.approve:
-        return _levelPrefixAllow;
-    }
-  }
-  switch (p.decision) {
-    case Decision.deny:
-      return _levelSpecificDeny;
-    case Decision.askUser:
-      return _levelSpecificAsk;
-    case Decision.approve:
-      return _levelSpecificAllow;
-  }
-}
+int _bucketIndex(Policy p) => switch (p.decision) {
+      Decision.deny when _isGlobalWildcard(p.tool) => _levelGlobalDeny,
+      Decision.askUser when _isGlobalWildcard(p.tool) => _levelGlobalAsk,
+      Decision.approve when _isGlobalWildcard(p.tool) => _levelGlobalAllow,
+      Decision.deny when _isPrefixWildcard(p.tool) => _levelPrefixDeny,
+      Decision.askUser when _isPrefixWildcard(p.tool) => _levelPrefixAsk,
+      Decision.approve when _isPrefixWildcard(p.tool) => _levelPrefixAllow,
+      Decision.deny => _levelSpecificDeny,
+      Decision.askUser => _levelSpecificAsk,
+      Decision.approve => _levelSpecificAllow,
+    };
 
 bool _matchesTarget(String policyTool, String callTarget, bool isMcp) {
   if (policyTool == '*') {

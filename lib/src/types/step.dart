@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:dart_mappable/dart_mappable.dart';
 import 'package:logging/logging.dart';
 
@@ -219,34 +220,25 @@ class Step with StepMappable {
     // 5. Map 'state' to 'status'
     if (updatedMap.containsKey('state')) {
       final stateStr = updatedMap['state'].toString();
-      var statusVal = 'UNKNOWN';
-      if (stateStr == 'STATE_ACTIVE' || stateStr == 'ACTIVE') {
-        statusVal = 'ACTIVE';
-      } else if (stateStr == 'STATE_DONE' || stateStr == 'DONE') {
-        statusVal = 'DONE';
-      } else if (stateStr == 'STATE_WAITING_FOR_USER' ||
-          stateStr == 'WAITING_FOR_USER') {
-        statusVal = 'WAITING_FOR_USER';
-      } else if (stateStr == 'STATE_ERROR' || stateStr == 'ERROR') {
-        statusVal = 'ERROR';
-      } else if (stateStr == 'STATE_CANCELED' || stateStr == 'CANCELED') {
-        statusVal = 'CANCELED';
-      }
-      updatedMap['status'] = statusVal;
+      updatedMap['status'] = switch (stateStr) {
+        'STATE_ACTIVE' || 'ACTIVE' => 'ACTIVE',
+        'STATE_DONE' || 'DONE' => 'DONE',
+        'STATE_WAITING_FOR_USER' || 'WAITING_FOR_USER' => 'WAITING_FOR_USER',
+        'STATE_ERROR' || 'ERROR' => 'ERROR',
+        'STATE_CANCELED' || 'CANCELED' => 'CANCELED',
+        _ => 'UNKNOWN',
+      };
     }
 
     // 6. Map 'source'
     if (updatedMap.containsKey('source')) {
       final sourceStr = updatedMap['source'].toString();
-      var sourceVal = 'UNKNOWN';
-      if (sourceStr == 'SOURCE_SYSTEM' || sourceStr == 'SYSTEM') {
-        sourceVal = 'SYSTEM';
-      } else if (sourceStr == 'SOURCE_USER' || sourceStr == 'USER') {
-        sourceVal = 'USER';
-      } else if (sourceStr == 'SOURCE_MODEL' || sourceStr == 'MODEL') {
-        sourceVal = 'MODEL';
-      }
-      updatedMap['source'] = sourceVal;
+      updatedMap['source'] = switch (sourceStr) {
+        'SOURCE_SYSTEM' || 'SYSTEM' => 'SYSTEM',
+        'SOURCE_USER' || 'USER' => 'USER',
+        'SOURCE_MODEL' || 'MODEL' => 'MODEL',
+        _ => 'UNKNOWN',
+      };
     }
 
     // 7. Normalize 'usage_metadata' keys and parse String values to int

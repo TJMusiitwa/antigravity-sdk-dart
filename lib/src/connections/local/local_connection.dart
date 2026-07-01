@@ -11,13 +11,13 @@ import '../../tools/tool_runner.dart';
 import '../../types.dart';
 import '../../utils/binary_discovery.dart';
 import '../connection.dart';
-import 'localharness_proto.dart';
 import 'hook_router.dart';
+import 'localharness_proto.dart';
 
 final _logger = Logger('antigravity.connection.local');
 
 /// Strategy for establishing a LocalConnection to a Go-based localharness binary.
-class LocalConnectionStrategy extends ConnectionStrategy {
+class LocalConnectionStrategy implements ConnectionStrategy {
   final String? _configuredBinaryPath;
   final ToolRunner _toolRunner;
   final HookRunner _hookRunner;
@@ -571,7 +571,7 @@ class HandshakeReader {
 }
 
 /// Live session connection to the local harness.
-class LocalConnection extends Connection {
+class LocalConnection implements Connection {
   final Process _process;
   final WebSocket _ws;
   final Stream<dynamic> _messageStream;

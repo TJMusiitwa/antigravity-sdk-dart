@@ -77,15 +77,15 @@ mixin McpServerConfigMappable {
   String toJson();
   Map<String, dynamic> toMap();
   McpServerConfigCopyWith<McpServerConfig, McpServerConfig, McpServerConfig>
-      get copyWith;
+  get copyWith;
 }
 
 abstract class McpServerConfigCopyWith<$R, $In extends McpServerConfig, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-      get enabledTools;
+  get enabledTools;
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-      get disabledTools;
+  get disabledTools;
   $R call({
     String? name,
     int? timeoutSeconds,
@@ -212,12 +212,11 @@ mixin McpStdioServerMappable {
   }
 
   McpStdioServerCopyWith<McpStdioServer, McpStdioServer, McpStdioServer>
-      get copyWith =>
-          _McpStdioServerCopyWithImpl<McpStdioServer, McpStdioServer>(
-            this as McpStdioServer,
-            $identity,
-            $identity,
-          );
+  get copyWith => _McpStdioServerCopyWithImpl<McpStdioServer, McpStdioServer>(
+    this as McpStdioServer,
+    $identity,
+    $identity,
+  );
   @override
   String toString() {
     return McpStdioServerMapper.ensureInitialized().stringifyValue(
@@ -253,10 +252,10 @@ abstract class McpStdioServerCopyWith<$R, $In extends McpStdioServer, $Out>
   MapCopyWith<$R, String, String, ObjectCopyWith<$R, String, String>>? get env;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-      get enabledTools;
+  get enabledTools;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-      get disabledTools;
+  get disabledTools;
   @override
   $R call({
     String? name,
@@ -289,31 +288,31 @@ class _McpStdioServerCopyWithImpl<$R, $Out>
       );
   @override
   MapCopyWith<$R, String, String, ObjectCopyWith<$R, String, String>>?
-      get env => $value.env != null
-          ? MapCopyWith(
-              $value.env!,
-              (v, t) => ObjectCopyWith(v, $identity, t),
-              (v) => call(env: v),
-            )
-          : null;
+  get env => $value.env != null
+      ? MapCopyWith(
+          $value.env!,
+          (v, t) => ObjectCopyWith(v, $identity, t),
+          (v) => call(env: v),
+        )
+      : null;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-      get enabledTools => $value.enabledTools != null
-          ? ListCopyWith(
-              $value.enabledTools!,
-              (v, t) => ObjectCopyWith(v, $identity, t),
-              (v) => call(enabledTools: v),
-            )
-          : null;
+  get enabledTools => $value.enabledTools != null
+      ? ListCopyWith(
+          $value.enabledTools!,
+          (v, t) => ObjectCopyWith(v, $identity, t),
+          (v) => call(enabledTools: v),
+        )
+      : null;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-      get disabledTools => $value.disabledTools != null
-          ? ListCopyWith(
-              $value.disabledTools!,
-              (v, t) => ObjectCopyWith(v, $identity, t),
-              (v) => call(disabledTools: v),
-            )
-          : null;
+  get disabledTools => $value.disabledTools != null
+      ? ListCopyWith(
+          $value.disabledTools!,
+          (v, t) => ObjectCopyWith(v, $identity, t),
+          (v) => call(disabledTools: v),
+        )
+      : null;
   @override
   $R call({
     String? name,
@@ -323,34 +322,32 @@ class _McpStdioServerCopyWithImpl<$R, $Out>
     Object? timeoutSeconds = $none,
     Object? enabledTools = $none,
     Object? disabledTools = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (name != null) #name: name,
-          if (command != null) #command: command,
-          if (args != $none) #args: args,
-          if (env != $none) #env: env,
-          if (timeoutSeconds != $none) #timeoutSeconds: timeoutSeconds,
-          if (enabledTools != $none) #enabledTools: enabledTools,
-          if (disabledTools != $none) #disabledTools: disabledTools,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (name != null) #name: name,
+      if (command != null) #command: command,
+      if (args != $none) #args: args,
+      if (env != $none) #env: env,
+      if (timeoutSeconds != $none) #timeoutSeconds: timeoutSeconds,
+      if (enabledTools != $none) #enabledTools: enabledTools,
+      if (disabledTools != $none) #disabledTools: disabledTools,
+    }),
+  );
   @override
   McpStdioServer $make(CopyWithData data) => McpStdioServer(
-        name: data.get(#name, or: $value.name),
-        command: data.get(#command, or: $value.command),
-        args: data.get(#args, or: $value.args),
-        env: data.get(#env, or: $value.env),
-        timeoutSeconds: data.get(#timeoutSeconds, or: $value.timeoutSeconds),
-        enabledTools: data.get(#enabledTools, or: $value.enabledTools),
-        disabledTools: data.get(#disabledTools, or: $value.disabledTools),
-      );
+    name: data.get(#name, or: $value.name),
+    command: data.get(#command, or: $value.command),
+    args: data.get(#args, or: $value.args),
+    env: data.get(#env, or: $value.env),
+    timeoutSeconds: data.get(#timeoutSeconds, or: $value.timeoutSeconds),
+    enabledTools: data.get(#enabledTools, or: $value.enabledTools),
+    disabledTools: data.get(#disabledTools, or: $value.disabledTools),
+  );
 
   @override
   McpStdioServerCopyWith<$R2, McpStdioServer, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _McpStdioServerCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _McpStdioServerCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 class McpStreamableHttpServerMapper
@@ -423,11 +420,11 @@ class McpStreamableHttpServerMapper
       v.disabledTools;
   static const Field<McpStreamableHttpServer, List<String>> _f$disabledTools =
       Field(
-    'disabledTools',
-    _$disabledTools,
-    key: r'disabled_tools',
-    opt: true,
-  );
+        'disabledTools',
+        _$disabledTools,
+        key: r'disabled_tools',
+        opt: true,
+      );
 
   @override
   final MappableFields<McpStreamableHttpServer> fields = const {
@@ -489,11 +486,16 @@ mixin McpStreamableHttpServerMappable {
         .encodeMap<McpStreamableHttpServer>(this as McpStreamableHttpServer);
   }
 
-  McpStreamableHttpServerCopyWith<McpStreamableHttpServer,
-          McpStreamableHttpServer, McpStreamableHttpServer>
-      get copyWith => _McpStreamableHttpServerCopyWithImpl<
-              McpStreamableHttpServer, McpStreamableHttpServer>(
-          this as McpStreamableHttpServer, $identity, $identity);
+  McpStreamableHttpServerCopyWith<
+    McpStreamableHttpServer,
+    McpStreamableHttpServer,
+    McpStreamableHttpServer
+  >
+  get copyWith =>
+      _McpStreamableHttpServerCopyWithImpl<
+        McpStreamableHttpServer,
+        McpStreamableHttpServer
+      >(this as McpStreamableHttpServer, $identity, $identity);
   @override
   String toString() {
     return McpStreamableHttpServerMapper.ensureInitialized().stringifyValue(
@@ -520,24 +522,25 @@ mixin McpStreamableHttpServerMappable {
 extension McpStreamableHttpServerValueCopy<$R, $Out>
     on ObjectCopyWith<$R, McpStreamableHttpServer, $Out> {
   McpStreamableHttpServerCopyWith<$R, McpStreamableHttpServer, $Out>
-      get $asMcpStreamableHttpServer => $base.as(
-            (v, t, t2) =>
-                _McpStreamableHttpServerCopyWithImpl<$R, $Out>(v, t, t2),
-          );
+  get $asMcpStreamableHttpServer => $base.as(
+    (v, t, t2) => _McpStreamableHttpServerCopyWithImpl<$R, $Out>(v, t, t2),
+  );
 }
 
 abstract class McpStreamableHttpServerCopyWith<
-    $R,
-    $In extends McpStreamableHttpServer,
-    $Out> implements McpServerConfigCopyWith<$R, $In, $Out> {
+  $R,
+  $In extends McpStreamableHttpServer,
+  $Out
+>
+    implements McpServerConfigCopyWith<$R, $In, $Out> {
   MapCopyWith<$R, String, String, ObjectCopyWith<$R, String, String>>?
-      get headers;
+  get headers;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-      get enabledTools;
+  get enabledTools;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-      get disabledTools;
+  get disabledTools;
   @override
   $R call({
     String? name,
@@ -566,31 +569,31 @@ class _McpStreamableHttpServerCopyWithImpl<$R, $Out>
       McpStreamableHttpServerMapper.ensureInitialized();
   @override
   MapCopyWith<$R, String, String, ObjectCopyWith<$R, String, String>>?
-      get headers => $value.headers != null
-          ? MapCopyWith(
-              $value.headers!,
-              (v, t) => ObjectCopyWith(v, $identity, t),
-              (v) => call(headers: v),
-            )
-          : null;
+  get headers => $value.headers != null
+      ? MapCopyWith(
+          $value.headers!,
+          (v, t) => ObjectCopyWith(v, $identity, t),
+          (v) => call(headers: v),
+        )
+      : null;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-      get enabledTools => $value.enabledTools != null
-          ? ListCopyWith(
-              $value.enabledTools!,
-              (v, t) => ObjectCopyWith(v, $identity, t),
-              (v) => call(enabledTools: v),
-            )
-          : null;
+  get enabledTools => $value.enabledTools != null
+      ? ListCopyWith(
+          $value.enabledTools!,
+          (v, t) => ObjectCopyWith(v, $identity, t),
+          (v) => call(enabledTools: v),
+        )
+      : null;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-      get disabledTools => $value.disabledTools != null
-          ? ListCopyWith(
-              $value.disabledTools!,
-              (v, t) => ObjectCopyWith(v, $identity, t),
-              (v) => call(disabledTools: v),
-            )
-          : null;
+  get disabledTools => $value.disabledTools != null
+      ? ListCopyWith(
+          $value.disabledTools!,
+          (v, t) => ObjectCopyWith(v, $identity, t),
+          (v) => call(disabledTools: v),
+        )
+      : null;
   @override
   $R call({
     String? name,
@@ -602,36 +605,35 @@ class _McpStreamableHttpServerCopyWithImpl<$R, $Out>
     Object? timeoutSeconds = $none,
     Object? enabledTools = $none,
     Object? disabledTools = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (name != null) #name: name,
-          if (url != null) #url: url,
-          if (headers != $none) #headers: headers,
-          if (timeout != null) #timeout: timeout,
-          if (sseReadTimeout != null) #sseReadTimeout: sseReadTimeout,
-          if (terminateOnClose != null) #terminateOnClose: terminateOnClose,
-          if (timeoutSeconds != $none) #timeoutSeconds: timeoutSeconds,
-          if (enabledTools != $none) #enabledTools: enabledTools,
-          if (disabledTools != $none) #disabledTools: disabledTools,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (name != null) #name: name,
+      if (url != null) #url: url,
+      if (headers != $none) #headers: headers,
+      if (timeout != null) #timeout: timeout,
+      if (sseReadTimeout != null) #sseReadTimeout: sseReadTimeout,
+      if (terminateOnClose != null) #terminateOnClose: terminateOnClose,
+      if (timeoutSeconds != $none) #timeoutSeconds: timeoutSeconds,
+      if (enabledTools != $none) #enabledTools: enabledTools,
+      if (disabledTools != $none) #disabledTools: disabledTools,
+    }),
+  );
   @override
   McpStreamableHttpServer $make(CopyWithData data) => McpStreamableHttpServer(
-        name: data.get(#name, or: $value.name),
-        url: data.get(#url, or: $value.url),
-        headers: data.get(#headers, or: $value.headers),
-        timeout: data.get(#timeout, or: $value.timeout),
-        sseReadTimeout: data.get(#sseReadTimeout, or: $value.sseReadTimeout),
-        terminateOnClose:
-            data.get(#terminateOnClose, or: $value.terminateOnClose),
-        timeoutSeconds: data.get(#timeoutSeconds, or: $value.timeoutSeconds),
-        enabledTools: data.get(#enabledTools, or: $value.enabledTools),
-        disabledTools: data.get(#disabledTools, or: $value.disabledTools),
-      );
+    name: data.get(#name, or: $value.name),
+    url: data.get(#url, or: $value.url),
+    headers: data.get(#headers, or: $value.headers),
+    timeout: data.get(#timeout, or: $value.timeout),
+    sseReadTimeout: data.get(#sseReadTimeout, or: $value.sseReadTimeout),
+    terminateOnClose: data.get(#terminateOnClose, or: $value.terminateOnClose),
+    timeoutSeconds: data.get(#timeoutSeconds, or: $value.timeoutSeconds),
+    enabledTools: data.get(#enabledTools, or: $value.enabledTools),
+    disabledTools: data.get(#disabledTools, or: $value.disabledTools),
+  );
 
   @override
   McpStreamableHttpServerCopyWith<$R2, McpStreamableHttpServer, $Out2>
-      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
-          _McpStreamableHttpServerCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+      _McpStreamableHttpServerCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
+

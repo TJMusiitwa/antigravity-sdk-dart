@@ -165,6 +165,6 @@ class _SlashCommandCopyWithImpl<$R, $Out>
   @override
   SlashCommandCopyWith<$R2, SlashCommand, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _SlashCommandCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _SlashCommandCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
+

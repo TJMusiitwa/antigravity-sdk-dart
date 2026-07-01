@@ -124,7 +124,7 @@ extension ToolCallValueCopy<$R, $Out> on ObjectCopyWith<$R, ToolCall, $Out> {
 abstract class ToolCallCopyWith<$R, $In extends ToolCall, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   MapCopyWith<$R, String, dynamic, ObjectCopyWith<$R, dynamic, dynamic>?>
-      get args;
+  get args;
   $R call({
     String? name,
     Map<String, dynamic>? args,
@@ -144,39 +144,37 @@ class _ToolCallCopyWithImpl<$R, $Out>
       ToolCallMapper.ensureInitialized();
   @override
   MapCopyWith<$R, String, dynamic, ObjectCopyWith<$R, dynamic, dynamic>?>
-      get args => MapCopyWith(
-            $value.args,
-            (v, t) => ObjectCopyWith(v, $identity, t),
-            (v) => call(args: v),
-          );
+  get args => MapCopyWith(
+    $value.args,
+    (v, t) => ObjectCopyWith(v, $identity, t),
+    (v) => call(args: v),
+  );
   @override
   $R call({
     String? name,
     Object? args = $none,
     Object? id = $none,
     Object? canonicalPath = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (name != null) #name: name,
-          if (args != $none) #args: args,
-          if (id != $none) #id: id,
-          if (canonicalPath != $none) #canonicalPath: canonicalPath,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (name != null) #name: name,
+      if (args != $none) #args: args,
+      if (id != $none) #id: id,
+      if (canonicalPath != $none) #canonicalPath: canonicalPath,
+    }),
+  );
   @override
   ToolCall $make(CopyWithData data) => ToolCall(
-        name: data.get(#name, or: $value.name),
-        args: data.get(#args, or: $value.args),
-        id: data.get(#id, or: $value.id),
-        canonicalPath: data.get(#canonicalPath, or: $value.canonicalPath),
-      );
+    name: data.get(#name, or: $value.name),
+    args: data.get(#args, or: $value.args),
+    id: data.get(#id, or: $value.id),
+    canonicalPath: data.get(#canonicalPath, or: $value.canonicalPath),
+  );
 
   @override
   ToolCallCopyWith<$R2, ToolCall, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _ToolCallCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _ToolCallCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 class ToolResultMapper extends ClassMapperBase<ToolResult> {
@@ -323,28 +321,27 @@ class _ToolResultCopyWithImpl<$R, $Out>
     Object? result = $none,
     Object? error = $none,
     Object? exception = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (name != null) #name: name,
-          if (id != $none) #id: id,
-          if (result != $none) #result: result,
-          if (error != $none) #error: error,
-          if (exception != $none) #exception: exception,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (name != null) #name: name,
+      if (id != $none) #id: id,
+      if (result != $none) #result: result,
+      if (error != $none) #error: error,
+      if (exception != $none) #exception: exception,
+    }),
+  );
   @override
   ToolResult $make(CopyWithData data) => ToolResult(
-        name: data.get(#name, or: $value.name),
-        id: data.get(#id, or: $value.id),
-        result: data.get(#result, or: $value.result),
-        error: data.get(#error, or: $value.error),
-        exception: data.get(#exception, or: $value.exception),
-      );
+    name: data.get(#name, or: $value.name),
+    id: data.get(#id, or: $value.id),
+    result: data.get(#result, or: $value.result),
+    error: data.get(#error, or: $value.error),
+    exception: data.get(#exception, or: $value.exception),
+  );
 
   @override
   ToolResultCopyWith<$R2, ToolResult, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _ToolResultCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _ToolResultCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
+

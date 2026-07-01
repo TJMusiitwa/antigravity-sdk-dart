@@ -342,11 +342,11 @@ mixin UsageMetadataMappable {
   }
 
   UsageMetadataCopyWith<UsageMetadata, UsageMetadata, UsageMetadata>
-      get copyWith => _UsageMetadataCopyWithImpl<UsageMetadata, UsageMetadata>(
-            this as UsageMetadata,
-            $identity,
-            $identity,
-          );
+  get copyWith => _UsageMetadataCopyWithImpl<UsageMetadata, UsageMetadata>(
+    this as UsageMetadata,
+    $identity,
+    $identity,
+  );
   @override
   String toString() {
     return UsageMetadataMapper.ensureInitialized().stringifyValue(
@@ -403,43 +403,39 @@ class _UsageMetadataCopyWithImpl<$R, $Out>
     Object? candidatesTokenCount = $none,
     Object? thoughtsTokenCount = $none,
     Object? totalTokenCount = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (promptTokenCount != $none) #promptTokenCount: promptTokenCount,
-          if (cachedContentTokenCount != $none)
-            #cachedContentTokenCount: cachedContentTokenCount,
-          if (candidatesTokenCount != $none)
-            #candidatesTokenCount: candidatesTokenCount,
-          if (thoughtsTokenCount != $none)
-            #thoughtsTokenCount: thoughtsTokenCount,
-          if (totalTokenCount != $none) #totalTokenCount: totalTokenCount,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (promptTokenCount != $none) #promptTokenCount: promptTokenCount,
+      if (cachedContentTokenCount != $none)
+        #cachedContentTokenCount: cachedContentTokenCount,
+      if (candidatesTokenCount != $none)
+        #candidatesTokenCount: candidatesTokenCount,
+      if (thoughtsTokenCount != $none) #thoughtsTokenCount: thoughtsTokenCount,
+      if (totalTokenCount != $none) #totalTokenCount: totalTokenCount,
+    }),
+  );
   @override
   UsageMetadata $make(CopyWithData data) => UsageMetadata(
-        promptTokenCount:
-            data.get(#promptTokenCount, or: $value.promptTokenCount),
-        cachedContentTokenCount: data.get(
-          #cachedContentTokenCount,
-          or: $value.cachedContentTokenCount,
-        ),
-        candidatesTokenCount: data.get(
-          #candidatesTokenCount,
-          or: $value.candidatesTokenCount,
-        ),
-        thoughtsTokenCount: data.get(
-          #thoughtsTokenCount,
-          or: $value.thoughtsTokenCount,
-        ),
-        totalTokenCount: data.get(#totalTokenCount, or: $value.totalTokenCount),
-      );
+    promptTokenCount: data.get(#promptTokenCount, or: $value.promptTokenCount),
+    cachedContentTokenCount: data.get(
+      #cachedContentTokenCount,
+      or: $value.cachedContentTokenCount,
+    ),
+    candidatesTokenCount: data.get(
+      #candidatesTokenCount,
+      or: $value.candidatesTokenCount,
+    ),
+    thoughtsTokenCount: data.get(
+      #thoughtsTokenCount,
+      or: $value.thoughtsTokenCount,
+    ),
+    totalTokenCount: data.get(#totalTokenCount, or: $value.totalTokenCount),
+  );
 
   @override
   UsageMetadataCopyWith<$R2, UsageMetadata, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _UsageMetadataCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _UsageMetadataCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 class StepMapper extends ClassMapperBase<Step> {
@@ -680,7 +676,7 @@ extension StepValueCopy<$R, $Out> on ObjectCopyWith<$R, Step, $Out> {
 abstract class StepCopyWith<$R, $In extends Step, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   ListCopyWith<$R, ToolCall, ToolCallCopyWith<$R, ToolCall, ToolCall>>
-      get toolCalls;
+  get toolCalls;
   UsageMetadataCopyWith<$R, UsageMetadata, UsageMetadata>? get usageMetadata;
   $R call({
     String? id,
@@ -712,11 +708,11 @@ class _StepCopyWithImpl<$R, $Out> extends ClassCopyWithBase<$R, Step, $Out>
   late final ClassMapperBase<Step> $mapper = StepMapper.ensureInitialized();
   @override
   ListCopyWith<$R, ToolCall, ToolCallCopyWith<$R, ToolCall, ToolCall>>
-      get toolCalls => ListCopyWith(
-            $value.toolCalls,
-            (v, t) => v.copyWith.$chain(t),
-            (v) => call(toolCalls: v),
-          );
+  get toolCalls => ListCopyWith(
+    $value.toolCalls,
+    (v, t) => v.copyWith.$chain(t),
+    (v) => call(toolCalls: v),
+  );
   @override
   UsageMetadataCopyWith<$R, UsageMetadata, UsageMetadata>? get usageMetadata =>
       $value.usageMetadata?.copyWith.$chain((v) => call(usageMetadata: v));
@@ -739,55 +735,53 @@ class _StepCopyWithImpl<$R, $Out> extends ClassCopyWithBase<$R, Step, $Out>
     Object? isCompleteResponse = $none,
     Object? structuredOutput = $none,
     Object? usageMetadata = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (id != null) #id: id,
-          if (stepIndex != null) #stepIndex: stepIndex,
-          if (cascadeId != null) #cascadeId: cascadeId,
-          if (trajectoryId != null) #trajectoryId: trajectoryId,
-          if (type != null) #type: type,
-          if (source != null) #source: source,
-          if (target != null) #target: target,
-          if (status != null) #status: status,
-          if (content != null) #content: content,
-          if (contentDelta != null) #contentDelta: contentDelta,
-          if (thinking != null) #thinking: thinking,
-          if (thinkingDelta != null) #thinkingDelta: thinkingDelta,
-          if (toolCalls != null) #toolCalls: toolCalls,
-          if (error != null) #error: error,
-          if (isCompleteResponse != $none)
-            #isCompleteResponse: isCompleteResponse,
-          if (structuredOutput != $none) #structuredOutput: structuredOutput,
-          if (usageMetadata != $none) #usageMetadata: usageMetadata,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (id != null) #id: id,
+      if (stepIndex != null) #stepIndex: stepIndex,
+      if (cascadeId != null) #cascadeId: cascadeId,
+      if (trajectoryId != null) #trajectoryId: trajectoryId,
+      if (type != null) #type: type,
+      if (source != null) #source: source,
+      if (target != null) #target: target,
+      if (status != null) #status: status,
+      if (content != null) #content: content,
+      if (contentDelta != null) #contentDelta: contentDelta,
+      if (thinking != null) #thinking: thinking,
+      if (thinkingDelta != null) #thinkingDelta: thinkingDelta,
+      if (toolCalls != null) #toolCalls: toolCalls,
+      if (error != null) #error: error,
+      if (isCompleteResponse != $none) #isCompleteResponse: isCompleteResponse,
+      if (structuredOutput != $none) #structuredOutput: structuredOutput,
+      if (usageMetadata != $none) #usageMetadata: usageMetadata,
+    }),
+  );
   @override
   Step $make(CopyWithData data) => Step(
-        id: data.get(#id, or: $value.id),
-        stepIndex: data.get(#stepIndex, or: $value.stepIndex),
-        cascadeId: data.get(#cascadeId, or: $value.cascadeId),
-        trajectoryId: data.get(#trajectoryId, or: $value.trajectoryId),
-        type: data.get(#type, or: $value.type),
-        source: data.get(#source, or: $value.source),
-        target: data.get(#target, or: $value.target),
-        status: data.get(#status, or: $value.status),
-        content: data.get(#content, or: $value.content),
-        contentDelta: data.get(#contentDelta, or: $value.contentDelta),
-        thinking: data.get(#thinking, or: $value.thinking),
-        thinkingDelta: data.get(#thinkingDelta, or: $value.thinkingDelta),
-        toolCalls: data.get(#toolCalls, or: $value.toolCalls),
-        error: data.get(#error, or: $value.error),
-        isCompleteResponse: data.get(
-          #isCompleteResponse,
-          or: $value.isCompleteResponse,
-        ),
-        structuredOutput:
-            data.get(#structuredOutput, or: $value.structuredOutput),
-        usageMetadata: data.get(#usageMetadata, or: $value.usageMetadata),
-      );
+    id: data.get(#id, or: $value.id),
+    stepIndex: data.get(#stepIndex, or: $value.stepIndex),
+    cascadeId: data.get(#cascadeId, or: $value.cascadeId),
+    trajectoryId: data.get(#trajectoryId, or: $value.trajectoryId),
+    type: data.get(#type, or: $value.type),
+    source: data.get(#source, or: $value.source),
+    target: data.get(#target, or: $value.target),
+    status: data.get(#status, or: $value.status),
+    content: data.get(#content, or: $value.content),
+    contentDelta: data.get(#contentDelta, or: $value.contentDelta),
+    thinking: data.get(#thinking, or: $value.thinking),
+    thinkingDelta: data.get(#thinkingDelta, or: $value.thinkingDelta),
+    toolCalls: data.get(#toolCalls, or: $value.toolCalls),
+    error: data.get(#error, or: $value.error),
+    isCompleteResponse: data.get(
+      #isCompleteResponse,
+      or: $value.isCompleteResponse,
+    ),
+    structuredOutput: data.get(#structuredOutput, or: $value.structuredOutput),
+    usageMetadata: data.get(#usageMetadata, or: $value.usageMetadata),
+  );
 
   @override
   StepCopyWith<$R2, Step, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
       _StepCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
+

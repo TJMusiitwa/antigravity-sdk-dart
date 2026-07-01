@@ -129,11 +129,11 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
       v.disabledTools;
   static const Field<CapabilitiesConfig, List<BuiltinTools>> _f$disabledTools =
       Field(
-    'disabledTools',
-    _$disabledTools,
-    key: r'disabled_tools',
-    opt: true,
-  );
+        'disabledTools',
+        _$disabledTools,
+        key: r'disabled_tools',
+        opt: true,
+      );
   static int? _$compactionThreshold(CapabilitiesConfig v) =>
       v.compactionThreshold;
   static const Field<CapabilitiesConfig, int> _f$compactionThreshold = Field(
@@ -146,11 +146,11 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
       v.finishToolSchemaJson;
   static const Field<CapabilitiesConfig, String> _f$finishToolSchemaJson =
       Field(
-    'finishToolSchemaJson',
-    _$finishToolSchemaJson,
-    key: r'finish_tool_schema_json',
-    opt: true,
-  );
+        'finishToolSchemaJson',
+        _$finishToolSchemaJson,
+        key: r'finish_tool_schema_json',
+        opt: true,
+      );
 
   @override
   final MappableFields<CapabilitiesConfig> fields = const {
@@ -196,9 +196,13 @@ mixin CapabilitiesConfigMappable {
         .encodeMap<CapabilitiesConfig>(this as CapabilitiesConfig);
   }
 
-  CapabilitiesConfigCopyWith<CapabilitiesConfig, CapabilitiesConfig,
-      CapabilitiesConfig> get copyWith => _CapabilitiesConfigCopyWithImpl<
-          CapabilitiesConfig, CapabilitiesConfig>(
+  CapabilitiesConfigCopyWith<
+    CapabilitiesConfig,
+    CapabilitiesConfig,
+    CapabilitiesConfig
+  >
+  get copyWith =>
+      _CapabilitiesConfigCopyWithImpl<CapabilitiesConfig, CapabilitiesConfig>(
         this as CapabilitiesConfig,
         $identity,
         $identity,
@@ -229,17 +233,29 @@ mixin CapabilitiesConfigMappable {
 extension CapabilitiesConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, CapabilitiesConfig, $Out> {
   CapabilitiesConfigCopyWith<$R, CapabilitiesConfig, $Out>
-      get $asCapabilitiesConfig => $base.as(
-            (v, t, t2) => _CapabilitiesConfigCopyWithImpl<$R, $Out>(v, t, t2),
-          );
+  get $asCapabilitiesConfig => $base.as(
+    (v, t, t2) => _CapabilitiesConfigCopyWithImpl<$R, $Out>(v, t, t2),
+  );
 }
 
-abstract class CapabilitiesConfigCopyWith<$R, $In extends CapabilitiesConfig,
-    $Out> implements ClassCopyWith<$R, $In, $Out> {
-  ListCopyWith<$R, BuiltinTools,
-      ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get enabledTools;
-  ListCopyWith<$R, BuiltinTools,
-      ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get disabledTools;
+abstract class CapabilitiesConfigCopyWith<
+  $R,
+  $In extends CapabilitiesConfig,
+  $Out
+>
+    implements ClassCopyWith<$R, $In, $Out> {
+  ListCopyWith<
+    $R,
+    BuiltinTools,
+    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
+  >?
+  get enabledTools;
+  ListCopyWith<
+    $R,
+    BuiltinTools,
+    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
+  >?
+  get disabledTools;
   $R call({
     bool? enableSubagents,
     List<BuiltinTools>? enabledTools,
@@ -261,25 +277,31 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
   late final ClassMapperBase<CapabilitiesConfig> $mapper =
       CapabilitiesConfigMapper.ensureInitialized();
   @override
-  ListCopyWith<$R, BuiltinTools,
-          ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>?
-      get enabledTools => $value.enabledTools != null
-          ? ListCopyWith(
-              $value.enabledTools!,
-              (v, t) => ObjectCopyWith(v, $identity, t),
-              (v) => call(enabledTools: v),
-            )
-          : null;
+  ListCopyWith<
+    $R,
+    BuiltinTools,
+    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
+  >?
+  get enabledTools => $value.enabledTools != null
+      ? ListCopyWith(
+          $value.enabledTools!,
+          (v, t) => ObjectCopyWith(v, $identity, t),
+          (v) => call(enabledTools: v),
+        )
+      : null;
   @override
-  ListCopyWith<$R, BuiltinTools,
-          ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>?
-      get disabledTools => $value.disabledTools != null
-          ? ListCopyWith(
-              $value.disabledTools!,
-              (v, t) => ObjectCopyWith(v, $identity, t),
-              (v) => call(disabledTools: v),
-            )
-          : null;
+  ListCopyWith<
+    $R,
+    BuiltinTools,
+    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
+  >?
+  get disabledTools => $value.disabledTools != null
+      ? ListCopyWith(
+          $value.disabledTools!,
+          (v, t) => ObjectCopyWith(v, $identity, t),
+          (v) => call(disabledTools: v),
+        )
+      : null;
   @override
   $R call({
     bool? enableSubagents,
@@ -287,36 +309,35 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
     Object? disabledTools = $none,
     Object? compactionThreshold = $none,
     Object? finishToolSchemaJson = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (enableSubagents != null) #enableSubagents: enableSubagents,
-          if (enabledTools != $none) #enabledTools: enabledTools,
-          if (disabledTools != $none) #disabledTools: disabledTools,
-          if (compactionThreshold != $none)
-            #compactionThreshold: compactionThreshold,
-          if (finishToolSchemaJson != $none)
-            #finishToolSchemaJson: finishToolSchemaJson,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (enableSubagents != null) #enableSubagents: enableSubagents,
+      if (enabledTools != $none) #enabledTools: enabledTools,
+      if (disabledTools != $none) #disabledTools: disabledTools,
+      if (compactionThreshold != $none)
+        #compactionThreshold: compactionThreshold,
+      if (finishToolSchemaJson != $none)
+        #finishToolSchemaJson: finishToolSchemaJson,
+    }),
+  );
   @override
   CapabilitiesConfig $make(CopyWithData data) => CapabilitiesConfig(
-        enableSubagents: data.get(#enableSubagents, or: $value.enableSubagents),
-        enabledTools: data.get(#enabledTools, or: $value.enabledTools),
-        disabledTools: data.get(#disabledTools, or: $value.disabledTools),
-        compactionThreshold: data.get(
-          #compactionThreshold,
-          or: $value.compactionThreshold,
-        ),
-        finishToolSchemaJson: data.get(
-          #finishToolSchemaJson,
-          or: $value.finishToolSchemaJson,
-        ),
-      );
+    enableSubagents: data.get(#enableSubagents, or: $value.enableSubagents),
+    enabledTools: data.get(#enabledTools, or: $value.enabledTools),
+    disabledTools: data.get(#disabledTools, or: $value.disabledTools),
+    compactionThreshold: data.get(
+      #compactionThreshold,
+      or: $value.compactionThreshold,
+    ),
+    finishToolSchemaJson: data.get(
+      #finishToolSchemaJson,
+      or: $value.finishToolSchemaJson,
+    ),
+  );
 
   @override
   CapabilitiesConfigCopyWith<$R2, CapabilitiesConfig, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _CapabilitiesConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _CapabilitiesConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
+

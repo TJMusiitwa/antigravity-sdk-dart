@@ -30,7 +30,7 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
   static List<BuiltinTools>? _$disabledTools(SubagentCapabilities v) =>
       v.disabledTools;
   static const Field<SubagentCapabilities, List<BuiltinTools>>
-      _f$disabledTools = Field(
+  _f$disabledTools = Field(
     'disabledTools',
     _$disabledTools,
     key: r'disabled_tools',
@@ -75,10 +75,16 @@ mixin SubagentCapabilitiesMappable {
         .encodeMap<SubagentCapabilities>(this as SubagentCapabilities);
   }
 
-  SubagentCapabilitiesCopyWith<SubagentCapabilities, SubagentCapabilities,
-      SubagentCapabilities> get copyWith => _SubagentCapabilitiesCopyWithImpl<
-          SubagentCapabilities, SubagentCapabilities>(
-      this as SubagentCapabilities, $identity, $identity);
+  SubagentCapabilitiesCopyWith<
+    SubagentCapabilities,
+    SubagentCapabilities,
+    SubagentCapabilities
+  >
+  get copyWith =>
+      _SubagentCapabilitiesCopyWithImpl<
+        SubagentCapabilities,
+        SubagentCapabilities
+      >(this as SubagentCapabilities, $identity, $identity);
   @override
   String toString() {
     return SubagentCapabilitiesMapper.ensureInitialized().stringifyValue(
@@ -105,19 +111,29 @@ mixin SubagentCapabilitiesMappable {
 extension SubagentCapabilitiesValueCopy<$R, $Out>
     on ObjectCopyWith<$R, SubagentCapabilities, $Out> {
   SubagentCapabilitiesCopyWith<$R, SubagentCapabilities, $Out>
-      get $asSubagentCapabilities => $base.as(
-            (v, t, t2) => _SubagentCapabilitiesCopyWithImpl<$R, $Out>(v, t, t2),
-          );
+  get $asSubagentCapabilities => $base.as(
+    (v, t, t2) => _SubagentCapabilitiesCopyWithImpl<$R, $Out>(v, t, t2),
+  );
 }
 
 abstract class SubagentCapabilitiesCopyWith<
+  $R,
+  $In extends SubagentCapabilities,
+  $Out
+>
+    implements ClassCopyWith<$R, $In, $Out> {
+  ListCopyWith<
     $R,
-    $In extends SubagentCapabilities,
-    $Out> implements ClassCopyWith<$R, $In, $Out> {
-  ListCopyWith<$R, BuiltinTools,
-      ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get enabledTools;
-  ListCopyWith<$R, BuiltinTools,
-      ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get disabledTools;
+    BuiltinTools,
+    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
+  >?
+  get enabledTools;
+  ListCopyWith<
+    $R,
+    BuiltinTools,
+    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
+  >?
+  get disabledTools;
   $R call({
     List<BuiltinTools>? enabledTools,
     List<BuiltinTools>? disabledTools,
@@ -136,25 +152,31 @@ class _SubagentCapabilitiesCopyWithImpl<$R, $Out>
   late final ClassMapperBase<SubagentCapabilities> $mapper =
       SubagentCapabilitiesMapper.ensureInitialized();
   @override
-  ListCopyWith<$R, BuiltinTools,
-          ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>?
-      get enabledTools => $value.enabledTools != null
-          ? ListCopyWith(
-              $value.enabledTools!,
-              (v, t) => ObjectCopyWith(v, $identity, t),
-              (v) => call(enabledTools: v),
-            )
-          : null;
+  ListCopyWith<
+    $R,
+    BuiltinTools,
+    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
+  >?
+  get enabledTools => $value.enabledTools != null
+      ? ListCopyWith(
+          $value.enabledTools!,
+          (v, t) => ObjectCopyWith(v, $identity, t),
+          (v) => call(enabledTools: v),
+        )
+      : null;
   @override
-  ListCopyWith<$R, BuiltinTools,
-          ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>?
-      get disabledTools => $value.disabledTools != null
-          ? ListCopyWith(
-              $value.disabledTools!,
-              (v, t) => ObjectCopyWith(v, $identity, t),
-              (v) => call(disabledTools: v),
-            )
-          : null;
+  ListCopyWith<
+    $R,
+    BuiltinTools,
+    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
+  >?
+  get disabledTools => $value.disabledTools != null
+      ? ListCopyWith(
+          $value.disabledTools!,
+          (v, t) => ObjectCopyWith(v, $identity, t),
+          (v) => call(disabledTools: v),
+        )
+      : null;
   @override
   $R call({Object? enabledTools = $none, Object? disabledTools = $none}) =>
       $apply(
@@ -165,14 +187,14 @@ class _SubagentCapabilitiesCopyWithImpl<$R, $Out>
       );
   @override
   SubagentCapabilities $make(CopyWithData data) => SubagentCapabilities(
-        enabledTools: data.get(#enabledTools, or: $value.enabledTools),
-        disabledTools: data.get(#disabledTools, or: $value.disabledTools),
-      );
+    enabledTools: data.get(#enabledTools, or: $value.enabledTools),
+    disabledTools: data.get(#disabledTools, or: $value.disabledTools),
+  );
 
   @override
   SubagentCapabilitiesCopyWith<$R2, SubagentCapabilities, $Out2>
-      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
-          _SubagentCapabilitiesCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+      _SubagentCapabilitiesCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 class SubagentConfigMapper extends ClassMapperBase<SubagentConfig> {
@@ -262,12 +284,11 @@ mixin SubagentConfigMappable {
   }
 
   SubagentConfigCopyWith<SubagentConfig, SubagentConfig, SubagentConfig>
-      get copyWith =>
-          _SubagentConfigCopyWithImpl<SubagentConfig, SubagentConfig>(
-            this as SubagentConfig,
-            $identity,
-            $identity,
-          );
+  get copyWith => _SubagentConfigCopyWithImpl<SubagentConfig, SubagentConfig>(
+    this as SubagentConfig,
+    $identity,
+    $identity,
+  );
   @override
   String toString() {
     return SubagentConfigMapper.ensureInitialized().stringifyValue(
@@ -300,7 +321,7 @@ extension SubagentConfigValueCopy<$R, $Out>
 abstract class SubagentConfigCopyWith<$R, $In extends SubagentConfig, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   SubagentCapabilitiesCopyWith<$R, SubagentCapabilities, SubagentCapabilities>?
-      get capabilities;
+  get capabilities;
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get tools;
   $R call({
     String? name,
@@ -324,8 +345,8 @@ class _SubagentConfigCopyWithImpl<$R, $Out>
       SubagentConfigMapper.ensureInitialized();
   @override
   SubagentCapabilitiesCopyWith<$R, SubagentCapabilities, SubagentCapabilities>?
-      get capabilities =>
-          $value.capabilities?.copyWith.$chain((v) => call(capabilities: v));
+  get capabilities =>
+      $value.capabilities?.copyWith.$chain((v) => call(capabilities: v));
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get tools =>
       ListCopyWith(
@@ -340,32 +361,30 @@ class _SubagentConfigCopyWithImpl<$R, $Out>
     Object? systemInstructions = $none,
     Object? capabilities = $none,
     Object? tools = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (name != null) #name: name,
-          if (description != null) #description: description,
-          if (systemInstructions != $none)
-            #systemInstructions: systemInstructions,
-          if (capabilities != $none) #capabilities: capabilities,
-          if (tools != $none) #tools: tools,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (name != null) #name: name,
+      if (description != null) #description: description,
+      if (systemInstructions != $none) #systemInstructions: systemInstructions,
+      if (capabilities != $none) #capabilities: capabilities,
+      if (tools != $none) #tools: tools,
+    }),
+  );
   @override
   SubagentConfig $make(CopyWithData data) => SubagentConfig(
-        name: data.get(#name, or: $value.name),
-        description: data.get(#description, or: $value.description),
-        systemInstructions: data.get(
-          #systemInstructions,
-          or: $value.systemInstructions,
-        ),
-        capabilities: data.get(#capabilities, or: $value.capabilities),
-        tools: data.get(#tools, or: $value.tools),
-      );
+    name: data.get(#name, or: $value.name),
+    description: data.get(#description, or: $value.description),
+    systemInstructions: data.get(
+      #systemInstructions,
+      or: $value.systemInstructions,
+    ),
+    capabilities: data.get(#capabilities, or: $value.capabilities),
+    tools: data.get(#tools, or: $value.tools),
+  );
 
   @override
   SubagentConfigCopyWith<$R2, SubagentConfig, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _SubagentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _SubagentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
+

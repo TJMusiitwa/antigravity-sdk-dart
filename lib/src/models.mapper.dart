@@ -171,13 +171,13 @@ mixin ModelEndpointMappable {
   String toJson();
   Map<String, dynamic> toMap();
   ModelEndpointCopyWith<ModelEndpoint, ModelEndpoint, ModelEndpoint>
-      get copyWith;
+  get copyWith;
 }
 
 abstract class ModelEndpointCopyWith<$R, $In extends ModelEndpoint, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   MapCopyWith<$R, String, String, ObjectCopyWith<$R, String, String>>?
-      get httpHeaders;
+  get httpHeaders;
   $R call({String? baseUrl, Map<String, String>? httpHeaders});
   ModelEndpointCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
 }
@@ -201,11 +201,11 @@ class GeminiModelOptionsMapper extends ClassMapperBase<GeminiModelOptions> {
       v.thinkingLevel;
   static const Field<GeminiModelOptions, ThinkingLevel> _f$thinkingLevel =
       Field(
-    'thinkingLevel',
-    _$thinkingLevel,
-    key: r'thinking_level',
-    opt: true,
-  );
+        'thinkingLevel',
+        _$thinkingLevel,
+        key: r'thinking_level',
+        opt: true,
+      );
 
   @override
   final MappableFields<GeminiModelOptions> fields = const {
@@ -241,9 +241,13 @@ mixin GeminiModelOptionsMappable {
         .encodeMap<GeminiModelOptions>(this as GeminiModelOptions);
   }
 
-  GeminiModelOptionsCopyWith<GeminiModelOptions, GeminiModelOptions,
-      GeminiModelOptions> get copyWith => _GeminiModelOptionsCopyWithImpl<
-          GeminiModelOptions, GeminiModelOptions>(
+  GeminiModelOptionsCopyWith<
+    GeminiModelOptions,
+    GeminiModelOptions,
+    GeminiModelOptions
+  >
+  get copyWith =>
+      _GeminiModelOptionsCopyWithImpl<GeminiModelOptions, GeminiModelOptions>(
         this as GeminiModelOptions,
         $identity,
         $identity,
@@ -274,13 +278,17 @@ mixin GeminiModelOptionsMappable {
 extension GeminiModelOptionsValueCopy<$R, $Out>
     on ObjectCopyWith<$R, GeminiModelOptions, $Out> {
   GeminiModelOptionsCopyWith<$R, GeminiModelOptions, $Out>
-      get $asGeminiModelOptions => $base.as(
-            (v, t, t2) => _GeminiModelOptionsCopyWithImpl<$R, $Out>(v, t, t2),
-          );
+  get $asGeminiModelOptions => $base.as(
+    (v, t, t2) => _GeminiModelOptionsCopyWithImpl<$R, $Out>(v, t, t2),
+  );
 }
 
-abstract class GeminiModelOptionsCopyWith<$R, $In extends GeminiModelOptions,
-    $Out> implements ClassCopyWith<$R, $In, $Out> {
+abstract class GeminiModelOptionsCopyWith<
+  $R,
+  $In extends GeminiModelOptions,
+  $Out
+>
+    implements ClassCopyWith<$R, $In, $Out> {
   $R call({ThinkingLevel? thinkingLevel});
   GeminiModelOptionsCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -297,20 +305,19 @@ class _GeminiModelOptionsCopyWithImpl<$R, $Out>
       GeminiModelOptionsMapper.ensureInitialized();
   @override
   $R call({Object? thinkingLevel = $none}) => $apply(
-        FieldCopyWithData({
-          if (thinkingLevel != $none) #thinkingLevel: thinkingLevel,
-        }),
-      );
+    FieldCopyWithData({
+      if (thinkingLevel != $none) #thinkingLevel: thinkingLevel,
+    }),
+  );
   @override
   GeminiModelOptions $make(CopyWithData data) => GeminiModelOptions(
-        thinkingLevel: data.get(#thinkingLevel, or: $value.thinkingLevel),
-      );
+    thinkingLevel: data.get(#thinkingLevel, or: $value.thinkingLevel),
+  );
 
   @override
   GeminiModelOptionsCopyWith<$R2, GeminiModelOptions, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _GeminiModelOptionsCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _GeminiModelOptionsCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 class GeminiAPIEndpointMapper extends SubClassMapperBase<GeminiAPIEndpoint> {
@@ -404,14 +411,17 @@ mixin GeminiAPIEndpointMappable {
         .encodeMap<GeminiAPIEndpoint>(this as GeminiAPIEndpoint);
   }
 
-  GeminiAPIEndpointCopyWith<GeminiAPIEndpoint, GeminiAPIEndpoint,
-          GeminiAPIEndpoint>
-      get copyWith =>
-          _GeminiAPIEndpointCopyWithImpl<GeminiAPIEndpoint, GeminiAPIEndpoint>(
-            this as GeminiAPIEndpoint,
-            $identity,
-            $identity,
-          );
+  GeminiAPIEndpointCopyWith<
+    GeminiAPIEndpoint,
+    GeminiAPIEndpoint,
+    GeminiAPIEndpoint
+  >
+  get copyWith =>
+      _GeminiAPIEndpointCopyWithImpl<GeminiAPIEndpoint, GeminiAPIEndpoint>(
+        this as GeminiAPIEndpoint,
+        $identity,
+        $identity,
+      );
   @override
   String toString() {
     return GeminiAPIEndpointMapper.ensureInitialized().stringifyValue(
@@ -438,18 +448,22 @@ mixin GeminiAPIEndpointMappable {
 extension GeminiAPIEndpointValueCopy<$R, $Out>
     on ObjectCopyWith<$R, GeminiAPIEndpoint, $Out> {
   GeminiAPIEndpointCopyWith<$R, GeminiAPIEndpoint, $Out>
-      get $asGeminiAPIEndpoint => $base.as(
-            (v, t, t2) => _GeminiAPIEndpointCopyWithImpl<$R, $Out>(v, t, t2),
-          );
+  get $asGeminiAPIEndpoint => $base.as(
+    (v, t, t2) => _GeminiAPIEndpointCopyWithImpl<$R, $Out>(v, t, t2),
+  );
 }
 
-abstract class GeminiAPIEndpointCopyWith<$R, $In extends GeminiAPIEndpoint,
-    $Out> implements ModelEndpointCopyWith<$R, $In, $Out> {
+abstract class GeminiAPIEndpointCopyWith<
+  $R,
+  $In extends GeminiAPIEndpoint,
+  $Out
+>
+    implements ModelEndpointCopyWith<$R, $In, $Out> {
   @override
   MapCopyWith<$R, String, String, ObjectCopyWith<$R, String, String>>?
-      get httpHeaders;
+  get httpHeaders;
   GeminiModelOptionsCopyWith<$R, GeminiModelOptions, GeminiModelOptions>?
-      get options;
+  get options;
   @override
   $R call({
     String? baseUrl,
@@ -472,44 +486,42 @@ class _GeminiAPIEndpointCopyWithImpl<$R, $Out>
       GeminiAPIEndpointMapper.ensureInitialized();
   @override
   MapCopyWith<$R, String, String, ObjectCopyWith<$R, String, String>>?
-      get httpHeaders => $value.httpHeaders != null
-          ? MapCopyWith(
-              $value.httpHeaders!,
-              (v, t) => ObjectCopyWith(v, $identity, t),
-              (v) => call(httpHeaders: v),
-            )
-          : null;
+  get httpHeaders => $value.httpHeaders != null
+      ? MapCopyWith(
+          $value.httpHeaders!,
+          (v, t) => ObjectCopyWith(v, $identity, t),
+          (v) => call(httpHeaders: v),
+        )
+      : null;
   @override
   GeminiModelOptionsCopyWith<$R, GeminiModelOptions, GeminiModelOptions>?
-      get options => $value.options?.copyWith.$chain((v) => call(options: v));
+  get options => $value.options?.copyWith.$chain((v) => call(options: v));
   @override
   $R call({
     Object? baseUrl = $none,
     Object? httpHeaders = $none,
     Object? apiKey = $none,
     Object? options = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (baseUrl != $none) #baseUrl: baseUrl,
-          if (httpHeaders != $none) #httpHeaders: httpHeaders,
-          if (apiKey != $none) #apiKey: apiKey,
-          if (options != $none) #options: options,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (baseUrl != $none) #baseUrl: baseUrl,
+      if (httpHeaders != $none) #httpHeaders: httpHeaders,
+      if (apiKey != $none) #apiKey: apiKey,
+      if (options != $none) #options: options,
+    }),
+  );
   @override
   GeminiAPIEndpoint $make(CopyWithData data) => GeminiAPIEndpoint(
-        baseUrl: data.get(#baseUrl, or: $value.baseUrl),
-        httpHeaders: data.get(#httpHeaders, or: $value.httpHeaders),
-        apiKey: data.get(#apiKey, or: $value.apiKey),
-        options: data.get(#options, or: $value.options),
-      );
+    baseUrl: data.get(#baseUrl, or: $value.baseUrl),
+    httpHeaders: data.get(#httpHeaders, or: $value.httpHeaders),
+    apiKey: data.get(#apiKey, or: $value.apiKey),
+    options: data.get(#options, or: $value.options),
+  );
 
   @override
   GeminiAPIEndpointCopyWith<$R2, GeminiAPIEndpoint, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _GeminiAPIEndpointCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _GeminiAPIEndpointCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 class VertexEndpointMapper extends SubClassMapperBase<VertexEndpoint> {
@@ -612,12 +624,11 @@ mixin VertexEndpointMappable {
   }
 
   VertexEndpointCopyWith<VertexEndpoint, VertexEndpoint, VertexEndpoint>
-      get copyWith =>
-          _VertexEndpointCopyWithImpl<VertexEndpoint, VertexEndpoint>(
-            this as VertexEndpoint,
-            $identity,
-            $identity,
-          );
+  get copyWith => _VertexEndpointCopyWithImpl<VertexEndpoint, VertexEndpoint>(
+    this as VertexEndpoint,
+    $identity,
+    $identity,
+  );
   @override
   String toString() {
     return VertexEndpointMapper.ensureInitialized().stringifyValue(
@@ -651,9 +662,9 @@ abstract class VertexEndpointCopyWith<$R, $In extends VertexEndpoint, $Out>
     implements ModelEndpointCopyWith<$R, $In, $Out> {
   @override
   MapCopyWith<$R, String, String, ObjectCopyWith<$R, String, String>>?
-      get httpHeaders;
+  get httpHeaders;
   GeminiModelOptionsCopyWith<$R, GeminiModelOptions, GeminiModelOptions>?
-      get options;
+  get options;
   @override
   $R call({
     String? baseUrl,
@@ -677,16 +688,16 @@ class _VertexEndpointCopyWithImpl<$R, $Out>
       VertexEndpointMapper.ensureInitialized();
   @override
   MapCopyWith<$R, String, String, ObjectCopyWith<$R, String, String>>?
-      get httpHeaders => $value.httpHeaders != null
-          ? MapCopyWith(
-              $value.httpHeaders!,
-              (v, t) => ObjectCopyWith(v, $identity, t),
-              (v) => call(httpHeaders: v),
-            )
-          : null;
+  get httpHeaders => $value.httpHeaders != null
+      ? MapCopyWith(
+          $value.httpHeaders!,
+          (v, t) => ObjectCopyWith(v, $identity, t),
+          (v) => call(httpHeaders: v),
+        )
+      : null;
   @override
   GeminiModelOptionsCopyWith<$R, GeminiModelOptions, GeminiModelOptions>?
-      get options => $value.options?.copyWith.$chain((v) => call(options: v));
+  get options => $value.options?.copyWith.$chain((v) => call(options: v));
   @override
   $R call({
     Object? baseUrl = $none,
@@ -694,30 +705,28 @@ class _VertexEndpointCopyWithImpl<$R, $Out>
     Object? project = $none,
     Object? location = $none,
     Object? options = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (baseUrl != $none) #baseUrl: baseUrl,
-          if (httpHeaders != $none) #httpHeaders: httpHeaders,
-          if (project != $none) #project: project,
-          if (location != $none) #location: location,
-          if (options != $none) #options: options,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (baseUrl != $none) #baseUrl: baseUrl,
+      if (httpHeaders != $none) #httpHeaders: httpHeaders,
+      if (project != $none) #project: project,
+      if (location != $none) #location: location,
+      if (options != $none) #options: options,
+    }),
+  );
   @override
   VertexEndpoint $make(CopyWithData data) => VertexEndpoint(
-        baseUrl: data.get(#baseUrl, or: $value.baseUrl),
-        httpHeaders: data.get(#httpHeaders, or: $value.httpHeaders),
-        project: data.get(#project, or: $value.project),
-        location: data.get(#location, or: $value.location),
-        options: data.get(#options, or: $value.options),
-      );
+    baseUrl: data.get(#baseUrl, or: $value.baseUrl),
+    httpHeaders: data.get(#httpHeaders, or: $value.httpHeaders),
+    project: data.get(#project, or: $value.project),
+    location: data.get(#location, or: $value.location),
+    options: data.get(#options, or: $value.options),
+  );
 
   @override
   VertexEndpointCopyWith<$R2, VertexEndpoint, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _VertexEndpointCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _VertexEndpointCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 class ModelTargetMapper extends ClassMapperBase<ModelTarget> {
@@ -833,7 +842,7 @@ extension ModelTargetValueCopy<$R, $Out>
 abstract class ModelTargetCopyWith<$R, $In extends ModelTarget, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   ListCopyWith<$R, ModelType, ObjectCopyWith<$R, ModelType, ModelType>>
-      get types;
+  get types;
   ModelEndpointCopyWith<$R, ModelEndpoint, ModelEndpoint>? get endpoint;
   $R call({String? name, List<ModelType>? types, ModelEndpoint? endpoint});
   ModelTargetCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
@@ -849,11 +858,11 @@ class _ModelTargetCopyWithImpl<$R, $Out>
       ModelTargetMapper.ensureInitialized();
   @override
   ListCopyWith<$R, ModelType, ObjectCopyWith<$R, ModelType, ModelType>>
-      get types => ListCopyWith(
-            $value.types,
-            (v, t) => ObjectCopyWith(v, $identity, t),
-            (v) => call(types: v),
-          );
+  get types => ListCopyWith(
+    $value.types,
+    (v, t) => ObjectCopyWith(v, $identity, t),
+    (v) => call(types: v),
+  );
   @override
   ModelEndpointCopyWith<$R, ModelEndpoint, ModelEndpoint>? get endpoint =>
       $value.endpoint?.copyWith.$chain((v) => call(endpoint: v));
@@ -862,24 +871,23 @@ class _ModelTargetCopyWithImpl<$R, $Out>
     Object? name = $none,
     Object? types = $none,
     Object? endpoint = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (name != $none) #name: name,
-          if (types != $none) #types: types,
-          if (endpoint != $none) #endpoint: endpoint,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (name != $none) #name: name,
+      if (types != $none) #types: types,
+      if (endpoint != $none) #endpoint: endpoint,
+    }),
+  );
   @override
   ModelTarget $make(CopyWithData data) => ModelTarget(
-        name: data.get(#name, or: $value.name),
-        types: data.get(#types, or: $value.types),
-        endpoint: data.get(#endpoint, or: $value.endpoint),
-      );
+    name: data.get(#name, or: $value.name),
+    types: data.get(#types, or: $value.types),
+    endpoint: data.get(#endpoint, or: $value.endpoint),
+  );
 
   @override
   ModelTargetCopyWith<$R2, ModelTarget, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _ModelTargetCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _ModelTargetCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
+

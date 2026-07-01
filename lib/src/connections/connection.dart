@@ -107,7 +107,7 @@ abstract class AgentConfig with AgentConfigMappable {
 /// A live session with an agent backend in the Google Antigravity SDK.
 ///
 /// This is the common contract that all connection types implement.
-abstract class Connection {
+abstract interface class Connection {
   /// Returns the current conversation identifier.
   String get conversationId;
 
@@ -149,7 +149,7 @@ abstract class Connection {
 }
 
 /// Abstract strategy for establishing a [Connection] in the Google Antigravity SDK.
-abstract class ConnectionStrategy {
+abstract interface class ConnectionStrategy {
   /// Performs the setup and handshake (async).
   Future<void> start();
 

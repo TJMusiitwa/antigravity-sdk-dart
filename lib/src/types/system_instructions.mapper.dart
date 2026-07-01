@@ -74,11 +74,16 @@ mixin SystemInstructionSectionMappable {
         .encodeMap<SystemInstructionSection>(this as SystemInstructionSection);
   }
 
-  SystemInstructionSectionCopyWith<SystemInstructionSection,
-          SystemInstructionSection, SystemInstructionSection>
-      get copyWith => _SystemInstructionSectionCopyWithImpl<
-              SystemInstructionSection, SystemInstructionSection>(
-          this as SystemInstructionSection, $identity, $identity);
+  SystemInstructionSectionCopyWith<
+    SystemInstructionSection,
+    SystemInstructionSection,
+    SystemInstructionSection
+  >
+  get copyWith =>
+      _SystemInstructionSectionCopyWithImpl<
+        SystemInstructionSection,
+        SystemInstructionSection
+      >(this as SystemInstructionSection, $identity, $identity);
   @override
   String toString() {
     return SystemInstructionSectionMapper.ensureInitialized().stringifyValue(
@@ -105,16 +110,17 @@ mixin SystemInstructionSectionMappable {
 extension SystemInstructionSectionValueCopy<$R, $Out>
     on ObjectCopyWith<$R, SystemInstructionSection, $Out> {
   SystemInstructionSectionCopyWith<$R, SystemInstructionSection, $Out>
-      get $asSystemInstructionSection => $base.as(
-            (v, t, t2) =>
-                _SystemInstructionSectionCopyWithImpl<$R, $Out>(v, t, t2),
-          );
+  get $asSystemInstructionSection => $base.as(
+    (v, t, t2) => _SystemInstructionSectionCopyWithImpl<$R, $Out>(v, t, t2),
+  );
 }
 
 abstract class SystemInstructionSectionCopyWith<
-    $R,
-    $In extends SystemInstructionSection,
-    $Out> implements ClassCopyWith<$R, $In, $Out> {
+  $R,
+  $In extends SystemInstructionSection,
+  $Out
+>
+    implements ClassCopyWith<$R, $In, $Out> {
   $R call({String? content, String? title});
   SystemInstructionSectionCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -132,21 +138,21 @@ class _SystemInstructionSectionCopyWithImpl<$R, $Out>
       SystemInstructionSectionMapper.ensureInitialized();
   @override
   $R call({String? content, String? title}) => $apply(
-        FieldCopyWithData({
-          if (content != null) #content: content,
-          if (title != null) #title: title,
-        }),
-      );
+    FieldCopyWithData({
+      if (content != null) #content: content,
+      if (title != null) #title: title,
+    }),
+  );
   @override
   SystemInstructionSection $make(CopyWithData data) => SystemInstructionSection(
-        content: data.get(#content, or: $value.content),
-        title: data.get(#title, or: $value.title),
-      );
+    content: data.get(#content, or: $value.content),
+    title: data.get(#title, or: $value.title),
+  );
 
   @override
   SystemInstructionSectionCopyWith<$R2, SystemInstructionSection, $Out2>
-      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
-          _SystemInstructionSectionCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+      _SystemInstructionSectionCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 class SystemInstructionsMapper extends ClassMapperBase<SystemInstructions> {
@@ -191,12 +197,20 @@ class SystemInstructionsMapper extends ClassMapperBase<SystemInstructions> {
 mixin SystemInstructionsMappable {
   String toJson();
   Map<String, dynamic> toMap();
-  SystemInstructionsCopyWith<SystemInstructions, SystemInstructions,
-      SystemInstructions> get copyWith;
+  SystemInstructionsCopyWith<
+    SystemInstructions,
+    SystemInstructions,
+    SystemInstructions
+  >
+  get copyWith;
 }
 
-abstract class SystemInstructionsCopyWith<$R, $In extends SystemInstructions,
-    $Out> implements ClassCopyWith<$R, $In, $Out> {
+abstract class SystemInstructionsCopyWith<
+  $R,
+  $In extends SystemInstructions,
+  $Out
+>
+    implements ClassCopyWith<$R, $In, $Out> {
   $R call();
   SystemInstructionsCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -267,11 +281,16 @@ mixin CustomSystemInstructionsMappable {
         .encodeMap<CustomSystemInstructions>(this as CustomSystemInstructions);
   }
 
-  CustomSystemInstructionsCopyWith<CustomSystemInstructions,
-          CustomSystemInstructions, CustomSystemInstructions>
-      get copyWith => _CustomSystemInstructionsCopyWithImpl<
-              CustomSystemInstructions, CustomSystemInstructions>(
-          this as CustomSystemInstructions, $identity, $identity);
+  CustomSystemInstructionsCopyWith<
+    CustomSystemInstructions,
+    CustomSystemInstructions,
+    CustomSystemInstructions
+  >
+  get copyWith =>
+      _CustomSystemInstructionsCopyWithImpl<
+        CustomSystemInstructions,
+        CustomSystemInstructions
+      >(this as CustomSystemInstructions, $identity, $identity);
   @override
   String toString() {
     return CustomSystemInstructionsMapper.ensureInitialized().stringifyValue(
@@ -298,16 +317,17 @@ mixin CustomSystemInstructionsMappable {
 extension CustomSystemInstructionsValueCopy<$R, $Out>
     on ObjectCopyWith<$R, CustomSystemInstructions, $Out> {
   CustomSystemInstructionsCopyWith<$R, CustomSystemInstructions, $Out>
-      get $asCustomSystemInstructions => $base.as(
-            (v, t, t2) =>
-                _CustomSystemInstructionsCopyWithImpl<$R, $Out>(v, t, t2),
-          );
+  get $asCustomSystemInstructions => $base.as(
+    (v, t, t2) => _CustomSystemInstructionsCopyWithImpl<$R, $Out>(v, t, t2),
+  );
 }
 
 abstract class CustomSystemInstructionsCopyWith<
-    $R,
-    $In extends CustomSystemInstructions,
-    $Out> implements SystemInstructionsCopyWith<$R, $In, $Out> {
+  $R,
+  $In extends CustomSystemInstructions,
+  $Out
+>
+    implements SystemInstructionsCopyWith<$R, $In, $Out> {
   @override
   $R call({String? text});
   CustomSystemInstructionsCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
@@ -333,8 +353,8 @@ class _CustomSystemInstructionsCopyWithImpl<$R, $Out>
 
   @override
   CustomSystemInstructionsCopyWith<$R2, CustomSystemInstructions, $Out2>
-      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
-          _CustomSystemInstructionsCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+      _CustomSystemInstructionsCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 class TemplatedSystemInstructionsMapper
@@ -364,11 +384,12 @@ class TemplatedSystemInstructionsMapper
   );
   static List<SystemInstructionSection> _$sections(
     TemplatedSystemInstructions v,
-  ) =>
-      v.sections;
-  static const Field<TemplatedSystemInstructions,
-          List<SystemInstructionSection>> _f$sections =
-      Field('sections', _$sections, opt: true);
+  ) => v.sections;
+  static const Field<
+    TemplatedSystemInstructions,
+    List<SystemInstructionSection>
+  >
+  _f$sections = Field('sections', _$sections, opt: true);
 
   @override
   final MappableFields<TemplatedSystemInstructions> fields = const {
@@ -407,22 +428,27 @@ mixin TemplatedSystemInstructionsMappable {
   String toJson() {
     return TemplatedSystemInstructionsMapper.ensureInitialized()
         .encodeJson<TemplatedSystemInstructions>(
-      this as TemplatedSystemInstructions,
-    );
+          this as TemplatedSystemInstructions,
+        );
   }
 
   Map<String, dynamic> toMap() {
     return TemplatedSystemInstructionsMapper.ensureInitialized()
         .encodeMap<TemplatedSystemInstructions>(
-      this as TemplatedSystemInstructions,
-    );
+          this as TemplatedSystemInstructions,
+        );
   }
 
-  TemplatedSystemInstructionsCopyWith<TemplatedSystemInstructions,
-          TemplatedSystemInstructions, TemplatedSystemInstructions>
-      get copyWith => _TemplatedSystemInstructionsCopyWithImpl<
-              TemplatedSystemInstructions, TemplatedSystemInstructions>(
-          this as TemplatedSystemInstructions, $identity, $identity);
+  TemplatedSystemInstructionsCopyWith<
+    TemplatedSystemInstructions,
+    TemplatedSystemInstructions,
+    TemplatedSystemInstructions
+  >
+  get copyWith =>
+      _TemplatedSystemInstructionsCopyWithImpl<
+        TemplatedSystemInstructions,
+        TemplatedSystemInstructions
+      >(this as TemplatedSystemInstructions, $identity, $identity);
   @override
   String toString() {
     return TemplatedSystemInstructionsMapper.ensureInitialized().stringifyValue(
@@ -449,21 +475,27 @@ mixin TemplatedSystemInstructionsMappable {
 extension TemplatedSystemInstructionsValueCopy<$R, $Out>
     on ObjectCopyWith<$R, TemplatedSystemInstructions, $Out> {
   TemplatedSystemInstructionsCopyWith<$R, TemplatedSystemInstructions, $Out>
-      get $asTemplatedSystemInstructions => $base.as(
-            (v, t, t2) =>
-                _TemplatedSystemInstructionsCopyWithImpl<$R, $Out>(v, t, t2),
-          );
+  get $asTemplatedSystemInstructions => $base.as(
+    (v, t, t2) => _TemplatedSystemInstructionsCopyWithImpl<$R, $Out>(v, t, t2),
+  );
 }
 
 abstract class TemplatedSystemInstructionsCopyWith<
-    $R,
-    $In extends TemplatedSystemInstructions,
-    $Out> implements SystemInstructionsCopyWith<$R, $In, $Out> {
+  $R,
+  $In extends TemplatedSystemInstructions,
+  $Out
+>
+    implements SystemInstructionsCopyWith<$R, $In, $Out> {
   ListCopyWith<
+    $R,
+    SystemInstructionSection,
+    SystemInstructionSectionCopyWith<
       $R,
       SystemInstructionSection,
-      SystemInstructionSectionCopyWith<$R, SystemInstructionSection,
-          SystemInstructionSection>> get sections;
+      SystemInstructionSection
+    >
+  >
+  get sections;
   @override
   $R call({String? identity, List<SystemInstructionSection>? sections});
   TemplatedSystemInstructionsCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
@@ -474,8 +506,11 @@ abstract class TemplatedSystemInstructionsCopyWith<
 class _TemplatedSystemInstructionsCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, TemplatedSystemInstructions, $Out>
     implements
-        TemplatedSystemInstructionsCopyWith<$R, TemplatedSystemInstructions,
-            $Out> {
+        TemplatedSystemInstructionsCopyWith<
+          $R,
+          TemplatedSystemInstructions,
+          $Out
+        > {
   _TemplatedSystemInstructionsCopyWithImpl(
     super.value,
     super.then,
@@ -487,21 +522,26 @@ class _TemplatedSystemInstructionsCopyWithImpl<$R, $Out>
       TemplatedSystemInstructionsMapper.ensureInitialized();
   @override
   ListCopyWith<
+    $R,
+    SystemInstructionSection,
+    SystemInstructionSectionCopyWith<
       $R,
       SystemInstructionSection,
-      SystemInstructionSectionCopyWith<$R, SystemInstructionSection,
-          SystemInstructionSection>> get sections => ListCopyWith(
-        $value.sections,
-        (v, t) => v.copyWith.$chain(t),
-        (v) => call(sections: v),
-      );
+      SystemInstructionSection
+    >
+  >
+  get sections => ListCopyWith(
+    $value.sections,
+    (v, t) => v.copyWith.$chain(t),
+    (v) => call(sections: v),
+  );
   @override
   $R call({Object? identity = $none, Object? sections = $none}) => $apply(
-        FieldCopyWithData({
-          if (identity != $none) #identity: identity,
-          if (sections != $none) #sections: sections,
-        }),
-      );
+    FieldCopyWithData({
+      if (identity != $none) #identity: identity,
+      if (sections != $none) #sections: sections,
+    }),
+  );
   @override
   TemplatedSystemInstructions $make(CopyWithData data) =>
       TemplatedSystemInstructions(
@@ -511,7 +551,7 @@ class _TemplatedSystemInstructionsCopyWithImpl<$R, $Out>
 
   @override
   TemplatedSystemInstructionsCopyWith<$R2, TemplatedSystemInstructions, $Out2>
-      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
-          _TemplatedSystemInstructionsCopyWithImpl<$R2, $Out2>(
-              $value, $cast, t);
+  $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+      _TemplatedSystemInstructionsCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
+

@@ -94,7 +94,7 @@ String _guessMimeType(String path) {
   return mime;
 }
 
-abstract class MediaContent {
+sealed class MediaContent {
   final String mimeType;
   final String description;
   final List<int> data;
