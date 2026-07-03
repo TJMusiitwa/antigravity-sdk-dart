@@ -44,6 +44,19 @@ class MockPostToolCallHook extends PostToolCallHook {
   }
 }
 
+class MockOnToolErrorHook extends OnToolErrorHook {
+  Exception? receivedError;
+  dynamic returnValue;
+
+  MockOnToolErrorHook({this.returnValue});
+
+  @override
+  Future<dynamic> run(HookContext context, Exception data) async {
+    receivedError = data;
+    return returnValue;
+  }
+}
+
 void main() {
   group('HookRouter', () {
     test('handles session start and end hooks', () async {
@@ -180,6 +193,29 @@ void main() {
       expect(r.title, equals('Google Home'));
       expect(r.summary, equals('Home of search engine'));
       expect(r.contentPath, equals('/tmp/google.html'));
+    });
+
+    test('handles tool error hook', () async {
+      final toolErrorHook = MockOnToolErrorHook();
+      final runner = HookRunner(onToolErrorHooks: [toolErrorHook]);
+      final sentEvents = <Map<String, dynamic>>[];
+      final router = HookRouter(runner, (evt) async {
+        sentEvents.add(evt);
+      });
+
+      await router.handle({
+        'request_id': 'req-7',
+        'type': 'LIFECYCLE_HOOK_ON_TOOL_ERROR',
+        'on_tool_error_args': {
+          'error': 'Failed to execute tool',
+        }
+      });
+
+      expect(toolErrorHook.receivedError, isNotNull);
+      expect(toolErrorHook.receivedError.toString(), contains('Failed to execute tool'));
+      expect(
+          sentEvents.last['call_hook_response']['request_id'], equals('req-7'));
+      expect(sentEvents.last['call_hook_response']['empty_result'], isNotNull);
     });
   });
 }

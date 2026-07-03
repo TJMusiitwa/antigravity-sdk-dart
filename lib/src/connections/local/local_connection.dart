@@ -928,10 +928,21 @@ class LocalConnection implements Connection {
         );
       }
 
-      // Post-tool-call hook
+      // Post-tool-call hook or error hook execution
       if (result.error == null) {
         final ctx = _hookRunner.createTurnContext();
         await _hookRunner.dispatchPostToolCall(ctx, result);
+      } else {
+        final ctx = _hookRunner.createTurnContext();
+        final exception = result.exception ?? Exception(result.error);
+        final recoveryVal = await _hookRunner.dispatchOnToolError(ctx, exception);
+        if (recoveryVal != null) {
+          result = ToolResult(
+            id: toolCall.id,
+            name: toolCall.name,
+            result: recoveryVal,
+          );
+        }
       }
 
       await sendToolResults([result]);

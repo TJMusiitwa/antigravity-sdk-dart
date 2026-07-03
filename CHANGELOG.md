@@ -1,5 +1,10 @@
 # 0.3.1
 
+* **Fix Tool Error Hook Dispatching**:
+  - Resolved a bug where `OnToolErrorHook` was never dispatched for either client-side custom tool failures or harness-side built-in tool failures.
+  - Implemented client-side tool error dispatching in `local_connection.dart` with support for recovery values.
+  - Added routing for `LIFECYCLE_HOOK_ON_TOOL_ERROR` and `ON_TOOL_ERROR` hook requests in `hook_router.dart` and covered it with a unit test.
+
 * **Dart 3 Modernization**:
   - Refactored core classes `Connection` and `ConnectionStrategy` to use Dart 3 `abstract interface class` modifiers.
   - Marked `MediaContent` as a `sealed class` to restrict subclass hierarchy and support compiler-level exhaustiveness checks.

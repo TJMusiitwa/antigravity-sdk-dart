@@ -181,6 +181,20 @@ class HookRouter {
         final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
         await _hookRunner.dispatchPostToolCall(turnCtx, toolResult);
         response['empty_result'] = {};
+      } else if (hookTypeStr == 'LIFECYCLE_HOOK_ON_TOOL_ERROR' ||
+          hookTypeStr == 'ON_TOOL_ERROR') {
+        var errorStr = 'Unknown tool error';
+        if (req.containsKey('on_tool_error_args') && req['on_tool_error_args'] is Map) {
+          final args = req['on_tool_error_args'] as Map;
+          errorStr = (args['error'] ?? args['errorMessage'] ?? 'Unknown tool error').toString();
+        } else if (req.containsKey('post_tool_args') && req['post_tool_args'] is Map) {
+          final args = req['post_tool_args'] as Map;
+          errorStr = (args['error'] ?? args['errorMessage'] ?? 'Unknown tool error').toString();
+        }
+
+        final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
+        await _hookRunner.dispatchOnToolError(turnCtx, Exception(errorStr));
+        response['empty_result'] = {};
       } else {
         _logger.warning('Unknown hook received: $hookTypeStr');
         response['empty_result'] = {};
