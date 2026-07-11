@@ -1,6 +1,6 @@
 # Antigravity SDK for Dart 🌌
 
-[![pub package](https://img.shields.io/badge/pub-v0.3.0-blue.svg)](https://pub.dev/)
+![Pub Version](https://img.shields.io/pub/v/antigravity?logo=dart&color=blue&link=https%3A%2F%2Fpub.dev%2Fpackages%2Fantigravity)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Publish to pub.dev](https://github.com/TJMusiitwa/antigravity-sdk-dart/actions/workflows/publish.yml/badge.svg)](https://github.com/TJMusiitwa/antigravity-sdk-dart/actions/workflows/publish.yml)
 
@@ -27,6 +27,9 @@ dart run example/getting_started/hello_world.dart
 
 > [!NOTE]
 > **Zero Configuration:** You do *not* need to manually install the Python SDK or download the orchestration harness binary. On the first run, the SDK will automatically detect your platform (OS and CPU architecture), download the official precompiled `localharness` binary from PyPI, extract it, and cache it locally in `~/.antigravity/bin/`.
+
+> [!IMPORTANT]
+> **LiteRT local Gemma execution:** Running local Gemma models via LiteRT (`LiteRTAgentConfig` / `LiteRTConnectionStrategy`) requires `python3` and the `litert-lm-api` library installed in the user's host environment (`pip install litert-lm-api`).
 
 ---
 
@@ -178,13 +181,14 @@ The [`example/`](example/) directory contains high-fidelity ports of every scrip
 | `example/getting_started/structured_output.dart`| Forces schema-conforming JSON structure responses |
 | `example/getting_started/observability.dart` | Audits token counts and internal metrics |
 | `example/getting_started/autonomous_shell.dart` | Provides an autonomous shell agent run |
-| `example/getting_started/multimodal.dart` | Ingests mixed text, images, and document attachments |
+| `example/getting_started/multimodal.dart` | Ingests mixed text, images, and document attachments; returns media from tool outputs |
 | `example/getting_started/human_in_the_loop.dart`| Implements stdin-based interactive confirmation |
 | `example/getting_started/agent_skills.dart`      | Loads and queries local agent skills |
 | `example/getting_started/app_data_dir_override.dart` | Overrides the local application data directory |
 | `example/getting_started/error_handler.dart`     | Catches and resolves tool/agent errors using hooks |
 | `example/getting_started/persona_config.dart`    | Configures Custom and Templated system instructions |
 | `example/getting_started/subagents.dart`         | Spawns child subagents for task delegation |
+| `example/getting_started/cancellation.dart`      | Cancels an in-flight turn and catches cancellation errors |
 
 ### Deep Dives
 | File | Focus Concept |

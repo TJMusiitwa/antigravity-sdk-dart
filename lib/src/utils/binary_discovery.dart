@@ -80,7 +80,25 @@ class BinaryDiscovery {
           final fullName = Platform.isWindows ? '$binName.exe' : binName;
           final file = File(p.join(globalBinDir.path, fullName));
           if (file.existsSync()) {
-            return file.absolute.path;
+            final versionFile = File(p.join(globalBinDir.path, '.version'));
+            bool outOfDate = false;
+            if (versionFile.existsSync()) {
+              try {
+                final cachedVersion = versionFile.readAsStringSync().trim();
+                if (_isVersionOlder(
+                    cachedVersion, HarnessDownloader.defaultVersion)) {
+                  outOfDate = true;
+                }
+              } catch (_) {
+                outOfDate = true;
+              }
+            } else {
+              outOfDate = true;
+            }
+
+            if (!outOfDate) {
+              return file.absolute.path;
+            }
           }
         }
       }
@@ -110,5 +128,21 @@ class BinaryDiscovery {
       'Please install the official Google Antigravity desktop/CLI environment before running this Dart package.\n'
       'For setup instructions, visit https://github.com/google-antigravity/antigravity-sdk-python or check your local distribution documentation.',
     );
+  }
+
+  static bool _isVersionOlder(String current, String target) {
+    try {
+      final curParts = current.split('.').map(int.parse).toList();
+      final tarParts = target.split('.').map(int.parse).toList();
+      for (var i = 0; i < 3; i++) {
+        final curVal = i < curParts.length ? curParts[i] : 0;
+        final tarVal = i < tarParts.length ? tarParts[i] : 0;
+        if (curVal < tarVal) return true;
+        if (curVal > tarVal) return false;
+      }
+    } catch (_) {
+      return true;
+    }
+    return false;
   }
 }

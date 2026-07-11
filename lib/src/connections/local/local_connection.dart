@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:logging/logging.dart';
+import 'package:path/path.dart' as p;
 import 'package:web_socket_channel/status.dart' as status;
 
 import '../../hooks/hooks.dart';
@@ -12,6 +13,8 @@ import '../../types.dart';
 import '../../utils/binary_discovery.dart';
 import '../connection.dart';
 import 'hook_router.dart';
+import 'litert_server_python.dart';
+import 'local_connection_config.dart';
 import 'localharness_proto.dart';
 
 final _logger = Logger('antigravity.connection.local');
@@ -76,9 +79,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     return _connection!;
   }
 
-  @override
-  Future<void> start() async {
-    // 1. Validate all model endpoints
+  void _validateConnection() {
     if (_models != null) {
       for (final m in _models!) {
         if (m.endpoint != null) {
@@ -94,6 +95,12 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         }
       }
     }
+  }
+
+  @override
+  Future<void> start() async {
+    // 1. Validate all model endpoints
+    _validateConnection();
 
     // 2. Discover the binary path dynamically
     final resolvedBinaryPath = await BinaryDiscovery.discover(
@@ -109,7 +116,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     final inputConfigBytes = LocalHarnessProto.encodeInputConfig(
       storageDirectory: _saveDir ?? '',
       clientLanguage: 'dart',
-      clientVersion: '0.3.0',
+      clientVersion: '0.4.0',
       clientLanguageVersion: Platform.version,
     );
     final packedMessage = LocalHarnessProto.packMessage(inputConfigBytes);
@@ -260,6 +267,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     _ws = null;
     _process = null;
   }
+
+  Map<String, dynamic> buildHarnessConfigForTest() => _buildHarnessConfig();
 
   Map<String, dynamic> _buildHarnessConfig() {
     // Generate tool schemas from dynamic functions registered in L2
@@ -935,7 +944,8 @@ class LocalConnection implements Connection {
       } else {
         final ctx = _hookRunner.createTurnContext();
         final exception = result.exception ?? Exception(result.error);
-        final recoveryVal = await _hookRunner.dispatchOnToolError(ctx, exception);
+        final recoveryVal =
+            await _hookRunner.dispatchOnToolError(ctx, exception);
         if (recoveryVal != null) {
           result = ToolResult(
             id: toolCall.id,
@@ -1017,14 +1027,36 @@ class LocalConnection implements Connection {
   @override
   Future<void> sendToolResults(List<ToolResult> results) async {
     for (final result in results) {
-      final responseJson = result.error != null
-          ? {'error': result.error}
-          : {'result': result.result};
+      dynamic responseJson;
+      List<Map<String, dynamic>>? supplementalMedia;
+
+      if (result.error != null) {
+        responseJson = {'error': result.error};
+      } else {
+        final extracted = extractMediaFromResult(result.result);
+        var cleanedValue = extracted.cleanedValue;
+        if (extracted.media.isNotEmpty && cleanedValue == null) {
+          cleanedValue =
+              'Returned ${extracted.media.length} media attachment(s).';
+        }
+        responseJson = {'result': cleanedValue};
+        if (extracted.media.isNotEmpty) {
+          supplementalMedia = extracted.media.map((item) {
+            return {
+              'mime_type': item.mimeType,
+              'data': base64Encode(item.data),
+              'description': item.description,
+            };
+          }).toList();
+        }
+      }
 
       final response = {
         'tool_response': {
           'id': result.id ?? '',
           'response_json': jsonEncode(responseJson),
+          if (supplementalMedia != null)
+            'supplemental_media': supplementalMedia,
         },
       };
 
@@ -1190,4 +1222,267 @@ dynamic extractToolResult(Map<String, dynamic> stepUpdate) {
     }
   }
   return null;
+}
+
+class ExtractedMedia {
+  final dynamic cleanedValue;
+  final List<MediaContent> media;
+  ExtractedMedia(this.cleanedValue, this.media);
+}
+
+ExtractedMedia extractMediaFromResult(dynamic value) {
+  if (value is MediaContent) {
+    return ExtractedMedia(null, [value]);
+  }
+  if (value is List) {
+    final cleanedList = [];
+    final List<MediaContent> listMedia = [];
+    for (final item in value) {
+      final res = extractMediaFromResult(item);
+      listMedia.addAll(res.media);
+      if (res.cleanedValue != null) {
+        cleanedList.add(res.cleanedValue);
+      }
+    }
+    return ExtractedMedia(cleanedList.isEmpty ? null : cleanedList, listMedia);
+  }
+  if (value is Map) {
+    final cleanedMap = <dynamic, dynamic>{};
+    final List<MediaContent> mapMedia = [];
+    for (final entry in value.entries) {
+      final res = extractMediaFromResult(entry.value);
+      mapMedia.addAll(res.media);
+      if (res.cleanedValue != null) {
+        cleanedMap[entry.key] = res.cleanedValue;
+      }
+    }
+    return ExtractedMedia(cleanedMap.isEmpty ? null : cleanedMap, mapMedia);
+  }
+  return ExtractedMedia(value, const []);
+}
+
+/// Strategy for establishing connection to an external local OpenAI completions API (Ollama/LM Studio).
+class LocalOpenAIConnectionStrategy extends LocalConnectionStrategy {
+  String baseUrl;
+  final String modelName;
+
+  LocalOpenAIConnectionStrategy({
+    required this.baseUrl,
+    required this.modelName,
+    super.binaryPath,
+    required super.toolRunner,
+    required super.hookRunner,
+    super.systemInstructions,
+    required super.capabilitiesConfig,
+    super.conversationId,
+    super.saveDir,
+    required super.workspaces,
+    super.appDataDir,
+    required super.skillsPaths,
+    super.mcpServers,
+    super.subagents,
+  });
+
+  @override
+  void _validateConnection() {
+    if (baseUrl.isEmpty) {
+      throw AntigravityValidationException(
+        "LocalOpenAIConnectionStrategy requires a non-empty 'baseUrl'.",
+      );
+    }
+  }
+
+  @override
+  Map<String, dynamic> _buildHarnessConfig() {
+    final harnessConfig = super._buildHarnessConfig();
+    final modelCfg = {
+      'name': modelName,
+      'types': ['MODEL_TYPE_TEXT'],
+      'gemma_endpoint': {
+        'base_url': baseUrl,
+      },
+    };
+    final models = harnessConfig['models'] as List<dynamic>? ?? [];
+    models.add(modelCfg);
+    harnessConfig['models'] = models;
+    return harnessConfig;
+  }
+}
+
+/// Strategy for establishing connection to a local LiteRT loopback API server.
+class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
+  final String modelPath;
+  final LiteRTBackend backend;
+  final bool enableSpeculativeDecoding;
+  final String? cacheDir;
+  final LiteRTBackend? audioBackend;
+  final LiteRTBackend? visionBackend;
+  final int port;
+  final bool downloadIfMissing;
+  final int? maxContextTokens;
+  Process? _serverProcess;
+
+  LiteRTConnectionStrategy({
+    required this.modelPath,
+    this.backend = LiteRTBackend.gpu,
+    this.enableSpeculativeDecoding = false,
+    this.cacheDir,
+    this.audioBackend,
+    this.visionBackend,
+    this.port = 0,
+    this.downloadIfMissing = false,
+    this.maxContextTokens,
+    super.binaryPath,
+    required super.toolRunner,
+    required super.hookRunner,
+    super.systemInstructions,
+    required super.capabilitiesConfig,
+    super.conversationId,
+    super.saveDir,
+    required super.workspaces,
+    super.appDataDir,
+    required super.skillsPaths,
+    super.mcpServers,
+    super.subagents,
+  }) : super(
+          baseUrl: '',
+          modelName: p.basename(modelPath),
+        );
+
+  @override
+  void _validateConnection() {
+    if (!File(modelPath).existsSync()) {
+      throw AntigravityValidationException(
+        "LiteRT model path does not exist: $modelPath",
+      );
+    }
+  }
+
+  @override
+  Future<void> start() async {
+    _validateConnection();
+
+    // 1. Prepare App Data Dir and write the LiteRT loopback server script
+    final dir = Directory(_appDataDir ?? defaultAppDataDir);
+    if (!dir.existsSync()) {
+      dir.createSync(recursive: true);
+    }
+    final scriptFile =
+        File('${dir.path}${Platform.pathSeparator}litert_server.py');
+    scriptFile.writeAsStringSync(litertServerPythonScript);
+
+    // 2. Start the LiteRT OpenAI HTTP server
+    final args = [
+      scriptFile.path,
+      '--model_path',
+      modelPath,
+      '--backend',
+      backend.name,
+      if (enableSpeculativeDecoding) '--enable_speculative_decoding',
+      if (cacheDir != null) ...['--cache_dir', cacheDir!],
+      if (audioBackend != null) ...['--audio_backend', audioBackend!.name],
+      if (visionBackend != null) ...['--vision_backend', visionBackend!.name],
+      '--port',
+      port.toString(),
+      if (maxContextTokens != null) ...[
+        '--max_context_tokens',
+        maxContextTokens!.toString()
+      ],
+    ];
+
+    _logger.info('Starting LiteRT OpenAI server: python3 ${args.join(' ')}');
+    _serverProcess = await Process.start('python3', args);
+
+    final portCompleter = Completer<int>();
+    final portRegex = RegExp(r'^LITERT_SERVER_PORT:(\d+)$');
+
+    _serverProcess!.stdout
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
+      _logger.fine('[LiteRT Server Stdout] $line');
+      final match = portRegex.firstMatch(line);
+      if (match != null && !portCompleter.isCompleted) {
+        portCompleter.complete(int.parse(match.group(1)!));
+      }
+    });
+
+    _serverProcess!.stderr
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
+      _logger.warning('[LiteRT Server Stderr] $line');
+    });
+
+    int actualPort;
+    try {
+      actualPort =
+          await portCompleter.future.timeout(const Duration(seconds: 15));
+    } catch (e) {
+      _serverProcess?.kill();
+      throw Exception(
+          'Failed to receive port from LiteRT server process. Error: $e');
+    }
+
+    final litertBaseUrl = 'http://127.0.0.1:$actualPort';
+    _logger
+        .info('LiteRT Server started on port $actualPort. URL: $litertBaseUrl');
+
+    // 3. Health Check loop
+    final client = HttpClient();
+    bool healthOk = false;
+    for (var i = 0; i < 60; i++) {
+      try {
+        final request =
+            await client.getUrl(Uri.parse('$litertBaseUrl/v1/models'));
+        final response = await request.close();
+        if (response.statusCode == 200) {
+          healthOk = true;
+          break;
+        }
+      } catch (_) {}
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+
+    if (!healthOk) {
+      _serverProcess?.kill();
+      throw Exception('LiteRT loopback HTTP endpoint failed to respond.');
+    }
+
+    // 4. Warm-up request
+    try {
+      final request =
+          await client.postUrl(Uri.parse('$litertBaseUrl/v1/chat/completions'));
+      request.headers.contentType = ContentType.json;
+      request.write(jsonEncode({
+        'model': modelName,
+        'messages': [
+          {'role': 'user', 'content': 'Hello'}
+        ],
+        'stream': false,
+      }));
+      final response =
+          await request.close().timeout(const Duration(seconds: 10));
+      await response.drain();
+    } catch (e) {
+      _logger.warning('LiteRT warm-up request timed out or failed: $e');
+    }
+    client.close();
+
+    baseUrl = litertBaseUrl;
+
+    // 5. Connect to local Go localharness subprocess
+    await super.start();
+  }
+
+  @override
+  Future<void> stop() async {
+    try {
+      await super.stop();
+    } finally {
+      _logger.info('Stopping LiteRT server process...');
+      _serverProcess?.kill();
+      _serverProcess = null;
+    }
+  }
 }

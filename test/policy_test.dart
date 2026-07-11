@@ -654,5 +654,49 @@ void main() {
       final result = await hook.run(ctx, ToolCall(name: 'mcp_unknown_calc'));
       expect(result.allow, isTrue); // default open since no policy matches
     });
+
+    test(
+      'explicit ToolCall.serverName is used over legacy mcp_ prefix parsing',
+      () async {
+        final policies = [
+          deny(mcpConfig, mcpTools: ['calc']), // math/calc -> deny
+          allow('*'),
+        ];
+        final hook = enforce(policies, mcpServers: [mcpConfig]);
+        final ctx = HookContext();
+
+        // Tool name does NOT follow the legacy 'mcp_<server>_<tool>' convention,
+        // so only the explicit serverName field can resolve it to math/calc.
+        final result = await hook.run(
+          ctx,
+          ToolCall(name: 'calc', serverName: 'math'),
+        );
+        expect(result.allow, isFalse);
+      },
+    );
+
+    test(
+      'explicit serverName short-circuits legacy mcp_ prefix parsing entirely',
+      () async {
+        // Name intentionally looks like the legacy 'mcp_<server>_<tool>' format
+        // for a DIFFERENT server than the one in the explicit serverName field.
+        // If the legacy parser were consulted, this would resolve to
+        // 'math/calc' (deny); the explicit-serverName branch instead resolves
+        // it to 'other/mcp_math_calc' (allow), proving serverName takes
+        // priority and the legacy path is skipped, not merged.
+        final policies = [
+          allow('other/mcp_math_calc'),
+          deny(mcpConfig, mcpTools: ['calc']), // math/calc -> deny
+        ];
+        final hook = enforce(policies, mcpServers: [mcpConfig]);
+        final ctx = HookContext();
+
+        final result = await hook.run(
+          ctx,
+          ToolCall(name: 'mcp_math_calc', serverName: 'other'),
+        );
+        expect(result.allow, isTrue);
+      },
+    );
   });
 }

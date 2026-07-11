@@ -324,6 +324,76 @@ void main() {
       expect(call.id, equals('traj-456:2'));
       expect(call.args['command'], equals('git status'));
     });
+
+    test('parses mcp_tool field with string-encoded arguments_json', () {
+      final protoJson = {
+        'trajectory_id': 'traj-789',
+        'step_index': 3,
+        'mcp_tool': {
+          'server_name': 'math',
+          'tool_name': 'calc',
+          'arguments_json': '{"expression":"2+2"}',
+        },
+      };
+      final step = Step.fromMap(protoJson);
+      expect(step.type, equals(StepType.toolCall));
+      expect(step.toolCalls.length, equals(1));
+      final call = step.toolCalls[0];
+      expect(call.name, equals('calc'));
+      expect(call.serverName, equals('math'));
+      expect(call.id, equals('traj-789:3'));
+      expect(call.args['expression'], equals('2+2'));
+    });
+
+    test('parses mcp_tool field with a Map arguments_json payload', () {
+      final protoJson = {
+        'mcp_tool': {
+          'serverName': 'math',
+          'toolName': 'multiply',
+          'argumentsJson': {'a': 3, 'b': 4},
+        },
+      };
+      final step = Step.fromMap(protoJson);
+      final call = step.toolCalls[0];
+      expect(call.name, equals('multiply'));
+      expect(call.serverName, equals('math'));
+      expect(call.args['a'], equals(3));
+      expect(call.args['b'], equals(4));
+    });
+
+    test('builtin tool field takes precedence over mcp_tool when both present',
+        () {
+      final protoJson = {
+        'view_file': {'path': '/tmp/a.txt'},
+        'mcp_tool': {
+          'server_name': 'math',
+          'tool_name': 'calc',
+          'arguments_json': '{}',
+        },
+      };
+      final step = Step.fromMap(protoJson);
+      expect(step.toolCalls.length, equals(1));
+      final call = step.toolCalls[0];
+      expect(call.name, equals('view_file'));
+      expect(call.serverName, isNull);
+    });
+
+    test(
+        'mcp_tool with malformed arguments_json logs and falls back to empty args',
+        () {
+      final protoJson = {
+        'mcp_tool': {
+          'server_name': 'math',
+          'tool_name': 'calc',
+          'arguments_json': 'not valid json',
+        },
+      };
+      final step = Step.fromMap(protoJson);
+      final call = step.toolCalls[0];
+      expect(call.name, equals('calc'));
+      expect(call.serverName, equals('math'));
+      expect(call.args, isEmpty);
+    });
   });
 
   group('UsageMetadata.fromMap()', () {
