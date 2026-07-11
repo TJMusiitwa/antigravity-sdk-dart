@@ -1,3 +1,12 @@
+# 0.4.1
+
+* **Bug Fixes & Adjustments**:
+  - Restored default workspaces (current working directory) and capabilities configuration on `BaseLocalAgentConfig` to prevent silent sandboxing regressions.
+  - Fixed client handshake protocol to announce the correct client version instead of a stale one.
+  - Added missing `read_url_content` tool field mapping in `Step.fromMap` parser.
+  - Resolved `HttpClient` socket/connection leak in LiteRT loopback server health checks.
+  - Documented public configuration fields on `LocalOpenAIAgentConfig` and `LiteRTAgentConfig`.
+
 # 0.4.0
 
 * **Local Inference & OpenAI Endpoint Support**:
@@ -12,11 +21,6 @@
 * **Automated Binary Discovery Updates**:
   - Added version checking logic to verify if the cached `localharness` binary is out of date.
   - Automatically triggers a re-download/upgrade if the cached binary version is older than the SDK's default version (`0.1.6`).
-* **Bug Fixes & Adjustments**:
-  - Restored default workspaces (current working directory) and capabilities configuration on `BaseLocalAgentConfig` to prevent silent sandboxing regressions.
-  - Fixed client handshake protocol to announce clientVersion `0.4.0` instead of stale `0.3.0`.
-  - Added missing `read_url_content` tool field mapping in `Step.fromMap` parser.
-  - Resolved `HttpClient` socket/connection leak in LiteRT loopback server health checks.
 
 
 # 0.3.1

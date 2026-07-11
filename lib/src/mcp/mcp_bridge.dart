@@ -71,7 +71,7 @@ class McpBridge {
 
   /// Connects to an MCP server based on its configuration type.
   Future<void> connect(McpServerConfig serverCfg) async {
-    final impl = Implementation(name: 'antigravity-dart-sdk', version: '0.4.0');
+    final impl = Implementation(name: 'antigravity-dart-sdk', version: '0.4.1');
     final client =
         _clientFactory != null ? _clientFactory!(impl) : McpClient(impl);
 

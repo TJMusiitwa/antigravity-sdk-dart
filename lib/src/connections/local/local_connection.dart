@@ -116,7 +116,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     final inputConfigBytes = LocalHarnessProto.encodeInputConfig(
       storageDirectory: _saveDir ?? '',
       clientLanguage: 'dart',
-      clientVersion: '0.4.0',
+      clientVersion: '0.4.1',
       clientLanguageVersion: Platform.version,
     );
     final packedMessage = LocalHarnessProto.packMessage(inputConfigBytes);
