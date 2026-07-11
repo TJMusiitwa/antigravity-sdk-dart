@@ -1,3 +1,18 @@
+# 0.4.0
+
+* **Local Inference & OpenAI Endpoint Support**:
+  - Added support for local Gemma execution using LiteRT via `LiteRTAgentConfig` and `LiteRTConnectionStrategy` (which manages a python loopback HTTP server).
+  - Added support for any OpenAI-compatible completions API (e.g. Ollama, LM Studio) via `LocalOpenAIAgentConfig` and `LocalOpenAIConnectionStrategy`.
+* **Multimodal Tool Outputs**:
+  - Enabled custom tools to return media assets (images, audio, video, documents) directly via a single tool response without needing separate follow-up turns. Media is extracted and sent as `supplemental_media` in `tool_response`.
+* **Model Context Protocol (MCP)**:
+  - Decoupled tool calls and safety policy engines from legacy `mcp_` string prefix synthesis, utilizing explicit `serverName` attributes in tool evaluation.
+* **Alias Deserialization Support**:
+  - Handled `results`/`entries` alias in `ListDirectoryResult` and `output`/`combined_output` alias in `RunCommandResult`.
+* **Automated Binary Discovery Updates**:
+  - Added version checking logic to verify if the cached `localharness` binary is out of date.
+  - Automatically triggers a re-download/upgrade if the cached binary version is older than the SDK's default version (`0.1.6`).
+
 # 0.3.1
 
 * **Fix Tool Error Hook Dispatching**:

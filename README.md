@@ -1,6 +1,6 @@
 # Antigravity SDK for Dart 🌌
 
-[![pub package](https://img.shields.io/badge/pub-v0.3.0-blue.svg)](https://pub.dev/)
+![Pub Version](https://img.shields.io/pub/v/antigravity?logo=dart&color=blue&link=https%3A%2F%2Fpub.dev%2Fpackages%2Fantigravity)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Publish to pub.dev](https://github.com/TJMusiitwa/antigravity-sdk-dart/actions/workflows/publish.yml/badge.svg)](https://github.com/TJMusiitwa/antigravity-sdk-dart/actions/workflows/publish.yml)
 
@@ -27,6 +27,9 @@ dart run example/getting_started/hello_world.dart
 
 > [!NOTE]
 > **Zero Configuration:** You do *not* need to manually install the Python SDK or download the orchestration harness binary. On the first run, the SDK will automatically detect your platform (OS and CPU architecture), download the official precompiled `localharness` binary from PyPI, extract it, and cache it locally in `~/.antigravity/bin/`.
+
+> [!IMPORTANT]
+> **LiteRT local Gemma execution:** Running local Gemma models via LiteRT (`LiteRTAgentConfig` / `LiteRTConnectionStrategy`) requires `python3` and the `litert-lm-api` library installed in the user's host environment (`pip install litert-lm-api`).
 
 ---
 

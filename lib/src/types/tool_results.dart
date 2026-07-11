@@ -123,8 +123,11 @@ class RunCommandResult {
 
   factory RunCommandResult.fromMap(Map<String, dynamic> map) {
     return RunCommandResult(
-      output:
-          (map['combined_output'] ?? map['combinedOutput'] ?? '').toString(),
+      output: (map['output'] ??
+              map['combined_output'] ??
+              map['combinedOutput'] ??
+              '')
+          .toString(),
     );
   }
 
@@ -168,7 +171,7 @@ class ListDirectoryResult {
   const ListDirectoryResult({this.entries = const []});
 
   factory ListDirectoryResult.fromMap(Map<String, dynamic> map) {
-    final results = map['results'] as List?;
+    final results = (map['results'] ?? map['entries']) as List?;
     if (results == null) {
       return const ListDirectoryResult();
     }

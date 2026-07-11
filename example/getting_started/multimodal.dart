@@ -112,4 +112,44 @@ Future<void> main() async {
       await agent.stop();
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Multimodal Tool Output: a tool returns an image
+  // ---------------------------------------------------------------------------
+  print('  --- Multimodal Tool Output: a tool returns an image ---');
+  {
+    final loadExampleImage = Tool(
+      name: 'load_example_image',
+      description: 'Loads the example image so you can see it.',
+      schema: const {
+        'type': 'object',
+        'properties': {},
+      },
+      handler: (args, ctx) async {
+        return [
+          'Here is the requested image.',
+          Image(
+            mimeType: 'image/png',
+            data: File(imagePath).readAsBytesSync(),
+            description: 'example image',
+          )
+        ];
+      },
+    );
+
+    final config = LocalAgentConfig(
+      tools: [loadExampleImage],
+    );
+    final agent = Agent(config);
+    await agent.start();
+    try {
+      const prompt =
+          'Call load_example_image, then describe what is in the image.';
+      print('  User: $prompt');
+      final response = await agent.chat(prompt);
+      print('  Agent: ${await response.text()}\n');
+    } finally {
+      await agent.stop();
+    }
+  }
 }

@@ -212,7 +212,8 @@ void main() {
       });
 
       expect(toolErrorHook.receivedError, isNotNull);
-      expect(toolErrorHook.receivedError.toString(), contains('Failed to execute tool'));
+      expect(toolErrorHook.receivedError.toString(),
+          contains('Failed to execute tool'));
       expect(
           sentEvents.last['call_hook_response']['request_id'], equals('req-7'));
       expect(sentEvents.last['call_hook_response']['empty_result'], isNotNull);

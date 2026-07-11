@@ -11,7 +11,7 @@ class HarnessDownloader {
   static final Logger _logger = Logger('HarnessDownloader');
 
   /// Fallback version of google-antigravity to query if PyPI's latest resolution fails.
-  static const String defaultVersion = '0.1.4';
+  static const String defaultVersion = '0.1.6';
 
   /// Detects the current CPU architecture.
   static Future<String> getProcessorArchitecture() async {
@@ -208,6 +208,14 @@ class HarnessDownloader {
           installDir.createSync(recursive: true);
         }
         await sourceFile.copy(targetBinaryFile.path);
+
+        // Write version information file
+        try {
+          final versionFile = File(p.join(installDir.path, '.version'));
+          await versionFile.writeAsString(version);
+        } catch (e) {
+          _logger.warning('Failed to write .version metadata file: $e');
+        }
 
         if (!Platform.isWindows) {
           final chmodResult = await Process.run('chmod', [

@@ -430,15 +430,20 @@ class PolicyDecideHook extends PreToolCallDecideHook {
   }
 
   Future<HookResult?> _evaluatePolicy(Policy p, ToolCall toolCall) async {
-    final mcpInfo = _parseMcpTool(toolCall.name);
     final String callTarget;
     final bool isMcp;
-    if (mcpInfo != null) {
-      callTarget = '${mcpInfo.key}/${mcpInfo.value}';
+    if (toolCall.serverName != null && toolCall.serverName!.isNotEmpty) {
+      callTarget = '${toolCall.serverName}/${toolCall.name}';
       isMcp = true;
     } else {
-      callTarget = toolCall.name;
-      isMcp = false;
+      final legacyMcp = _parseMcpTool(toolCall.name);
+      if (legacyMcp != null) {
+        callTarget = '${legacyMcp.key}/${legacyMcp.value}';
+        isMcp = true;
+      } else {
+        callTarget = toolCall.name;
+        isMcp = false;
+      }
     }
 
     if (!_matchesTarget(p.tool, callTarget, isMcp)) {

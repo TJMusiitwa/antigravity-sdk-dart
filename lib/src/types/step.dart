@@ -275,6 +275,11 @@ class Step with StepMappable {
     };
 
     final toolCalls = <Map<String, dynamic>>[];
+    String? activeToolName;
+    String? activeServerName;
+    Map<String, dynamic> activeToolArgs = {};
+
+    // Parse builtin/harness tools
     for (final entry in toolFields.entries) {
       final protoField = entry.key;
       final protoFieldCamel = _toCamelCase(protoField);
@@ -285,39 +290,73 @@ class Step with StepMappable {
           : (updatedMap.containsKey(protoFieldCamel) ? protoFieldCamel : null);
 
       if (keyToUse != null && updatedMap[keyToUse] is Map) {
-        final rawArgs = Map<String, dynamic>.from(updatedMap[keyToUse] as Map);
-
-        // Normalize file paths
-        String? canonicalPath;
-        const pathKeys = ['path', 'file_path', 'TargetFile', 'directory_path'];
-        for (final pathKey in pathKeys) {
-          final snakePathKey = _toSnakeCase(pathKey);
-          final keyToCheck = rawArgs.containsKey(pathKey)
-              ? pathKey
-              : (rawArgs.containsKey(snakePathKey) ? snakePathKey : null);
-          if (keyToCheck != null && rawArgs[keyToCheck] is String) {
-            final normalized = _normalizeWirePath(
-              rawArgs[keyToCheck] as String,
-            );
-            rawArgs[keyToCheck] = normalized;
-            canonicalPath = normalized;
-          }
-        }
-
-        final trajId = updatedMap['trajectory_id'] ?? '';
-        final stepIdx = updatedMap['step_index'] ?? 0;
-        final callId =
-            trajId.toString().isNotEmpty ? '$trajId:$stepIdx' : '$stepIdx';
-
-        toolCalls.add({
-          'id': callId,
-          'name': toolName,
-          'arguments_json': rawArgs,
-          'arguments': rawArgs,
-          'canonical_path': canonicalPath,
-        });
+        activeToolName = toolName;
+        activeToolArgs = Map<String, dynamic>.from(updatedMap[keyToUse] as Map);
+        break; // A step has at most one tool call in the Go-harness
       }
     }
+
+    // Parse MCP tools if activeToolName wasn't set by a builtin
+    if (activeToolName == null) {
+      final mcpKey = updatedMap.containsKey('mcp_tool')
+          ? 'mcp_tool'
+          : (updatedMap.containsKey('mcpTool') ? 'mcpTool' : null);
+
+      if (mcpKey != null && updatedMap[mcpKey] is Map) {
+        final mcpDict = Map<String, dynamic>.from(updatedMap[mcpKey] as Map);
+        activeServerName =
+            (mcpDict['server_name'] ?? mcpDict['serverName'] ?? '').toString();
+        activeToolName =
+            (mcpDict['tool_name'] ?? mcpDict['toolName'] ?? '').toString();
+        final argsJson =
+            mcpDict['arguments_json'] ?? mcpDict['argumentsJson'] ?? '{}';
+        try {
+          if (argsJson is String) {
+            activeToolArgs =
+                Map<String, dynamic>.from(jsonDecode(argsJson) as Map);
+          } else if (argsJson is Map) {
+            activeToolArgs = Map<String, dynamic>.from(argsJson);
+          }
+        } catch (e) {
+          _logger.warning('Failed to parse MCP arguments_json: $e');
+        }
+      }
+    }
+
+    if (activeToolName != null) {
+      // Normalize file paths
+      String? canonicalPath;
+      const pathKeys = ['path', 'file_path', 'TargetFile', 'directory_path'];
+      for (final pathKey in pathKeys) {
+        final snakePathKey = _toSnakeCase(pathKey);
+        final keyToCheck = activeToolArgs.containsKey(pathKey)
+            ? pathKey
+            : (activeToolArgs.containsKey(snakePathKey) ? snakePathKey : null);
+        if (keyToCheck != null && activeToolArgs[keyToCheck] is String) {
+          final normalized = _normalizeWirePath(
+            activeToolArgs[keyToCheck] as String,
+          );
+          activeToolArgs[keyToCheck] = normalized;
+          canonicalPath = normalized;
+        }
+      }
+
+      final trajId = updatedMap['trajectory_id'] ?? '';
+      final stepIdx = updatedMap['step_index'] ?? 0;
+      final callId =
+          trajId.toString().isNotEmpty ? '$trajId:$stepIdx' : '$stepIdx';
+
+      toolCalls.add({
+        'id': callId,
+        'name': activeToolName,
+        'arguments_json': activeToolArgs,
+        'arguments': activeToolArgs,
+        'canonical_path': canonicalPath,
+        if (activeServerName != null && activeServerName.isNotEmpty)
+          'server_name': activeServerName,
+      });
+    }
+
     if (toolCalls.isNotEmpty) {
       updatedMap['tool_calls'] = toolCalls;
     }

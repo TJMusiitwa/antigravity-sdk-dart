@@ -14,11 +14,15 @@ class ToolCall with ToolCallMappable {
   @MappableField(key: 'canonical_path')
   final String? canonicalPath;
 
+  @MappableField(key: 'server_name')
+  final String? serverName;
+
   ToolCall({
     this.name = '',
     Map<String, dynamic>? args,
     this.id,
     this.canonicalPath,
+    this.serverName,
   }) : args = args ?? {};
 
   factory ToolCall.fromMap(Map<String, dynamic> map) {

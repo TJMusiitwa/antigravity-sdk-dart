@@ -148,4 +148,53 @@ void main() {
       expect(ex, isA<Exception>());
     });
   });
+
+  group('BinaryDiscovery – version check and auto-update', () {
+    late Directory tempHome;
+
+    setUp(() {
+      tempHome = Directory.systemTemp.createTempSync('agy_test_home_');
+      BinaryDiscovery.environmentOverride = {
+        'HOME': tempHome.path,
+        'PATH': '',
+      };
+    });
+
+    tearDown(() {
+      BinaryDiscovery.environmentOverride = null;
+      if (tempHome.existsSync()) tempHome.deleteSync(recursive: true);
+    });
+
+    test(
+        're-downloads binary if cached binary is present but has an older version',
+        () async {
+      final binDir = Directory('${tempHome.path}/.antigravity/bin')
+        ..createSync(recursive: true);
+      // Create localharness file
+      File('${binDir.path}/localharness')
+          .writeAsStringSync('old_binary_content');
+      // Write an old version file (0.1.0)
+      File('${binDir.path}/.version').writeAsStringSync('0.1.0');
+
+      // We expect it to try to auto-download because version is older than defaultVersion (0.1.6).
+      // Since autoDownload is false, it will fail and throw AntigravityBinaryNotFoundException.
+      expect(
+        BinaryDiscovery.discover(autoDownload: false),
+        throwsA(isA<AntigravityBinaryNotFoundException>()),
+      );
+    });
+
+    test('returns cached path if cached binary version matches or is newer',
+        () async {
+      final binDir = Directory('${tempHome.path}/.antigravity/bin')
+        ..createSync(recursive: true);
+      final binFile = File('${binDir.path}/localharness')
+        ..writeAsStringSync('binary_content');
+      // Write current default version (0.1.6)
+      File('${binDir.path}/.version').writeAsStringSync('0.1.6');
+
+      final result = await BinaryDiscovery.discover(autoDownload: false);
+      expect(result, equals(binFile.absolute.path));
+    });
+  });
 }

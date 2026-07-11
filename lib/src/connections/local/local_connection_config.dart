@@ -20,6 +20,37 @@ String get defaultAppDataDir {
   return '$home${Platform.pathSeparator}.gemini${Platform.pathSeparator}antigravity';
 }
 
+/// Base configuration class for local harness agent configurations.
+@MappableClass()
+abstract class BaseLocalAgentConfig extends AgentConfig
+    with BaseLocalAgentConfigMappable {
+  BaseLocalAgentConfig({
+    super.systemInstructions,
+    super.capabilities,
+    super.tools,
+    super.policies,
+    super.hooks,
+    super.triggers,
+    super.mcpServers,
+    super.subagents,
+    super.workspaces,
+    super.conversationId,
+    super.saveDir,
+    super.appDataDir,
+    super.responseSchema,
+    super.skillsPaths,
+  }) {
+    _applyWorkspacePolicies();
+  }
+
+  void _applyWorkspacePolicies() {
+    // Automatically add workspace containment policies for all declared workspaces
+    for (final ws in workspaces) {
+      policies.add(workspace(ws));
+    }
+  }
+}
+
 /// Configuration for the local harness backend.
 @MappableClass(
   includeCustomMappers: [
@@ -29,7 +60,8 @@ String get defaultAppDataDir {
     TriggerMapper(),
   ],
 )
-class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
+class LocalAgentConfig extends BaseLocalAgentConfig
+    with LocalAgentConfigMappable {
   /// Shorthand option to set explicit configuration targets for a single model or overrides.
   /// Can be a string model name or a full [ModelTarget].
   final dynamic model; // String or ModelTarget
@@ -55,19 +87,19 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
   /// Creates a new [LocalAgentConfig] configuration for the Google Antigravity SDK.
   LocalAgentConfig({
     super.systemInstructions,
-    CapabilitiesConfig? capabilities,
-    List<Tool>? tools,
+    super.capabilities,
+    super.tools,
     super.policies,
-    List<Hook>? hooks,
-    List<Trigger>? triggers,
-    List<McpServerConfig>? mcpServers,
-    List<SubagentConfig>? subagents,
-    List<String>? workspaces,
+    super.hooks,
+    super.triggers,
+    super.mcpServers,
+    super.subagents,
+    super.workspaces,
     super.conversationId,
     super.saveDir,
     super.appDataDir,
     super.responseSchema,
-    List<String>? skillsPaths,
+    super.skillsPaths,
     this.model,
     this.models,
     this.apiKey,
@@ -75,18 +107,7 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
     this.project,
     this.location,
     this.binaryPath,
-  }) : super(
-          capabilities: capabilities ?? CapabilitiesConfig(),
-          tools: tools ?? [],
-          hooks: hooks ?? [],
-          triggers: triggers ?? [],
-          mcpServers: mcpServers ?? [],
-          subagents: subagents ?? [],
-          workspaces: workspaces ?? [Directory.current.absolute.path],
-          skillsPaths: skillsPaths ?? [],
-        ) {
-    _applyWorkspacePolicies();
-  }
+  });
 
   ModelEndpoint? _buildShorthandEndpoint() {
     if (vertex) {
@@ -152,13 +173,6 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
     return mergedModels;
   }
 
-  void _applyWorkspacePolicies() {
-    // Automatically add workspace containment policies for all declared workspaces
-    for (final ws in workspaces) {
-      policies.add(workspace(ws));
-    }
-  }
-
   @override
   ConnectionStrategy createStrategy({
     required ToolRunner toolRunner,
@@ -172,6 +186,156 @@ class LocalAgentConfig extends AgentConfig with LocalAgentConfigMappable {
       toolRunner: toolRunner,
       hookRunner: hookRunner,
       models: _mergeModelsList(),
+      systemInstructions: systemInstructions,
+      capabilitiesConfig: capabilities,
+      conversationId: conversationId,
+      saveDir: effectiveSaveDir,
+      workspaces: workspaces,
+      appDataDir: appDataDir ?? defaultAppDataDir,
+      skillsPaths: skillsPaths,
+      mcpServers: mcpServers,
+      subagents: subagents,
+    );
+  }
+}
+
+/// OpenAI-compatible local completions API configuration.
+@MappableClass()
+class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
+    with LocalOpenAIAgentConfigMappable {
+  final dynamic model; // String or ModelTarget
+  final String? baseUrl;
+
+  LocalOpenAIAgentConfig({
+    this.model,
+    this.baseUrl,
+    super.systemInstructions,
+    super.capabilities,
+    super.tools,
+    super.policies,
+    super.hooks,
+    super.triggers,
+    super.mcpServers,
+    super.subagents,
+    super.workspaces,
+    super.conversationId,
+    super.saveDir,
+    super.appDataDir,
+    super.responseSchema,
+    super.skillsPaths,
+  });
+
+  @override
+  ConnectionStrategy createStrategy({
+    required ToolRunner toolRunner,
+    required HookRunner hookRunner,
+  }) {
+    final effectiveSaveDir =
+        saveDir != null ? Directory(saveDir!).absolute.path : null;
+
+    String modelName = '';
+    String? resolvedBaseUrl = baseUrl;
+    if (model is ModelTarget) {
+      final mt = model as ModelTarget;
+      modelName = mt.name ?? '';
+      if (resolvedBaseUrl == null || resolvedBaseUrl.isEmpty) {
+        if (mt.endpoint != null) {
+          resolvedBaseUrl = mt.endpoint!.baseUrl;
+        }
+      }
+    } else if (model is String) {
+      modelName = model as String;
+    }
+
+    return LocalOpenAIConnectionStrategy(
+      baseUrl: resolvedBaseUrl ?? '',
+      modelName: modelName,
+      toolRunner: toolRunner,
+      hookRunner: hookRunner,
+      systemInstructions: systemInstructions,
+      capabilitiesConfig: capabilities,
+      conversationId: conversationId,
+      saveDir: effectiveSaveDir,
+      workspaces: workspaces,
+      appDataDir: appDataDir ?? defaultAppDataDir,
+      skillsPaths: skillsPaths,
+      mcpServers: mcpServers,
+      subagents: subagents,
+    );
+  }
+}
+
+/// Hardware backend options for local LiteRT model execution.
+@MappableEnum(caseStyle: CaseStyle.lowerCase)
+enum LiteRTBackend {
+  cpu('cpu'),
+  gpu('gpu'),
+  npu('npu');
+
+  final String value;
+  const LiteRTBackend(this.value);
+}
+
+/// Configuration for local Gemma models using a managed LiteRT-LM backend.
+@MappableClass()
+class LiteRTAgentConfig extends BaseLocalAgentConfig
+    with LiteRTAgentConfigMappable {
+  final String modelPath;
+  final LiteRTBackend backend;
+  final bool enableSpeculativeDecoding;
+  final String? cacheDir;
+  final LiteRTBackend? audioBackend;
+  final LiteRTBackend? visionBackend;
+  final int port;
+  final bool downloadIfMissing;
+  final int? maxContextTokens;
+
+  LiteRTAgentConfig({
+    required this.modelPath,
+    this.backend = LiteRTBackend.gpu,
+    this.enableSpeculativeDecoding = false,
+    this.cacheDir,
+    this.audioBackend,
+    this.visionBackend,
+    this.port = 0,
+    this.downloadIfMissing = false,
+    this.maxContextTokens,
+    super.systemInstructions,
+    super.capabilities,
+    super.tools,
+    super.policies,
+    super.hooks,
+    super.triggers,
+    super.mcpServers,
+    super.subagents,
+    super.workspaces,
+    super.conversationId,
+    super.saveDir,
+    super.appDataDir,
+    super.responseSchema,
+    super.skillsPaths,
+  });
+
+  @override
+  ConnectionStrategy createStrategy({
+    required ToolRunner toolRunner,
+    required HookRunner hookRunner,
+  }) {
+    final effectiveSaveDir =
+        saveDir != null ? Directory(saveDir!).absolute.path : null;
+
+    return LiteRTConnectionStrategy(
+      modelPath: modelPath,
+      backend: backend,
+      enableSpeculativeDecoding: enableSpeculativeDecoding,
+      cacheDir: cacheDir,
+      audioBackend: audioBackend,
+      visionBackend: visionBackend,
+      port: port,
+      downloadIfMissing: downloadIfMissing,
+      maxContextTokens: maxContextTokens,
+      toolRunner: toolRunner,
+      hookRunner: hookRunner,
       systemInstructions: systemInstructions,
       capabilitiesConfig: capabilities,
       conversationId: conversationId,

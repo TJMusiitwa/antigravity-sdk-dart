@@ -184,12 +184,18 @@ class HookRouter {
       } else if (hookTypeStr == 'LIFECYCLE_HOOK_ON_TOOL_ERROR' ||
           hookTypeStr == 'ON_TOOL_ERROR') {
         var errorStr = 'Unknown tool error';
-        if (req.containsKey('on_tool_error_args') && req['on_tool_error_args'] is Map) {
+        if (req.containsKey('on_tool_error_args') &&
+            req['on_tool_error_args'] is Map) {
           final args = req['on_tool_error_args'] as Map;
-          errorStr = (args['error'] ?? args['errorMessage'] ?? 'Unknown tool error').toString();
-        } else if (req.containsKey('post_tool_args') && req['post_tool_args'] is Map) {
+          errorStr =
+              (args['error'] ?? args['errorMessage'] ?? 'Unknown tool error')
+                  .toString();
+        } else if (req.containsKey('post_tool_args') &&
+            req['post_tool_args'] is Map) {
           final args = req['post_tool_args'] as Map;
-          errorStr = (args['error'] ?? args['errorMessage'] ?? 'Unknown tool error').toString();
+          errorStr =
+              (args['error'] ?? args['errorMessage'] ?? 'Unknown tool error')
+                  .toString();
         }
 
         final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
