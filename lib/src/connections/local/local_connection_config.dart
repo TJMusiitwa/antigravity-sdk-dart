@@ -212,7 +212,10 @@ class LocalAgentConfig extends BaseLocalAgentConfig
 @MappableClass()
 class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
     with LocalOpenAIAgentConfigMappable {
+  /// The model target to execute, either as a model name string or a [ModelTarget].
   final dynamic model; // String or ModelTarget
+
+  /// The target OpenAI-compatible base URL (e.g. 'http://localhost:11434/v1').
   final String? baseUrl;
 
   LocalOpenAIAgentConfig({
@@ -289,17 +292,32 @@ enum LiteRTBackend {
 @MappableClass()
 class LiteRTAgentConfig extends BaseLocalAgentConfig
     with LiteRTAgentConfigMappable {
+  /// The local path to the LiteRT model file (e.g. gemma.litertlm).
   final String modelPath;
+
+  /// The hardware accelerator backend to execute inference on (cpu, gpu, npu).
   final LiteRTBackend backend;
+
+  /// Whether to enable speculative decoding for accelerated performance.
   final bool enableSpeculativeDecoding;
+
+  /// Optional cache directory for model compilation artifacts.
   final String? cacheDir;
+
+  /// Optional hardware accelerator backend specifically for audio modalities.
   final LiteRTBackend? audioBackend;
+
+  /// Optional hardware accelerator backend specifically for vision modalities.
   final LiteRTBackend? visionBackend;
+
+  /// Local port to bind the loopback HTTP server to (defaults to 0 for automatic selection).
   final int port;
 
   /// Reserved for schema parity with Python SDK; triggers automatic download of
   /// model weights in a future release if not found locally.
   final bool downloadIfMissing;
+
+  /// Optional limit on the maximum context window size in tokens.
   final int? maxContextTokens;
 
   LiteRTAgentConfig({

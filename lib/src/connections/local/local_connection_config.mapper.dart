@@ -8,6 +8,8 @@
 
 part of 'local_connection_config.dart';
 
+/// @nodoc
+
 class LiteRTBackendMapper extends EnumMapper<LiteRTBackend> {
   LiteRTBackendMapper._();
 
@@ -51,6 +53,8 @@ class LiteRTBackendMapper extends EnumMapper<LiteRTBackend> {
   }
 }
 
+/// @nodoc
+
 extension LiteRTBackendMapperExtension on LiteRTBackend {
   String toValue() {
     LiteRTBackendMapper.ensureInitialized();
@@ -58,6 +62,7 @@ extension LiteRTBackendMapperExtension on LiteRTBackend {
   }
 }
 
+/// @nodoc
 class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
   BaseLocalAgentConfigMapper._();
 
@@ -193,6 +198,7 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
   }
 }
 
+/// @nodoc
 mixin BaseLocalAgentConfigMappable {
   String toJson();
   Map<String, dynamic> toMap();
@@ -200,6 +206,7 @@ mixin BaseLocalAgentConfigMappable {
       BaseLocalAgentConfig> get copyWith;
 }
 
+/// @nodoc
 abstract class BaseLocalAgentConfigCopyWith<
     $R,
     $In extends BaseLocalAgentConfig,
@@ -244,6 +251,7 @@ abstract class BaseLocalAgentConfigCopyWith<
   );
 }
 
+/// @nodoc
 class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
   LocalAgentConfigMapper._();
 
@@ -456,6 +464,7 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
   }
 }
 
+/// @nodoc
 mixin LocalAgentConfigMappable {
   String toJson() {
     return LocalAgentConfigMapper.ensureInitialized()
@@ -497,6 +506,7 @@ mixin LocalAgentConfigMappable {
   }
 }
 
+/// @nodoc
 extension LocalAgentConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, LocalAgentConfig, $Out> {
   LocalAgentConfigCopyWith<$R, LocalAgentConfig, $Out>
@@ -504,6 +514,7 @@ extension LocalAgentConfigValueCopy<$R, $Out>
           .as((v, t, t2) => _LocalAgentConfigCopyWithImpl<$R, $Out>(v, t, t2));
 }
 
+/// @nodoc
 abstract class LocalAgentConfigCopyWith<$R, $In extends LocalAgentConfig, $Out>
     implements BaseLocalAgentConfigCopyWith<$R, $In, $Out> {
   @override
@@ -563,6 +574,7 @@ abstract class LocalAgentConfigCopyWith<$R, $In extends LocalAgentConfig, $Out>
   );
 }
 
+/// @nodoc
 class _LocalAgentConfigCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, LocalAgentConfig, $Out>
     implements LocalAgentConfigCopyWith<$R, LocalAgentConfig, $Out> {
@@ -733,6 +745,7 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
       _LocalAgentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
+/// @nodoc
 class LocalOpenAIAgentConfigMapper
     extends ClassMapperBase<LocalOpenAIAgentConfig> {
   LocalOpenAIAgentConfigMapper._();
@@ -891,6 +904,7 @@ class LocalOpenAIAgentConfigMapper
   }
 }
 
+/// @nodoc
 mixin LocalOpenAIAgentConfigMappable {
   String toJson() {
     return LocalOpenAIAgentConfigMapper.ensureInitialized()
@@ -930,6 +944,7 @@ mixin LocalOpenAIAgentConfigMappable {
   }
 }
 
+/// @nodoc
 extension LocalOpenAIAgentConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, LocalOpenAIAgentConfig, $Out> {
   LocalOpenAIAgentConfigCopyWith<$R, LocalOpenAIAgentConfig, $Out>
@@ -939,6 +954,7 @@ extension LocalOpenAIAgentConfigValueCopy<$R, $Out>
           );
 }
 
+/// @nodoc
 abstract class LocalOpenAIAgentConfigCopyWith<
     $R,
     $In extends LocalOpenAIAgentConfig,
@@ -993,6 +1009,7 @@ abstract class LocalOpenAIAgentConfigCopyWith<
   );
 }
 
+/// @nodoc
 class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, LocalOpenAIAgentConfig, $Out>
     implements
@@ -1138,6 +1155,7 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
           _LocalOpenAIAgentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
+/// @nodoc
 class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
   LiteRTAgentConfigMapper._();
 
@@ -1365,6 +1383,7 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
   }
 }
 
+/// @nodoc
 mixin LiteRTAgentConfigMappable {
   String toJson() {
     return LiteRTAgentConfigMapper.ensureInitialized()
@@ -1407,6 +1426,7 @@ mixin LiteRTAgentConfigMappable {
   }
 }
 
+/// @nodoc
 extension LiteRTAgentConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, LiteRTAgentConfig, $Out> {
   LiteRTAgentConfigCopyWith<$R, LiteRTAgentConfig, $Out>
@@ -1415,6 +1435,7 @@ extension LiteRTAgentConfigValueCopy<$R, $Out>
           );
 }
 
+/// @nodoc
 abstract class LiteRTAgentConfigCopyWith<$R, $In extends LiteRTAgentConfig,
     $Out> implements BaseLocalAgentConfigCopyWith<$R, $In, $Out> {
   @override
@@ -1474,6 +1495,7 @@ abstract class LiteRTAgentConfigCopyWith<$R, $In extends LiteRTAgentConfig,
   );
 }
 
+/// @nodoc
 class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, LiteRTAgentConfig, $Out>
     implements LiteRTAgentConfigCopyWith<$R, LiteRTAgentConfig, $Out> {
