@@ -859,4 +859,57 @@ void main() {
       expect(chunk.signature, isNull);
     });
   });
+
+  group('UsageMetadata', () {
+    test('operator + combines token counts correctly', () {
+      final a = UsageMetadata(
+        promptTokenCount: 10,
+        cachedContentTokenCount: 5,
+        candidatesTokenCount: 2,
+        thoughtsTokenCount: 3,
+        totalTokenCount: 20,
+      );
+      final b = UsageMetadata(
+        promptTokenCount: 20,
+        cachedContentTokenCount: 10,
+        candidatesTokenCount: 4,
+        thoughtsTokenCount: 6,
+        totalTokenCount: 40,
+      );
+      final sum = a + b;
+      expect(sum.promptTokenCount, equals(30));
+      expect(sum.cachedContentTokenCount, equals(15));
+      expect(sum.candidatesTokenCount, equals(6));
+      expect(sum.thoughtsTokenCount, equals(9));
+      expect(sum.totalTokenCount, equals(60));
+    });
+  });
+
+  group('AgentConfig validation', () {
+    test('validates conversationId pattern and length', () {
+      expect(() => LocalAgentConfig(conversationId: 'short'),
+          throwsA(isA<AntigravityValidationException>()));
+      expect(
+          () => LocalAgentConfig(
+              conversationId: 'invalid_chars_!!!!!_!!!!!_!!!!!_!!!!!'),
+          throwsA(isA<AntigravityValidationException>()));
+    });
+
+    test('validates resume mode requires conversationId', () {
+      expect(
+          () => LocalAgentConfig(
+                sessionContinuationMode: SessionContinuationMode.resume,
+                conversationId: null,
+              ),
+          throwsA(isA<AntigravityValidationException>()));
+    });
+
+    test('allows valid conversationId and resume mode combinations', () {
+      final config = LocalAgentConfig(
+        sessionContinuationMode: SessionContinuationMode.resume,
+        conversationId: '12345678901234567890123456789012',
+      );
+      expect(config, isNotNull);
+    });
+  });
 }

@@ -393,7 +393,10 @@ void main() {
       runner.registerHook(_makeCompactionHook((_, d) async => callCount++));
       runner.registerHook(_makeCompactionHook((_, d) async => callCount++));
       final turn = runner.createTurnContext();
-      await runner.dispatchCompaction(turn, {'tokens': 1000});
+      await runner.dispatchCompaction(
+        turn,
+        Step(type: StepType.compaction, content: 'compacted'),
+      );
       expect(callCount, equals(2));
     });
   });
@@ -496,15 +499,15 @@ OnToolErrorHook _makeToolErrorHook(
     _SimpleToolErrorHook(fn);
 
 class _SimpleCompactionHook extends OnCompactionHook {
-  final Future<void> Function(HookContext, dynamic) _fn;
+  final Future<void> Function(HookContext, Step) _fn;
   _SimpleCompactionHook(this._fn);
 
   @override
-  Future<void> run(HookContext context, dynamic data) => _fn(context, data);
+  Future<void> run(HookContext context, Step data) => _fn(context, data);
 }
 
 OnCompactionHook _makeCompactionHook(
-  Future<void> Function(HookContext, dynamic) fn,
+  Future<void> Function(HookContext, Step) fn,
 ) =>
     _SimpleCompactionHook(fn);
 
