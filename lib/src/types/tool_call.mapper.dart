@@ -8,6 +8,7 @@
 
 part of 'tool_call.dart';
 
+/// @nodoc
 class ToolCallMapper extends ClassMapperBase<ToolCall> {
   ToolCallMapper._();
 
@@ -87,6 +88,7 @@ class ToolCallMapper extends ClassMapperBase<ToolCall> {
   }
 }
 
+/// @nodoc
 mixin ToolCallMappable {
   String toJson() {
     return ToolCallMapper.ensureInitialized().encodeJson<ToolCall>(
@@ -125,11 +127,13 @@ mixin ToolCallMappable {
   }
 }
 
+/// @nodoc
 extension ToolCallValueCopy<$R, $Out> on ObjectCopyWith<$R, ToolCall, $Out> {
   ToolCallCopyWith<$R, ToolCall, $Out> get $asToolCall =>
       $base.as((v, t, t2) => _ToolCallCopyWithImpl<$R, $Out>(v, t, t2));
 }
 
+/// @nodoc
 abstract class ToolCallCopyWith<$R, $In extends ToolCall, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   MapCopyWith<$R, String, dynamic, ObjectCopyWith<$R, dynamic, dynamic>?>
@@ -144,6 +148,7 @@ abstract class ToolCallCopyWith<$R, $In extends ToolCall, $Out>
   ToolCallCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
 }
 
+/// @nodoc
 class _ToolCallCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, ToolCall, $Out>
     implements ToolCallCopyWith<$R, ToolCall, $Out> {
@@ -192,6 +197,7 @@ class _ToolCallCopyWithImpl<$R, $Out>
       _ToolCallCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
+/// @nodoc
 class ToolResultMapper extends ClassMapperBase<ToolResult> {
   ToolResultMapper._();
 
@@ -263,6 +269,7 @@ class ToolResultMapper extends ClassMapperBase<ToolResult> {
   }
 }
 
+/// @nodoc
 mixin ToolResultMappable {
   String toJson() {
     return ToolResultMapper.ensureInitialized().encodeJson<ToolResult>(
@@ -303,12 +310,14 @@ mixin ToolResultMappable {
   }
 }
 
+/// @nodoc
 extension ToolResultValueCopy<$R, $Out>
     on ObjectCopyWith<$R, ToolResult, $Out> {
   ToolResultCopyWith<$R, ToolResult, $Out> get $asToolResult =>
       $base.as((v, t, t2) => _ToolResultCopyWithImpl<$R, $Out>(v, t, t2));
 }
 
+/// @nodoc
 abstract class ToolResultCopyWith<$R, $In extends ToolResult, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   $R call({
@@ -321,6 +330,7 @@ abstract class ToolResultCopyWith<$R, $In extends ToolResult, $Out>
   ToolResultCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
 }
 
+/// @nodoc
 class _ToolResultCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, ToolResult, $Out>
     implements ToolResultCopyWith<$R, ToolResult, $Out> {

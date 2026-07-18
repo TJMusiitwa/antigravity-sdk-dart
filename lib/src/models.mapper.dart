@@ -8,6 +8,8 @@
 
 part of 'models.dart';
 
+/// @nodoc
+
 class ThinkingLevelMapper extends EnumMapper<ThinkingLevel> {
   ThinkingLevelMapper._();
 
@@ -35,6 +37,8 @@ class ThinkingLevelMapper extends EnumMapper<ThinkingLevel> {
         return ThinkingLevel.medium;
       case r'high':
         return ThinkingLevel.high;
+      case 'extra_high':
+        return ThinkingLevel.extraHigh;
       default:
         return ThinkingLevel.values[0];
     }
@@ -51,16 +55,22 @@ class ThinkingLevelMapper extends EnumMapper<ThinkingLevel> {
         return r'medium';
       case ThinkingLevel.high:
         return r'high';
+      case ThinkingLevel.extraHigh:
+        return 'extra_high';
     }
   }
 }
 
+/// @nodoc
+
 extension ThinkingLevelMapperExtension on ThinkingLevel {
-  String toValue() {
+  dynamic toValue() {
     ThinkingLevelMapper.ensureInitialized();
-    return MapperContainer.globals.toValue<ThinkingLevel>(this) as String;
+    return MapperContainer.globals.toValue<ThinkingLevel>(this);
   }
 }
+
+/// @nodoc
 
 class ModelTypeMapper extends EnumMapper<ModelType> {
   ModelTypeMapper._();
@@ -101,6 +111,8 @@ class ModelTypeMapper extends EnumMapper<ModelType> {
   }
 }
 
+/// @nodoc
+
 extension ModelTypeMapperExtension on ModelType {
   String toValue() {
     ModelTypeMapper.ensureInitialized();
@@ -108,6 +120,7 @@ extension ModelTypeMapperExtension on ModelType {
   }
 }
 
+/// @nodoc
 class ModelEndpointMapper extends ClassMapperBase<ModelEndpoint> {
   ModelEndpointMapper._();
 
@@ -167,6 +180,7 @@ class ModelEndpointMapper extends ClassMapperBase<ModelEndpoint> {
   }
 }
 
+/// @nodoc
 mixin ModelEndpointMappable {
   String toJson();
   Map<String, dynamic> toMap();
@@ -174,6 +188,7 @@ mixin ModelEndpointMappable {
       get copyWith;
 }
 
+/// @nodoc
 abstract class ModelEndpointCopyWith<$R, $In extends ModelEndpoint, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   MapCopyWith<$R, String, String, ObjectCopyWith<$R, String, String>>?
@@ -182,6 +197,7 @@ abstract class ModelEndpointCopyWith<$R, $In extends ModelEndpoint, $Out>
   ModelEndpointCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
 }
 
+/// @nodoc
 class GeminiModelOptionsMapper extends ClassMapperBase<GeminiModelOptions> {
   GeminiModelOptionsMapper._();
 
@@ -230,6 +246,7 @@ class GeminiModelOptionsMapper extends ClassMapperBase<GeminiModelOptions> {
   }
 }
 
+/// @nodoc
 mixin GeminiModelOptionsMappable {
   String toJson() {
     return GeminiModelOptionsMapper.ensureInitialized()
@@ -271,6 +288,7 @@ mixin GeminiModelOptionsMappable {
   }
 }
 
+/// @nodoc
 extension GeminiModelOptionsValueCopy<$R, $Out>
     on ObjectCopyWith<$R, GeminiModelOptions, $Out> {
   GeminiModelOptionsCopyWith<$R, GeminiModelOptions, $Out>
@@ -279,6 +297,7 @@ extension GeminiModelOptionsValueCopy<$R, $Out>
           );
 }
 
+/// @nodoc
 abstract class GeminiModelOptionsCopyWith<$R, $In extends GeminiModelOptions,
     $Out> implements ClassCopyWith<$R, $In, $Out> {
   $R call({ThinkingLevel? thinkingLevel});
@@ -287,6 +306,7 @@ abstract class GeminiModelOptionsCopyWith<$R, $In extends GeminiModelOptions,
   );
 }
 
+/// @nodoc
 class _GeminiModelOptionsCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, GeminiModelOptions, $Out>
     implements GeminiModelOptionsCopyWith<$R, GeminiModelOptions, $Out> {
@@ -313,6 +333,7 @@ class _GeminiModelOptionsCopyWithImpl<$R, $Out>
       _GeminiModelOptionsCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
+/// @nodoc
 class GeminiAPIEndpointMapper extends SubClassMapperBase<GeminiAPIEndpoint> {
   GeminiAPIEndpointMapper._();
 
@@ -393,6 +414,7 @@ class GeminiAPIEndpointMapper extends SubClassMapperBase<GeminiAPIEndpoint> {
   }
 }
 
+/// @nodoc
 mixin GeminiAPIEndpointMappable {
   String toJson() {
     return GeminiAPIEndpointMapper.ensureInitialized()
@@ -435,6 +457,7 @@ mixin GeminiAPIEndpointMappable {
   }
 }
 
+/// @nodoc
 extension GeminiAPIEndpointValueCopy<$R, $Out>
     on ObjectCopyWith<$R, GeminiAPIEndpoint, $Out> {
   GeminiAPIEndpointCopyWith<$R, GeminiAPIEndpoint, $Out>
@@ -443,6 +466,7 @@ extension GeminiAPIEndpointValueCopy<$R, $Out>
           );
 }
 
+/// @nodoc
 abstract class GeminiAPIEndpointCopyWith<$R, $In extends GeminiAPIEndpoint,
     $Out> implements ModelEndpointCopyWith<$R, $In, $Out> {
   @override
@@ -462,6 +486,7 @@ abstract class GeminiAPIEndpointCopyWith<$R, $In extends GeminiAPIEndpoint,
   );
 }
 
+/// @nodoc
 class _GeminiAPIEndpointCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, GeminiAPIEndpoint, $Out>
     implements GeminiAPIEndpointCopyWith<$R, GeminiAPIEndpoint, $Out> {
@@ -512,6 +537,7 @@ class _GeminiAPIEndpointCopyWithImpl<$R, $Out>
       _GeminiAPIEndpointCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
+/// @nodoc
 class VertexEndpointMapper extends SubClassMapperBase<VertexEndpoint> {
   VertexEndpointMapper._();
 
@@ -598,6 +624,7 @@ class VertexEndpointMapper extends SubClassMapperBase<VertexEndpoint> {
   }
 }
 
+/// @nodoc
 mixin VertexEndpointMappable {
   String toJson() {
     return VertexEndpointMapper.ensureInitialized().encodeJson<VertexEndpoint>(
@@ -641,12 +668,14 @@ mixin VertexEndpointMappable {
   }
 }
 
+/// @nodoc
 extension VertexEndpointValueCopy<$R, $Out>
     on ObjectCopyWith<$R, VertexEndpoint, $Out> {
   VertexEndpointCopyWith<$R, VertexEndpoint, $Out> get $asVertexEndpoint =>
       $base.as((v, t, t2) => _VertexEndpointCopyWithImpl<$R, $Out>(v, t, t2));
 }
 
+/// @nodoc
 abstract class VertexEndpointCopyWith<$R, $In extends VertexEndpoint, $Out>
     implements ModelEndpointCopyWith<$R, $In, $Out> {
   @override
@@ -667,6 +696,7 @@ abstract class VertexEndpointCopyWith<$R, $In extends VertexEndpoint, $Out>
   );
 }
 
+/// @nodoc
 class _VertexEndpointCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, VertexEndpoint, $Out>
     implements VertexEndpointCopyWith<$R, VertexEndpoint, $Out> {
@@ -720,6 +750,7 @@ class _VertexEndpointCopyWithImpl<$R, $Out>
       _VertexEndpointCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
+/// @nodoc
 class ModelTargetMapper extends ClassMapperBase<ModelTarget> {
   ModelTargetMapper._();
 
@@ -784,6 +815,7 @@ class ModelTargetMapper extends ClassMapperBase<ModelTarget> {
   }
 }
 
+/// @nodoc
 mixin ModelTargetMappable {
   String toJson() {
     return ModelTargetMapper.ensureInitialized().encodeJson<ModelTarget>(
@@ -824,12 +856,14 @@ mixin ModelTargetMappable {
   }
 }
 
+/// @nodoc
 extension ModelTargetValueCopy<$R, $Out>
     on ObjectCopyWith<$R, ModelTarget, $Out> {
   ModelTargetCopyWith<$R, ModelTarget, $Out> get $asModelTarget =>
       $base.as((v, t, t2) => _ModelTargetCopyWithImpl<$R, $Out>(v, t, t2));
 }
 
+/// @nodoc
 abstract class ModelTargetCopyWith<$R, $In extends ModelTarget, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   ListCopyWith<$R, ModelType, ObjectCopyWith<$R, ModelType, ModelType>>
@@ -839,6 +873,7 @@ abstract class ModelTargetCopyWith<$R, $In extends ModelTarget, $Out>
   ModelTargetCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
 }
 
+/// @nodoc
 class _ModelTargetCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, ModelTarget, $Out>
     implements ModelTargetCopyWith<$R, ModelTarget, $Out> {

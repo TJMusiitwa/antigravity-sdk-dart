@@ -139,6 +139,20 @@ class UsageMetadata with UsageMetadataMappable {
       UsageMetadataMapper.fromMap(map);
   factory UsageMetadata.fromJson(String json) =>
       UsageMetadataMapper.fromJson(json);
+
+  /// Combines two [UsageMetadata] instances by summing their token counts.
+  UsageMetadata operator +(UsageMetadata other) {
+    return UsageMetadata(
+      promptTokenCount: (promptTokenCount ?? 0) + (other.promptTokenCount ?? 0),
+      cachedContentTokenCount:
+          (cachedContentTokenCount ?? 0) + (other.cachedContentTokenCount ?? 0),
+      candidatesTokenCount:
+          (candidatesTokenCount ?? 0) + (other.candidatesTokenCount ?? 0),
+      thoughtsTokenCount:
+          (thoughtsTokenCount ?? 0) + (other.thoughtsTokenCount ?? 0),
+      totalTokenCount: (totalTokenCount ?? 0) + (other.totalTokenCount ?? 0),
+    );
+  }
 }
 
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
@@ -278,6 +292,7 @@ class Step with StepMappable {
     final toolCalls = <Map<String, dynamic>>[];
     String? activeToolName;
     String? activeServerName;
+    String? activeToolId;
     Map<String, dynamic> activeToolArgs = {};
 
     // Parse builtin/harness tools
@@ -324,6 +339,40 @@ class Step with StepMappable {
       }
     }
 
+    // Parse custom_tool if activeToolName wasn't set by a builtin or MCP
+    if (activeToolName == null) {
+      final customToolKey = updatedMap.containsKey('custom_tool')
+          ? 'custom_tool'
+          : (updatedMap.containsKey('customTool') ? 'customTool' : null);
+      if (customToolKey != null && updatedMap[customToolKey] is Map) {
+        final ctDict =
+            Map<String, dynamic>.from(updatedMap[customToolKey] as Map);
+        final tcKey = ctDict.containsKey('tool_call')
+            ? 'tool_call'
+            : (ctDict.containsKey('toolCall') ? 'toolCall' : null);
+        if (tcKey != null && ctDict[tcKey] is Map) {
+          final tcDict = Map<String, dynamic>.from(ctDict[tcKey] as Map);
+          final name = tcDict['name']?.toString();
+          if (name != null && name.isNotEmpty) {
+            activeToolName = name;
+            activeToolId = tcDict['id']?.toString();
+            final argsJson =
+                tcDict['arguments_json'] ?? tcDict['argumentsJson'] ?? '{}';
+            try {
+              if (argsJson is String) {
+                activeToolArgs =
+                    Map<String, dynamic>.from(jsonDecode(argsJson) as Map);
+              } else if (argsJson is Map) {
+                activeToolArgs = Map<String, dynamic>.from(argsJson);
+              }
+            } catch (e) {
+              _logger.warning('Failed to parse custom tool arguments_json: $e');
+            }
+          }
+        }
+      }
+    }
+
     if (activeToolName != null) {
       // Normalize file paths
       String? canonicalPath;
@@ -348,7 +397,7 @@ class Step with StepMappable {
           trajId.toString().isNotEmpty ? '$trajId:$stepIdx' : '$stepIdx';
 
       toolCalls.add({
-        'id': callId,
+        'id': activeToolId ?? callId,
         'name': activeToolName,
         'arguments_json': activeToolArgs,
         'arguments': activeToolArgs,

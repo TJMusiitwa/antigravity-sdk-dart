@@ -8,6 +8,8 @@
 
 part of 'capabilities.dart';
 
+/// @nodoc
+
 class BuiltinToolsMapper extends EnumMapper<BuiltinTools> {
   BuiltinToolsMapper._();
 
@@ -91,6 +93,8 @@ class BuiltinToolsMapper extends EnumMapper<BuiltinTools> {
   }
 }
 
+/// @nodoc
+
 extension BuiltinToolsMapperExtension on BuiltinTools {
   dynamic toValue() {
     BuiltinToolsMapper.ensureInitialized();
@@ -98,6 +102,7 @@ extension BuiltinToolsMapperExtension on BuiltinTools {
   }
 }
 
+/// @nodoc
 class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
   CapabilitiesConfigMapper._();
 
@@ -185,6 +190,7 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
   }
 }
 
+/// @nodoc
 mixin CapabilitiesConfigMappable {
   String toJson() {
     return CapabilitiesConfigMapper.ensureInitialized()
@@ -226,6 +232,7 @@ mixin CapabilitiesConfigMappable {
   }
 }
 
+/// @nodoc
 extension CapabilitiesConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, CapabilitiesConfig, $Out> {
   CapabilitiesConfigCopyWith<$R, CapabilitiesConfig, $Out>
@@ -234,6 +241,7 @@ extension CapabilitiesConfigValueCopy<$R, $Out>
           );
 }
 
+/// @nodoc
 abstract class CapabilitiesConfigCopyWith<$R, $In extends CapabilitiesConfig,
     $Out> implements ClassCopyWith<$R, $In, $Out> {
   ListCopyWith<$R, BuiltinTools,
@@ -252,6 +260,7 @@ abstract class CapabilitiesConfigCopyWith<$R, $In extends CapabilitiesConfig,
   );
 }
 
+/// @nodoc
 class _CapabilitiesConfigCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, CapabilitiesConfig, $Out>
     implements CapabilitiesConfigCopyWith<$R, CapabilitiesConfig, $Out> {

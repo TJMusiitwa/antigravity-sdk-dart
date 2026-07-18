@@ -8,6 +8,7 @@
 
 part of 'mcp_config.dart';
 
+/// @nodoc
 class McpServerConfigMapper extends ClassMapperBase<McpServerConfig> {
   McpServerConfigMapper._();
 
@@ -73,6 +74,7 @@ class McpServerConfigMapper extends ClassMapperBase<McpServerConfig> {
   }
 }
 
+/// @nodoc
 mixin McpServerConfigMappable {
   String toJson();
   Map<String, dynamic> toMap();
@@ -80,6 +82,7 @@ mixin McpServerConfigMappable {
       get copyWith;
 }
 
+/// @nodoc
 abstract class McpServerConfigCopyWith<$R, $In extends McpServerConfig, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
@@ -97,6 +100,7 @@ abstract class McpServerConfigCopyWith<$R, $In extends McpServerConfig, $Out>
   );
 }
 
+/// @nodoc
 class McpStdioServerMapper extends SubClassMapperBase<McpStdioServer> {
   McpStdioServerMapper._();
 
@@ -198,6 +202,7 @@ class McpStdioServerMapper extends SubClassMapperBase<McpStdioServer> {
   }
 }
 
+/// @nodoc
 mixin McpStdioServerMappable {
   String toJson() {
     return McpStdioServerMapper.ensureInitialized().encodeJson<McpStdioServer>(
@@ -241,12 +246,14 @@ mixin McpStdioServerMappable {
   }
 }
 
+/// @nodoc
 extension McpStdioServerValueCopy<$R, $Out>
     on ObjectCopyWith<$R, McpStdioServer, $Out> {
   McpStdioServerCopyWith<$R, McpStdioServer, $Out> get $asMcpStdioServer =>
       $base.as((v, t, t2) => _McpStdioServerCopyWithImpl<$R, $Out>(v, t, t2));
 }
 
+/// @nodoc
 abstract class McpStdioServerCopyWith<$R, $In extends McpStdioServer, $Out>
     implements McpServerConfigCopyWith<$R, $In, $Out> {
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get args;
@@ -272,6 +279,7 @@ abstract class McpStdioServerCopyWith<$R, $In extends McpStdioServer, $Out>
   );
 }
 
+/// @nodoc
 class _McpStdioServerCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, McpStdioServer, $Out>
     implements McpStdioServerCopyWith<$R, McpStdioServer, $Out> {
@@ -353,6 +361,7 @@ class _McpStdioServerCopyWithImpl<$R, $Out>
       _McpStdioServerCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
+/// @nodoc
 class McpStreamableHttpServerMapper
     extends SubClassMapperBase<McpStreamableHttpServer> {
   McpStreamableHttpServerMapper._();
@@ -478,6 +487,7 @@ class McpStreamableHttpServerMapper
   }
 }
 
+/// @nodoc
 mixin McpStreamableHttpServerMappable {
   String toJson() {
     return McpStreamableHttpServerMapper.ensureInitialized()
@@ -517,6 +527,7 @@ mixin McpStreamableHttpServerMappable {
   }
 }
 
+/// @nodoc
 extension McpStreamableHttpServerValueCopy<$R, $Out>
     on ObjectCopyWith<$R, McpStreamableHttpServer, $Out> {
   McpStreamableHttpServerCopyWith<$R, McpStreamableHttpServer, $Out>
@@ -526,6 +537,7 @@ extension McpStreamableHttpServerValueCopy<$R, $Out>
           );
 }
 
+/// @nodoc
 abstract class McpStreamableHttpServerCopyWith<
     $R,
     $In extends McpStreamableHttpServer,
@@ -555,6 +567,7 @@ abstract class McpStreamableHttpServerCopyWith<
   );
 }
 
+/// @nodoc
 class _McpStreamableHttpServerCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, McpStreamableHttpServer, $Out>
     implements

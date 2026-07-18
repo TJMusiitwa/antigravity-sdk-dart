@@ -8,6 +8,8 @@
 
 part of 'step.dart';
 
+/// @nodoc
+
 class StepTypeMapper extends EnumMapper<StepType> {
   StepTypeMapper._();
 
@@ -67,12 +69,16 @@ class StepTypeMapper extends EnumMapper<StepType> {
   }
 }
 
+/// @nodoc
+
 extension StepTypeMapperExtension on StepType {
   dynamic toValue() {
     StepTypeMapper.ensureInitialized();
     return MapperContainer.globals.toValue<StepType>(this);
   }
 }
+
+/// @nodoc
 
 class StepSourceMapper extends EnumMapper<StepSource> {
   StepSourceMapper._();
@@ -121,12 +127,16 @@ class StepSourceMapper extends EnumMapper<StepSource> {
   }
 }
 
+/// @nodoc
+
 extension StepSourceMapperExtension on StepSource {
   dynamic toValue() {
     StepSourceMapper.ensureInitialized();
     return MapperContainer.globals.toValue<StepSource>(this);
   }
 }
+
+/// @nodoc
 
 class StepTargetMapper extends EnumMapper<StepTarget> {
   StepTargetMapper._();
@@ -175,12 +185,16 @@ class StepTargetMapper extends EnumMapper<StepTarget> {
   }
 }
 
+/// @nodoc
+
 extension StepTargetMapperExtension on StepTarget {
   dynamic toValue() {
     StepTargetMapper.ensureInitialized();
     return MapperContainer.globals.toValue<StepTarget>(this);
   }
 }
+
+/// @nodoc
 
 class StepStatusMapper extends EnumMapper<StepStatus> {
   StepStatusMapper._();
@@ -237,6 +251,8 @@ class StepStatusMapper extends EnumMapper<StepStatus> {
   }
 }
 
+/// @nodoc
+
 extension StepStatusMapperExtension on StepStatus {
   dynamic toValue() {
     StepStatusMapper.ensureInitialized();
@@ -244,6 +260,7 @@ extension StepStatusMapperExtension on StepStatus {
   }
 }
 
+/// @nodoc
 class UsageMetadataMapper extends ClassMapperBase<UsageMetadata> {
   UsageMetadataMapper._();
 
@@ -328,6 +345,7 @@ class UsageMetadataMapper extends ClassMapperBase<UsageMetadata> {
   }
 }
 
+/// @nodoc
 mixin UsageMetadataMappable {
   String toJson() {
     return UsageMetadataMapper.ensureInitialized().encodeJson<UsageMetadata>(
@@ -370,12 +388,14 @@ mixin UsageMetadataMappable {
   }
 }
 
+/// @nodoc
 extension UsageMetadataValueCopy<$R, $Out>
     on ObjectCopyWith<$R, UsageMetadata, $Out> {
   UsageMetadataCopyWith<$R, UsageMetadata, $Out> get $asUsageMetadata =>
       $base.as((v, t, t2) => _UsageMetadataCopyWithImpl<$R, $Out>(v, t, t2));
 }
 
+/// @nodoc
 abstract class UsageMetadataCopyWith<$R, $In extends UsageMetadata, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   $R call({
@@ -388,6 +408,7 @@ abstract class UsageMetadataCopyWith<$R, $In extends UsageMetadata, $Out>
   UsageMetadataCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
 }
 
+/// @nodoc
 class _UsageMetadataCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, UsageMetadata, $Out>
     implements UsageMetadataCopyWith<$R, UsageMetadata, $Out> {
@@ -442,6 +463,7 @@ class _UsageMetadataCopyWithImpl<$R, $Out>
       _UsageMetadataCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
+/// @nodoc
 class StepMapper extends ClassMapperBase<Step> {
   StepMapper._();
 
@@ -645,6 +667,7 @@ class StepMapper extends ClassMapperBase<Step> {
   }
 }
 
+/// @nodoc
 mixin StepMappable {
   String toJson() {
     return StepMapper.ensureInitialized().encodeJson<Step>(this as Step);
@@ -672,11 +695,13 @@ mixin StepMappable {
   }
 }
 
+/// @nodoc
 extension StepValueCopy<$R, $Out> on ObjectCopyWith<$R, Step, $Out> {
   StepCopyWith<$R, Step, $Out> get $asStep =>
       $base.as((v, t, t2) => _StepCopyWithImpl<$R, $Out>(v, t, t2));
 }
 
+/// @nodoc
 abstract class StepCopyWith<$R, $In extends Step, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   ListCopyWith<$R, ToolCall, ToolCallCopyWith<$R, ToolCall, ToolCall>>
@@ -704,6 +729,7 @@ abstract class StepCopyWith<$R, $In extends Step, $Out>
   StepCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
 }
 
+/// @nodoc
 class _StepCopyWithImpl<$R, $Out> extends ClassCopyWithBase<$R, Step, $Out>
     implements StepCopyWith<$R, Step, $Out> {
   _StepCopyWithImpl(super.value, super.then, super.then2);

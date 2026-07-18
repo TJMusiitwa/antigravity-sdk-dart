@@ -8,6 +8,8 @@
 
 part of 'content.dart';
 
+/// @nodoc
+
 class BuiltinSlashCommandNameMapper
     extends EnumMapper<BuiltinSlashCommandName> {
   BuiltinSlashCommandNameMapper._();
@@ -46,6 +48,8 @@ class BuiltinSlashCommandNameMapper
   }
 }
 
+/// @nodoc
+
 extension BuiltinSlashCommandNameMapperExtension on BuiltinSlashCommandName {
   dynamic toValue() {
     BuiltinSlashCommandNameMapper.ensureInitialized();
@@ -53,6 +57,7 @@ extension BuiltinSlashCommandNameMapperExtension on BuiltinSlashCommandName {
   }
 }
 
+/// @nodoc
 class SlashCommandMapper extends ClassMapperBase<SlashCommand> {
   SlashCommandMapper._();
 
@@ -93,6 +98,7 @@ class SlashCommandMapper extends ClassMapperBase<SlashCommand> {
   }
 }
 
+/// @nodoc
 mixin SlashCommandMappable {
   String toJson() {
     return SlashCommandMapper.ensureInitialized().encodeJson<SlashCommand>(
@@ -135,18 +141,21 @@ mixin SlashCommandMappable {
   }
 }
 
+/// @nodoc
 extension SlashCommandValueCopy<$R, $Out>
     on ObjectCopyWith<$R, SlashCommand, $Out> {
   SlashCommandCopyWith<$R, SlashCommand, $Out> get $asSlashCommand =>
       $base.as((v, t, t2) => _SlashCommandCopyWithImpl<$R, $Out>(v, t, t2));
 }
 
+/// @nodoc
 abstract class SlashCommandCopyWith<$R, $In extends SlashCommand, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   $R call({BuiltinSlashCommandName? name});
   SlashCommandCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
 }
 
+/// @nodoc
 class _SlashCommandCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, SlashCommand, $Out>
     implements SlashCommandCopyWith<$R, SlashCommand, $Out> {

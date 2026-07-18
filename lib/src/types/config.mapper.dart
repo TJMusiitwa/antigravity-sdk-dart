@@ -8,6 +8,68 @@
 
 part of 'config.dart';
 
+/// @nodoc
+
+class SessionContinuationModeMapper
+    extends EnumMapper<SessionContinuationMode> {
+  SessionContinuationModeMapper._();
+
+  static SessionContinuationModeMapper? _instance;
+  static SessionContinuationModeMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(
+        _instance = SessionContinuationModeMapper._(),
+      );
+    }
+    return _instance!;
+  }
+
+  static SessionContinuationMode fromValue(dynamic value) {
+    ensureInitialized();
+    return MapperContainer.globals.fromValue(value);
+  }
+
+  @override
+  SessionContinuationMode decode(dynamic value) {
+    switch (value) {
+      case 'RESUME':
+        return SessionContinuationMode.resume;
+      case 'CREATE_OR_RESUME':
+        return SessionContinuationMode.createOrResume;
+      case 'CREATE_ONLY':
+        return SessionContinuationMode.createOnly;
+      case 'SESSION_CONTINUATION_MODE_UNSPECIFIED':
+        return SessionContinuationMode.unspecified;
+      default:
+        throw MapperException.unknownEnumValue(value);
+    }
+  }
+
+  @override
+  dynamic encode(SessionContinuationMode self) {
+    switch (self) {
+      case SessionContinuationMode.resume:
+        return 'RESUME';
+      case SessionContinuationMode.createOrResume:
+        return 'CREATE_OR_RESUME';
+      case SessionContinuationMode.createOnly:
+        return 'CREATE_ONLY';
+      case SessionContinuationMode.unspecified:
+        return 'SESSION_CONTINUATION_MODE_UNSPECIFIED';
+    }
+  }
+}
+
+/// @nodoc
+
+extension SessionContinuationModeMapperExtension on SessionContinuationMode {
+  dynamic toValue() {
+    SessionContinuationModeMapper.ensureInitialized();
+    return MapperContainer.globals.toValue<SessionContinuationMode>(this);
+  }
+}
+
+/// @nodoc
 class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
   SubagentCapabilitiesMapper._();
 
@@ -64,6 +126,7 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
   }
 }
 
+/// @nodoc
 mixin SubagentCapabilitiesMappable {
   String toJson() {
     return SubagentCapabilitiesMapper.ensureInitialized()
@@ -102,6 +165,7 @@ mixin SubagentCapabilitiesMappable {
   }
 }
 
+/// @nodoc
 extension SubagentCapabilitiesValueCopy<$R, $Out>
     on ObjectCopyWith<$R, SubagentCapabilities, $Out> {
   SubagentCapabilitiesCopyWith<$R, SubagentCapabilities, $Out>
@@ -110,6 +174,7 @@ extension SubagentCapabilitiesValueCopy<$R, $Out>
           );
 }
 
+/// @nodoc
 abstract class SubagentCapabilitiesCopyWith<
     $R,
     $In extends SubagentCapabilities,
@@ -127,6 +192,7 @@ abstract class SubagentCapabilitiesCopyWith<
   );
 }
 
+/// @nodoc
 class _SubagentCapabilitiesCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, SubagentCapabilities, $Out>
     implements SubagentCapabilitiesCopyWith<$R, SubagentCapabilities, $Out> {
@@ -175,6 +241,7 @@ class _SubagentCapabilitiesCopyWithImpl<$R, $Out>
           _SubagentCapabilitiesCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
+/// @nodoc
 class SubagentConfigMapper extends ClassMapperBase<SubagentConfig> {
   SubagentConfigMapper._();
 
@@ -248,6 +315,7 @@ class SubagentConfigMapper extends ClassMapperBase<SubagentConfig> {
   }
 }
 
+/// @nodoc
 mixin SubagentConfigMappable {
   String toJson() {
     return SubagentConfigMapper.ensureInitialized().encodeJson<SubagentConfig>(
@@ -291,12 +359,14 @@ mixin SubagentConfigMappable {
   }
 }
 
+/// @nodoc
 extension SubagentConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, SubagentConfig, $Out> {
   SubagentConfigCopyWith<$R, SubagentConfig, $Out> get $asSubagentConfig =>
       $base.as((v, t, t2) => _SubagentConfigCopyWithImpl<$R, $Out>(v, t, t2));
 }
 
+/// @nodoc
 abstract class SubagentConfigCopyWith<$R, $In extends SubagentConfig, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   SubagentCapabilitiesCopyWith<$R, SubagentCapabilities, SubagentCapabilities>?
@@ -314,6 +384,7 @@ abstract class SubagentConfigCopyWith<$R, $In extends SubagentConfig, $Out>
   );
 }
 
+/// @nodoc
 class _SubagentConfigCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, SubagentConfig, $Out>
     implements SubagentConfigCopyWith<$R, SubagentConfig, $Out> {

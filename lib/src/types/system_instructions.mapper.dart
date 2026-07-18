@@ -8,6 +8,7 @@
 
 part of 'system_instructions.dart';
 
+/// @nodoc
 class SystemInstructionSectionMapper
     extends ClassMapperBase<SystemInstructionSection> {
   SystemInstructionSectionMapper._();
@@ -63,6 +64,7 @@ class SystemInstructionSectionMapper
   }
 }
 
+/// @nodoc
 mixin SystemInstructionSectionMappable {
   String toJson() {
     return SystemInstructionSectionMapper.ensureInitialized()
@@ -102,6 +104,7 @@ mixin SystemInstructionSectionMappable {
   }
 }
 
+/// @nodoc
 extension SystemInstructionSectionValueCopy<$R, $Out>
     on ObjectCopyWith<$R, SystemInstructionSection, $Out> {
   SystemInstructionSectionCopyWith<$R, SystemInstructionSection, $Out>
@@ -111,6 +114,7 @@ extension SystemInstructionSectionValueCopy<$R, $Out>
           );
 }
 
+/// @nodoc
 abstract class SystemInstructionSectionCopyWith<
     $R,
     $In extends SystemInstructionSection,
@@ -121,6 +125,7 @@ abstract class SystemInstructionSectionCopyWith<
   );
 }
 
+/// @nodoc
 class _SystemInstructionSectionCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, SystemInstructionSection, $Out>
     implements
@@ -149,6 +154,7 @@ class _SystemInstructionSectionCopyWithImpl<$R, $Out>
           _SystemInstructionSectionCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
+/// @nodoc
 class SystemInstructionsMapper extends ClassMapperBase<SystemInstructions> {
   SystemInstructionsMapper._();
 
@@ -188,6 +194,7 @@ class SystemInstructionsMapper extends ClassMapperBase<SystemInstructions> {
   }
 }
 
+/// @nodoc
 mixin SystemInstructionsMappable {
   String toJson();
   Map<String, dynamic> toMap();
@@ -195,6 +202,7 @@ mixin SystemInstructionsMappable {
       SystemInstructions> get copyWith;
 }
 
+/// @nodoc
 abstract class SystemInstructionsCopyWith<$R, $In extends SystemInstructions,
     $Out> implements ClassCopyWith<$R, $In, $Out> {
   $R call();
@@ -203,6 +211,7 @@ abstract class SystemInstructionsCopyWith<$R, $In extends SystemInstructions,
   );
 }
 
+/// @nodoc
 class CustomSystemInstructionsMapper
     extends SubClassMapperBase<CustomSystemInstructions> {
   CustomSystemInstructionsMapper._();
@@ -256,6 +265,7 @@ class CustomSystemInstructionsMapper
   }
 }
 
+/// @nodoc
 mixin CustomSystemInstructionsMappable {
   String toJson() {
     return CustomSystemInstructionsMapper.ensureInitialized()
@@ -295,6 +305,7 @@ mixin CustomSystemInstructionsMappable {
   }
 }
 
+/// @nodoc
 extension CustomSystemInstructionsValueCopy<$R, $Out>
     on ObjectCopyWith<$R, CustomSystemInstructions, $Out> {
   CustomSystemInstructionsCopyWith<$R, CustomSystemInstructions, $Out>
@@ -304,6 +315,7 @@ extension CustomSystemInstructionsValueCopy<$R, $Out>
           );
 }
 
+/// @nodoc
 abstract class CustomSystemInstructionsCopyWith<
     $R,
     $In extends CustomSystemInstructions,
@@ -315,6 +327,7 @@ abstract class CustomSystemInstructionsCopyWith<
   );
 }
 
+/// @nodoc
 class _CustomSystemInstructionsCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, CustomSystemInstructions, $Out>
     implements
@@ -337,6 +350,7 @@ class _CustomSystemInstructionsCopyWithImpl<$R, $Out>
           _CustomSystemInstructionsCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
+/// @nodoc
 class TemplatedSystemInstructionsMapper
     extends SubClassMapperBase<TemplatedSystemInstructions> {
   TemplatedSystemInstructionsMapper._();
@@ -403,6 +417,7 @@ class TemplatedSystemInstructionsMapper
   }
 }
 
+/// @nodoc
 mixin TemplatedSystemInstructionsMappable {
   String toJson() {
     return TemplatedSystemInstructionsMapper.ensureInitialized()
@@ -446,6 +461,7 @@ mixin TemplatedSystemInstructionsMappable {
   }
 }
 
+/// @nodoc
 extension TemplatedSystemInstructionsValueCopy<$R, $Out>
     on ObjectCopyWith<$R, TemplatedSystemInstructions, $Out> {
   TemplatedSystemInstructionsCopyWith<$R, TemplatedSystemInstructions, $Out>
@@ -455,6 +471,7 @@ extension TemplatedSystemInstructionsValueCopy<$R, $Out>
           );
 }
 
+/// @nodoc
 abstract class TemplatedSystemInstructionsCopyWith<
     $R,
     $In extends TemplatedSystemInstructions,
@@ -471,6 +488,7 @@ abstract class TemplatedSystemInstructionsCopyWith<
   );
 }
 
+/// @nodoc
 class _TemplatedSystemInstructionsCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, TemplatedSystemInstructions, $Out>
     implements

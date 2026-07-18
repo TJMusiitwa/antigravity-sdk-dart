@@ -9,7 +9,7 @@ part 'models.mapper.dart';
 // =============================================================================
 
 const String defaultModel = 'gemini-3.5-flash';
-const String defaultImageGenerationModel = 'gemini-3.1-flash-image-preview';
+const String defaultImageGenerationModel = 'gemini-3.1-flash-lite-image';
 
 // =============================================================================
 // Model types
@@ -24,7 +24,11 @@ enum ThinkingLevel {
   minimal('minimal'),
   low('low'),
   medium('medium'),
-  high('high');
+  high('high'),
+
+  /// Enables the highest reasoning capability level on compatible models.
+  @MappableValue('extra_high')
+  extraHigh('extra_high');
 
   final String value;
   const ThinkingLevel(this.value);
@@ -115,13 +119,18 @@ class VertexEndpoint extends ModelEndpoint with VertexEndpointMappable {
   final String? location;
   final GeminiModelOptions? options;
 
+  /// Creates a new [VertexEndpoint] targeting Google Vertex AI.
+  ///
+  /// If [project] or [location] are omitted, they will be loaded from the
+  /// `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` environment variables, respectively.
   VertexEndpoint({
     super.baseUrl,
     super.httpHeaders,
-    this.project,
-    this.location,
+    String? project,
+    String? location,
     this.options,
-  });
+  })  : project = project ?? Platform.environment['GOOGLE_CLOUD_PROJECT'],
+        location = location ?? Platform.environment['GOOGLE_CLOUD_LOCATION'];
 
   @override
   void validateEndpoint() {
