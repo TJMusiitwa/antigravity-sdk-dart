@@ -1,3 +1,16 @@
+# 0.5.0
+
+* **Sync with Python SDK v0.1.7**:
+  - **Hierarchical Thread-Safe State Management**: Introduced the `StateStore` class for hierarchical context state sharing and lock/reentrancy support. Retargeted `HookContext` and `ToolContext` to inherit from `StateStore`.
+  - **Session Continuation Modes**: Implemented `SessionContinuationMode` to specify continuation behavior (`RESUME`, `CREATE_OR_RESUME`, `CREATE_ONLY`, `SESSION_CONTINUATION_MODE_UNSPECIFIED`) with validation checks on `AgentConfig`.
+  - **Dynamic Environment Hydration**: Hydrates Vertex project and location parameters automatically from standard `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` environment variables when not explicitly passed, and enables Vertex mode automatically when `GOOGLE_GENAI_USE_VERTEXAI` or `GOOGLE_GENAI_USE_ENTERPRISE` is set.
+  - **Websocket Retry Backoff & DNS Resolution**: Refactored websocket connections in `LocalConnectionStrategy` to retry on both `localhost` and `127.0.0.1` to ensure reliable connections in containerized sandboxes.
+  - **Spinner Pause/Resume**: Enhanced CLI `Spinner` with pause and resume behaviors, and integrated them into user confirmation/question hooks to prevent prompt clobbering.
+  - **Custom Tool Execution Support**: Added `custom_tool` parsing support in `Step.fromMap` and filtered out tool calls from StepUpdate if they are local custom tools to prevent client duplicate events.
+  - **Addition Operator for Token Usage**: Implemented `+` addition operator on `UsageMetadata` for clean accumulation of token usage.
+  - **Updated default image generation model** to `'gemini-3.1-flash-lite-image'`.
+  - **Added `ThinkingLevel.extraHigh`** (`'extra_high'`) level support.
+
 # 0.4.1
 
 * **Bug Fixes & Adjustments**:
