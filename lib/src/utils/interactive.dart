@@ -48,32 +48,43 @@ Future<String> asyncInput(String prompt) async {
 class ToolConfirmationHook extends PreToolCallDecideHook {
   @override
   Future<HookResult> run(HookContext context, ToolCall toolCall) async {
-    print("\nTool execution requested: ${toolCall.name}");
-    if (toolCall.args.isNotEmpty) {
-      print("Arguments: ${toolCall.args}");
-    }
+    Spinner.pauseActive();
     try {
-      final ans = await asyncInput("Allow execution? (y/n) [n]: ");
-      if (ans.trim().toLowerCase() == 'y' ||
-          ans.trim().toLowerCase() == 'yes') {
-        return HookResult(allow: true);
+      print("\nTool execution requested: ${toolCall.name}");
+      if (toolCall.args.isNotEmpty) {
+        print("Arguments: ${toolCall.args}");
       }
-    } catch (_) {}
-    return HookResult(allow: false, message: "User denied tool call.");
+      try {
+        final ans = await asyncInput("Allow execution? (y/n) [n]: ");
+        if (ans.trim().toLowerCase() == 'y' ||
+            ans.trim().toLowerCase() == 'yes') {
+          return HookResult(allow: true);
+        }
+      } catch (_) {}
+      return HookResult(allow: false, message: "User denied tool call.");
+    } finally {
+      Spinner.resumeActive();
+    }
   }
 }
 
 /// A policy handler that prompts the user for confirmation before executing a tool.
 Future<bool> askUserHandler(ToolCall tc) async {
-  print("\nPolicy check: Tool execution requested: ${tc.name}");
-  if (tc.args.isNotEmpty) {
-    print("Arguments: ${tc.args}");
-  }
+  Spinner.pauseActive();
   try {
-    final ans = await asyncInput("Allow execution? (y/n) [n]: ");
-    return ans.trim().toLowerCase() == 'y' || ans.trim().toLowerCase() == 'yes';
-  } catch (_) {
-    return false;
+    print("\nPolicy check: Tool execution requested: ${tc.name}");
+    if (tc.args.isNotEmpty) {
+      print("Arguments: ${tc.args}");
+    }
+    try {
+      final ans = await asyncInput("Allow execution? (y/n) [n]: ");
+      return ans.trim().toLowerCase() == 'y' ||
+          ans.trim().toLowerCase() == 'yes';
+    } catch (_) {
+      return false;
+    }
+  } finally {
+    Spinner.resumeActive();
   }
 }
 
@@ -84,50 +95,55 @@ class AskQuestionHook extends OnInteractionHook {
     HookContext context,
     AskQuestionInteractionSpec spec,
   ) async {
-    final responses = <QuestionResponse>[];
+    Spinner.pauseActive();
     try {
-      for (final q in spec.questions) {
-        print("\nQuestion: ${q.question}");
-        final options = q.options;
-        for (var i = 0; i < options.length; i++) {
-          print("  ${i + 1}. ${options[i].text}");
-        }
-        final ans = (await asyncInput("Response: ")).trim();
-        if (ans.isEmpty) {
-          responses.add(QuestionResponse(skipped: true));
-          continue;
-        }
+      final responses = <QuestionResponse>[];
+      try {
+        for (final q in spec.questions) {
+          print("\nQuestion: ${q.question}");
+          final options = q.options;
+          for (var i = 0; i < options.length; i++) {
+            print("  ${i + 1}. ${options[i].text}");
+          }
+          final ans = (await asyncInput("Response: ")).trim();
+          if (ans.isEmpty) {
+            responses.add(QuestionResponse(skipped: true));
+            continue;
+          }
 
-        String? matchedId;
-        if (options.isNotEmpty) {
-          try {
-            final selectedIdx = int.parse(ans) - 1;
-            if (selectedIdx >= 0 && selectedIdx < options.length) {
-              matchedId = options[selectedIdx].id;
-            }
-          } catch (_) {}
+          String? matchedId;
+          if (options.isNotEmpty) {
+            try {
+              final selectedIdx = int.parse(ans) - 1;
+              if (selectedIdx >= 0 && selectedIdx < options.length) {
+                matchedId = options[selectedIdx].id;
+              }
+            } catch (_) {}
 
-          if (matchedId == null) {
-            for (final opt in options) {
-              if (ans.toLowerCase() == opt.text.toLowerCase() ||
-                  ans.toLowerCase() == opt.id.toLowerCase()) {
-                matchedId = opt.id;
-                break;
+            if (matchedId == null) {
+              for (final opt in options) {
+                if (ans.toLowerCase() == opt.text.toLowerCase() ||
+                    ans.toLowerCase() == opt.id.toLowerCase()) {
+                  matchedId = opt.id;
+                  break;
+                }
               }
             }
           }
-        }
 
-        if (matchedId != null) {
-          responses.add(QuestionResponse(selectedOptionIds: [matchedId]));
-        } else {
-          responses.add(QuestionResponse(freeformResponse: ans));
+          if (matchedId != null) {
+            responses.add(QuestionResponse(selectedOptionIds: [matchedId]));
+          } else {
+            responses.add(QuestionResponse(freeformResponse: ans));
+          }
         }
+      } catch (_) {
+        return QuestionHookResult(responses: responses, cancelled: true);
       }
-    } catch (_) {
-      return QuestionHookResult(responses: responses, cancelled: true);
+      return QuestionHookResult(responses: responses);
+    } finally {
+      Spinner.resumeActive();
     }
-    return QuestionHookResult(responses: responses);
   }
 }
 
@@ -231,6 +247,18 @@ Future<void> runInteractiveLoop(
 
 /// A lightweight terminal spinner for async processing feedback.
 class Spinner {
+  static Spinner? _activeSpinner;
+
+  /// Pauses the currently active spinner.
+  static void pauseActive() {
+    _activeSpinner?.pause();
+  }
+
+  /// Resumes the currently active spinner.
+  static void resumeActive() {
+    _activeSpinner?.resume();
+  }
+
   String _currentMessage;
   bool _running = false;
   Timer? _timer;
@@ -256,9 +284,7 @@ class Spinner {
     _currentMessage = message;
   }
 
-  void start() {
-    if (!_enabled) return;
-    _running = true;
+  void _runTimer() {
     int idx = 0;
     _timer = Timer.periodic(const Duration(milliseconds: 80), (timer) {
       if (!_running) {
@@ -270,7 +296,31 @@ class Spinner {
     });
   }
 
+  void start() {
+    _activeSpinner = this;
+    if (!_enabled) return;
+    _running = true;
+    _runTimer();
+  }
+
+  void pause() {
+    if (!_enabled || !_running) return;
+    _running = false;
+    _timer?.cancel();
+    _timer = null;
+    stdout.write("\r\x1b[K");
+  }
+
+  void resume() {
+    if (!_enabled || _running) return;
+    _running = true;
+    _runTimer();
+  }
+
   void stop() {
+    if (_activeSpinner == this) {
+      _activeSpinner = null;
+    }
     if (!_enabled) return;
     _running = false;
     _timer?.cancel();

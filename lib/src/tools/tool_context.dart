@@ -1,15 +1,15 @@
 import '../connections/connection.dart';
+import '../utils/state.dart';
 
 /// Conversation-aware context for custom tools.
 ///
 /// wraps a Connection and exposes conversation capabilities — identity, idle state,
 /// message injection, and a per-conversation key-value store — to tools.
-class ToolContext {
+class ToolContext extends StateStore {
   final Connection _connection;
-  final Map<String, dynamic> _state = {};
 
   /// Creates a new [ToolContext] instance wrapping the given [connection].
-  ToolContext(this._connection);
+  ToolContext(this._connection) : super(parent: null);
 
   /// Returns the active connection.
   Connection get connection => _connection;
@@ -23,15 +23,5 @@ class ToolContext {
   /// Sends an asynchronous trigger notification to the conversation.
   Future<void> send(String message) async {
     await _connection.sendTriggerNotification(message);
-  }
-
-  /// Retrieves a value from the per-conversation state store.
-  dynamic getState(String key, [dynamic defaultValue]) {
-    return _state.containsKey(key) ? _state[key] : defaultValue;
-  }
-
-  /// Stores a value in the per-conversation state store.
-  void setState(String key, dynamic value) {
-    _state[key] = value;
   }
 }

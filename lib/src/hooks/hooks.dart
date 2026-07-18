@@ -1,33 +1,17 @@
 import 'dart:async';
 
 import '../types.dart';
+import '../utils/state.dart';
 
 // --- Contexts ---
 
 /// Base context for hooks to share state within the Google Antigravity SDK.
-class HookContext {
-  /// The parent hook context, if any, used for hierarchical state lookup.
-  final HookContext? parent;
-  final Map<String, dynamic> _store = {};
+class HookContext extends StateStore {
+  @override
+  HookContext? get parent => super.parent as HookContext?;
 
   /// Creates a new [HookContext] instance, optionally specifying a [parent].
-  HookContext({this.parent});
-
-  /// Gets a value from the context or its parent hierarchy.
-  dynamic getState(String key, [dynamic defaultValue]) {
-    if (_store.containsKey(key)) {
-      return _store[key];
-    }
-    if (parent != null) {
-      return parent!.getState(key, defaultValue);
-    }
-    return defaultValue;
-  }
-
-  /// Sets a value in the local context.
-  void setState(String key, dynamic value) {
-    _store[key] = value;
-  }
+  HookContext({HookContext? parent}) : super(parent: parent);
 }
 
 /// Context scoped to an entire agent session in the Google Antigravity SDK.
@@ -146,7 +130,7 @@ abstract class OnInteractionHook
     extends TransformHook<AskQuestionInteractionSpec, QuestionHookResult> {}
 
 /// Invoked when a conversation context compaction event occurs.
-abstract class OnCompactionHook extends InspectHook<dynamic> {}
+abstract class OnCompactionHook extends InspectHook<Step> {}
 
 /// Invoked when a step is first seen in the stream (internal).
 abstract class PreStepHook extends InspectHook<Step> {}
@@ -346,7 +330,7 @@ class HookRunner {
   }
 
   /// Dispatches compaction events.
-  Future<void> dispatchCompaction(TurnContext turnContext, dynamic data) async {
+  Future<void> dispatchCompaction(TurnContext turnContext, Step data) async {
     final opContext = OperationContext(turnContext);
     for (final hook in onCompactionHooks) {
       await hook.run(opContext, data);

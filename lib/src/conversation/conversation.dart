@@ -254,8 +254,8 @@ class Conversation {
   Stream<Step> receiveSteps() => _connection.receiveSteps();
 
   void _accumulateUsage(UsageMetadata usage) {
-    _cumulativeUsage = _addUsage(_cumulativeUsage, usage);
-    _turnUsage = _addUsage(_turnUsage ?? _zeroUsage(), usage);
+    _cumulativeUsage = _cumulativeUsage + usage;
+    _turnUsage = (_turnUsage ?? _zeroUsage()) + usage;
   }
 
   /// Cancels the current turn in progress.
@@ -290,19 +290,6 @@ class Conversation {
         thoughtsTokenCount: 0,
         totalTokenCount: 0,
       );
-
-  UsageMetadata _addUsage(UsageMetadata a, UsageMetadata b) {
-    return UsageMetadata(
-      promptTokenCount: (a.promptTokenCount ?? 0) + (b.promptTokenCount ?? 0),
-      cachedContentTokenCount:
-          (a.cachedContentTokenCount ?? 0) + (b.cachedContentTokenCount ?? 0),
-      candidatesTokenCount:
-          (a.candidatesTokenCount ?? 0) + (b.candidatesTokenCount ?? 0),
-      thoughtsTokenCount:
-          (a.thoughtsTokenCount ?? 0) + (b.thoughtsTokenCount ?? 0),
-      totalTokenCount: (a.totalTokenCount ?? 0) + (b.totalTokenCount ?? 0),
-    );
-  }
 
   void _enforceMaxHistory() {
     if (maxHistorySize != null && _history.length > maxHistorySize!) {

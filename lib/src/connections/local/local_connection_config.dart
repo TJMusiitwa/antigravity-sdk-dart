@@ -35,6 +35,7 @@ abstract class BaseLocalAgentConfig extends AgentConfig
     List<SubagentConfig>? subagents,
     List<String>? workspaces,
     super.conversationId,
+    super.sessionContinuationMode,
     super.saveDir,
     super.appDataDir,
     super.responseSchema,
@@ -105,6 +106,7 @@ class LocalAgentConfig extends BaseLocalAgentConfig
     super.subagents,
     super.workspaces,
     super.conversationId,
+    super.sessionContinuationMode,
     super.saveDir,
     super.appDataDir,
     super.responseSchema,
@@ -112,11 +114,19 @@ class LocalAgentConfig extends BaseLocalAgentConfig
     this.model,
     this.models,
     this.apiKey,
-    this.vertex = false,
+    bool? vertex,
     this.project,
     this.location,
     this.binaryPath,
-  });
+  }) : vertex = vertex ??
+            (Platform.environment['GOOGLE_GENAI_USE_VERTEXAI']
+                        ?.toLowerCase() ==
+                    'true' ||
+                Platform.environment['GOOGLE_GENAI_USE_VERTEXAI'] == '1' ||
+                Platform.environment['GOOGLE_GENAI_USE_ENTERPRISE']
+                        ?.toLowerCase() ==
+                    'true' ||
+                Platform.environment['GOOGLE_GENAI_USE_ENTERPRISE'] == '1');
 
   ModelEndpoint? _buildShorthandEndpoint() {
     if (vertex) {
@@ -198,6 +208,7 @@ class LocalAgentConfig extends BaseLocalAgentConfig
       systemInstructions: systemInstructions,
       capabilitiesConfig: capabilities,
       conversationId: conversationId,
+      sessionContinuationMode: sessionContinuationMode,
       saveDir: effectiveSaveDir,
       workspaces: workspaces,
       appDataDir: appDataDir ?? defaultAppDataDir,
@@ -231,6 +242,7 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
     super.subagents,
     super.workspaces,
     super.conversationId,
+    super.sessionContinuationMode,
     super.saveDir,
     super.appDataDir,
     super.responseSchema,
@@ -267,6 +279,7 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
       systemInstructions: systemInstructions,
       capabilitiesConfig: capabilities,
       conversationId: conversationId,
+      sessionContinuationMode: sessionContinuationMode,
       saveDir: effectiveSaveDir,
       workspaces: workspaces,
       appDataDir: appDataDir ?? defaultAppDataDir,
@@ -340,6 +353,7 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
     super.subagents,
     super.workspaces,
     super.conversationId,
+    super.sessionContinuationMode,
     super.saveDir,
     super.appDataDir,
     super.responseSchema,
@@ -369,6 +383,7 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
       systemInstructions: systemInstructions,
       capabilitiesConfig: capabilities,
       conversationId: conversationId,
+      sessionContinuationMode: sessionContinuationMode,
       saveDir: effectiveSaveDir,
       workspaces: workspaces,
       appDataDir: appDataDir ?? defaultAppDataDir,

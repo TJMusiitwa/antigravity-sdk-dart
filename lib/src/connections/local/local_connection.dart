@@ -28,6 +28,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   final dynamic _systemInstructions;
   final CapabilitiesConfig _capabilitiesConfig;
   final String? _conversationId;
+  final SessionContinuationMode? _sessionContinuationMode;
   final String? _saveDir;
   final List<String> _workspaces;
   final String? _appDataDir;
@@ -51,6 +52,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     required dynamic systemInstructions,
     required CapabilitiesConfig capabilitiesConfig,
     String? conversationId,
+    SessionContinuationMode? sessionContinuationMode,
     String? saveDir,
     required List<String> workspaces,
     String? appDataDir,
@@ -64,6 +66,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         _systemInstructions = systemInstructions,
         _capabilitiesConfig = capabilitiesConfig,
         _conversationId = conversationId,
+        _sessionContinuationMode = sessionContinuationMode,
         _saveDir = saveDir,
         _workspaces = workspaces,
         _appDataDir = appDataDir,
@@ -116,7 +119,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     final inputConfigBytes = LocalHarnessProto.encodeInputConfig(
       storageDirectory: _saveDir ?? '',
       clientLanguage: 'dart',
-      clientVersion: '0.4.1',
+      clientVersion: '0.5.0',
       clientLanguageVersion: Platform.version,
     );
     final packedMessage = LocalHarnessProto.packMessage(inputConfigBytes);
@@ -140,39 +143,48 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       );
     }
 
-    final wsUrl = 'ws://localhost:${outputConfig.port}/';
-    _logger.fine('Handshake successful. Connecting to WebSocket at $wsUrl');
-
-    // 6. Connect to local WebSocket server with retry backoff
+    // 6. Connect to local WebSocket server with retry backoff (trying both localhost and 127.0.0.1)
     WebSocket? ws;
+    String? connectedWsUrl;
     int attempt = 0;
     const maxRetries = 5;
+    Object? lastException;
     while (attempt < maxRetries) {
-      try {
-        ws = await WebSocket.connect(
-          wsUrl,
-          headers: {'x-goog-api-key': outputConfig.apiKey},
-        );
-        break;
-      } catch (e) {
-        attempt++;
-        if (attempt >= maxRetries) {
-          _process!.kill();
-          final stderrText =
-              await _process!.stderr.transform(utf8.decoder).join();
-          throw Exception(
-            'Failed to connect to WebSocket at $wsUrl after $maxRetries attempts. Stderr: $stderrText. Error: $e',
+      for (final host in ['localhost', '127.0.0.1']) {
+        final url = 'ws://$host:${outputConfig.port}/';
+        try {
+          ws = await WebSocket.connect(
+            url,
+            headers: {'x-goog-api-key': outputConfig.apiKey},
           );
+          connectedWsUrl = url;
+          break;
+        } catch (e) {
+          lastException = e;
         }
-        final delay = Duration(milliseconds: 100 * (1 << attempt));
-        _logger.warning(
-          'WebSocket connection failed. Retrying in ${delay.inMilliseconds}ms...',
-        );
-        await Future.delayed(delay);
       }
+      if (ws != null) {
+        break;
+      }
+      attempt++;
+      if (attempt >= maxRetries) {
+        _process!.kill();
+        final stderrText =
+            await _process!.stderr.transform(utf8.decoder).join();
+        throw Exception(
+          'Failed to connect to WebSocket after $maxRetries attempts. Last error: $lastException. Stderr: $stderrText',
+        );
+      }
+      final delay = Duration(milliseconds: 100 * (1 << attempt));
+      _logger.warning(
+        'WebSocket connection failed. Retrying in ${delay.inMilliseconds}ms...',
+      );
+      await Future.delayed(delay);
     }
 
     _ws = ws;
+    _logger.fine(
+        'Handshake successful. Connected to WebSocket at $connectedWsUrl');
 
     try {
       final initCompleter = Completer<List<Step>>();
@@ -506,8 +518,16 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       });
     }
 
+    final sessionContinuationModeProto = switch (_sessionContinuationMode) {
+      SessionContinuationMode.resume => 'RESUME',
+      SessionContinuationMode.createOrResume => 'CREATE_OR_RESUME',
+      SessionContinuationMode.createOnly => 'CREATE_ONLY',
+      _ => 'SESSION_CONTINUATION_MODE_UNSPECIFIED',
+    };
+
     return {
       'cascade_id': _conversationId ?? '',
+      'session_continuation_mode': sessionContinuationModeProto,
       'tools': toolsProtos,
       'system_instructions': systemInstructionsProto,
       'models': modelsProtos,
@@ -594,8 +614,6 @@ class LocalConnection implements Connection {
   final List<String> _stderrLines = [];
   bool _disconnecting = false;
   bool _idleState = true;
-  bool _parentIdle = true;
-  final Set<String> _activeSubagentIds = {};
   String _convId = '';
   final List<Step> _initialHistory = [];
 
@@ -742,8 +760,19 @@ class LocalConnection implements Connection {
         _convId = step.cascadeId;
       }
 
+      Step stepForQueue = step;
+      if (step.toolCalls.isNotEmpty) {
+        final registeredTools = _toolRunner.tools;
+        final filteredCalls = step.toolCalls
+            .where((tc) => !registeredTools.containsKey(tc.name))
+            .toList();
+        if (filteredCalls.length != step.toolCalls.length) {
+          stepForQueue = step.copyWith(toolCalls: filteredCalls);
+        }
+      }
+
       // Add step to stream
-      _safeAdd(step);
+      _safeAdd(stepForQueue);
 
       // Track step state transitions and dispatch pre/post step hooks
       final trajectoryId = stepJson['trajectory_id']?.toString() ?? '';
@@ -789,19 +818,24 @@ class LocalConnection implements Connection {
       }
       final isSubagent = trajectoryId.isNotEmpty && trajectoryId != _convId;
 
-      if (state == 'STATE_RUNNING' || state == 'RUNNING') {
-        if (isSubagent) {
-          _activeSubagentIds.add(trajectoryId);
+      if (isSubagent) {
+        if (update.containsKey('error') &&
+            update['error'].toString().isNotEmpty) {
+          final errMsg = update['error'].toString();
+          _logger.info('Subagent trajectory failed with error: $errMsg');
         }
+        return;
+      }
+
+      if (state == 'STATE_RUNNING' || state == 'RUNNING') {
         _idleState = false;
       } else if (state == 'STATE_IDLE' || state == 'IDLE') {
-        if (isSubagent) {
-          _activeSubagentIds.remove(trajectoryId);
-        } else {
-          _parentIdle = true;
+        if (update.containsKey('error') &&
+            update['error'].toString().isNotEmpty) {
+          final errMsg = update['error'].toString();
+          _safeAddError(AntigravityExecutionException(errMsg));
         }
-
-        if (_parentIdle && _activeSubagentIds.isEmpty) {
+        if (!_idleState) {
           _idleState = true;
           _safeAdd(
             Step(
@@ -813,16 +847,6 @@ class LocalConnection implements Connection {
               status: StepStatus.done,
             ),
           );
-        }
-
-        if (update.containsKey('error') &&
-            update['error'].toString().isNotEmpty) {
-          final errMsg = update['error'].toString();
-          if (isSubagent) {
-            _logger.info('Subagent trajectory failed with error: $errMsg');
-          } else {
-            _safeAddError(AntigravityExecutionException(errMsg));
-          }
         }
       } else if (state == 'STATE_CANCELLED' || state == 'CANCELLED') {
         final errMsg =
@@ -974,7 +998,6 @@ class LocalConnection implements Connection {
     Map<String, dynamic>? kwargs,
   }) async {
     _idleState = false;
-    _parentIdle = false;
     final List<Map<String, dynamic>> parts = [];
 
     if (prompt is String) {
@@ -1275,6 +1298,7 @@ class LocalOpenAIConnectionStrategy extends LocalConnectionStrategy {
     super.systemInstructions,
     required super.capabilitiesConfig,
     super.conversationId,
+    super.sessionContinuationMode,
     super.saveDir,
     required super.workspaces,
     super.appDataDir,
@@ -1338,6 +1362,7 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
     super.systemInstructions,
     required super.capabilitiesConfig,
     super.conversationId,
+    super.sessionContinuationMode,
     super.saveDir,
     required super.workspaces,
     super.appDataDir,

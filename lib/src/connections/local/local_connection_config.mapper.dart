@@ -77,6 +77,7 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
       CapabilitiesConfigMapper.ensureInitialized();
       McpServerConfigMapper.ensureInitialized();
       SubagentConfigMapper.ensureInitialized();
+      SessionContinuationModeMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -139,6 +140,16 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
     _$conversationId,
     opt: true,
   );
+  static SessionContinuationMode? _$sessionContinuationMode(
+    BaseLocalAgentConfig v,
+  ) =>
+      v.sessionContinuationMode;
+  static const Field<BaseLocalAgentConfig, SessionContinuationMode>
+      _f$sessionContinuationMode = Field(
+    'sessionContinuationMode',
+    _$sessionContinuationMode,
+    opt: true,
+  );
   static String? _$saveDir(BaseLocalAgentConfig v) => v.saveDir;
   static const Field<BaseLocalAgentConfig, String> _f$saveDir = Field(
     'saveDir',
@@ -176,6 +187,7 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
     #subagents: _f$subagents,
     #workspaces: _f$workspaces,
     #conversationId: _f$conversationId,
+    #sessionContinuationMode: _f$sessionContinuationMode,
     #saveDir: _f$saveDir,
     #appDataDir: _f$appDataDir,
     #responseSchema: _f$responseSchema,
@@ -241,6 +253,7 @@ abstract class BaseLocalAgentConfigCopyWith<
     List<SubagentConfig>? subagents,
     List<String>? workspaces,
     String? conversationId,
+    SessionContinuationMode? sessionContinuationMode,
     String? saveDir,
     String? appDataDir,
     dynamic responseSchema,
@@ -269,6 +282,7 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
       CapabilitiesConfigMapper.ensureInitialized();
       McpServerConfigMapper.ensureInitialized();
       SubagentConfigMapper.ensureInitialized();
+      SessionContinuationModeMapper.ensureInitialized();
       ModelTargetMapper.ensureInitialized();
     }
     return _instance!;
@@ -333,6 +347,16 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
     _$conversationId,
     opt: true,
   );
+  static SessionContinuationMode? _$sessionContinuationMode(
+    LocalAgentConfig v,
+  ) =>
+      v.sessionContinuationMode;
+  static const Field<LocalAgentConfig, SessionContinuationMode>
+      _f$sessionContinuationMode = Field(
+    'sessionContinuationMode',
+    _$sessionContinuationMode,
+    opt: true,
+  );
   static String? _$saveDir(LocalAgentConfig v) => v.saveDir;
   static const Field<LocalAgentConfig, String> _f$saveDir = Field(
     'saveDir',
@@ -380,7 +404,6 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
     'vertex',
     _$vertex,
     opt: true,
-    def: false,
   );
   static String? _$project(LocalAgentConfig v) => v.project;
   static const Field<LocalAgentConfig, String> _f$project = Field(
@@ -413,6 +436,7 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
     #subagents: _f$subagents,
     #workspaces: _f$workspaces,
     #conversationId: _f$conversationId,
+    #sessionContinuationMode: _f$sessionContinuationMode,
     #saveDir: _f$saveDir,
     #appDataDir: _f$appDataDir,
     #responseSchema: _f$responseSchema,
@@ -438,6 +462,7 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
       subagents: data.dec(_f$subagents),
       workspaces: data.dec(_f$workspaces),
       conversationId: data.dec(_f$conversationId),
+      sessionContinuationMode: data.dec(_f$sessionContinuationMode),
       saveDir: data.dec(_f$saveDir),
       appDataDir: data.dec(_f$appDataDir),
       responseSchema: data.dec(_f$responseSchema),
@@ -557,6 +582,7 @@ abstract class LocalAgentConfigCopyWith<$R, $In extends LocalAgentConfig, $Out>
     List<SubagentConfig>? subagents,
     List<String>? workspaces,
     String? conversationId,
+    SessionContinuationMode? sessionContinuationMode,
     String? saveDir,
     String? appDataDir,
     dynamic responseSchema,
@@ -672,6 +698,7 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
     Object? subagents = $none,
     Object? workspaces = $none,
     Object? conversationId = $none,
+    Object? sessionContinuationMode = $none,
     Object? saveDir = $none,
     Object? appDataDir = $none,
     Object? responseSchema = $none,
@@ -679,7 +706,7 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
     Object? model = $none,
     Object? models = $none,
     Object? apiKey = $none,
-    bool? vertex,
+    Object? vertex = $none,
     Object? project = $none,
     Object? location = $none,
     Object? binaryPath = $none,
@@ -697,6 +724,8 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
           if (subagents != $none) #subagents: subagents,
           if (workspaces != $none) #workspaces: workspaces,
           if (conversationId != $none) #conversationId: conversationId,
+          if (sessionContinuationMode != $none)
+            #sessionContinuationMode: sessionContinuationMode,
           if (saveDir != $none) #saveDir: saveDir,
           if (appDataDir != $none) #appDataDir: appDataDir,
           if (responseSchema != $none) #responseSchema: responseSchema,
@@ -704,7 +733,7 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
           if (model != $none) #model: model,
           if (models != $none) #models: models,
           if (apiKey != $none) #apiKey: apiKey,
-          if (vertex != null) #vertex: vertex,
+          if (vertex != $none) #vertex: vertex,
           if (project != $none) #project: project,
           if (location != $none) #location: location,
           if (binaryPath != $none) #binaryPath: binaryPath,
@@ -725,6 +754,10 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
         subagents: data.get(#subagents, or: $value.subagents),
         workspaces: data.get(#workspaces, or: $value.workspaces),
         conversationId: data.get(#conversationId, or: $value.conversationId),
+        sessionContinuationMode: data.get(
+          #sessionContinuationMode,
+          or: $value.sessionContinuationMode,
+        ),
         saveDir: data.get(#saveDir, or: $value.saveDir),
         appDataDir: data.get(#appDataDir, or: $value.appDataDir),
         responseSchema: data.get(#responseSchema, or: $value.responseSchema),
@@ -758,6 +791,7 @@ class LocalOpenAIAgentConfigMapper
       CapabilitiesConfigMapper.ensureInitialized();
       McpServerConfigMapper.ensureInitialized();
       SubagentConfigMapper.ensureInitialized();
+      SessionContinuationModeMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -829,6 +863,16 @@ class LocalOpenAIAgentConfigMapper
     _$conversationId,
     opt: true,
   );
+  static SessionContinuationMode? _$sessionContinuationMode(
+    LocalOpenAIAgentConfig v,
+  ) =>
+      v.sessionContinuationMode;
+  static const Field<LocalOpenAIAgentConfig, SessionContinuationMode>
+      _f$sessionContinuationMode = Field(
+    'sessionContinuationMode',
+    _$sessionContinuationMode,
+    opt: true,
+  );
   static String? _$saveDir(LocalOpenAIAgentConfig v) => v.saveDir;
   static const Field<LocalOpenAIAgentConfig, String> _f$saveDir = Field(
     'saveDir',
@@ -865,6 +909,7 @@ class LocalOpenAIAgentConfigMapper
     #subagents: _f$subagents,
     #workspaces: _f$workspaces,
     #conversationId: _f$conversationId,
+    #sessionContinuationMode: _f$sessionContinuationMode,
     #saveDir: _f$saveDir,
     #appDataDir: _f$appDataDir,
     #responseSchema: _f$responseSchema,
@@ -885,6 +930,7 @@ class LocalOpenAIAgentConfigMapper
       subagents: data.dec(_f$subagents),
       workspaces: data.dec(_f$workspaces),
       conversationId: data.dec(_f$conversationId),
+      sessionContinuationMode: data.dec(_f$sessionContinuationMode),
       saveDir: data.dec(_f$saveDir),
       appDataDir: data.dec(_f$appDataDir),
       responseSchema: data.dec(_f$responseSchema),
@@ -999,6 +1045,7 @@ abstract class LocalOpenAIAgentConfigCopyWith<
     List<SubagentConfig>? subagents,
     List<String>? workspaces,
     String? conversationId,
+    SessionContinuationMode? sessionContinuationMode,
     String? saveDir,
     String? appDataDir,
     dynamic responseSchema,
@@ -1100,6 +1147,7 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
     Object? subagents = $none,
     Object? workspaces = $none,
     Object? conversationId = $none,
+    Object? sessionContinuationMode = $none,
     Object? saveDir = $none,
     Object? appDataDir = $none,
     Object? responseSchema = $none,
@@ -1120,6 +1168,8 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
           if (subagents != $none) #subagents: subagents,
           if (workspaces != $none) #workspaces: workspaces,
           if (conversationId != $none) #conversationId: conversationId,
+          if (sessionContinuationMode != $none)
+            #sessionContinuationMode: sessionContinuationMode,
           if (saveDir != $none) #saveDir: saveDir,
           if (appDataDir != $none) #appDataDir: appDataDir,
           if (responseSchema != $none) #responseSchema: responseSchema,
@@ -1143,6 +1193,10 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
         subagents: data.get(#subagents, or: $value.subagents),
         workspaces: data.get(#workspaces, or: $value.workspaces),
         conversationId: data.get(#conversationId, or: $value.conversationId),
+        sessionContinuationMode: data.get(
+          #sessionContinuationMode,
+          or: $value.sessionContinuationMode,
+        ),
         saveDir: data.get(#saveDir, or: $value.saveDir),
         appDataDir: data.get(#appDataDir, or: $value.appDataDir),
         responseSchema: data.get(#responseSchema, or: $value.responseSchema),
@@ -1168,6 +1222,7 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
       CapabilitiesConfigMapper.ensureInitialized();
       McpServerConfigMapper.ensureInitialized();
       SubagentConfigMapper.ensureInitialized();
+      SessionContinuationModeMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -1291,6 +1346,16 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
     _$conversationId,
     opt: true,
   );
+  static SessionContinuationMode? _$sessionContinuationMode(
+    LiteRTAgentConfig v,
+  ) =>
+      v.sessionContinuationMode;
+  static const Field<LiteRTAgentConfig, SessionContinuationMode>
+      _f$sessionContinuationMode = Field(
+    'sessionContinuationMode',
+    _$sessionContinuationMode,
+    opt: true,
+  );
   static String? _$saveDir(LiteRTAgentConfig v) => v.saveDir;
   static const Field<LiteRTAgentConfig, String> _f$saveDir = Field(
     'saveDir',
@@ -1337,6 +1402,7 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
     #subagents: _f$subagents,
     #workspaces: _f$workspaces,
     #conversationId: _f$conversationId,
+    #sessionContinuationMode: _f$sessionContinuationMode,
     #saveDir: _f$saveDir,
     #appDataDir: _f$appDataDir,
     #responseSchema: _f$responseSchema,
@@ -1364,6 +1430,7 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
       subagents: data.dec(_f$subagents),
       workspaces: data.dec(_f$workspaces),
       conversationId: data.dec(_f$conversationId),
+      sessionContinuationMode: data.dec(_f$sessionContinuationMode),
       saveDir: data.dec(_f$saveDir),
       appDataDir: data.dec(_f$appDataDir),
       responseSchema: data.dec(_f$responseSchema),
@@ -1485,6 +1552,7 @@ abstract class LiteRTAgentConfigCopyWith<$R, $In extends LiteRTAgentConfig,
     List<SubagentConfig>? subagents,
     List<String>? workspaces,
     String? conversationId,
+    SessionContinuationMode? sessionContinuationMode,
     String? saveDir,
     String? appDataDir,
     dynamic responseSchema,
@@ -1592,6 +1660,7 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
     Object? subagents = $none,
     Object? workspaces = $none,
     Object? conversationId = $none,
+    Object? sessionContinuationMode = $none,
     Object? saveDir = $none,
     Object? appDataDir = $none,
     Object? responseSchema = $none,
@@ -1620,6 +1689,8 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
           if (subagents != $none) #subagents: subagents,
           if (workspaces != $none) #workspaces: workspaces,
           if (conversationId != $none) #conversationId: conversationId,
+          if (sessionContinuationMode != $none)
+            #sessionContinuationMode: sessionContinuationMode,
           if (saveDir != $none) #saveDir: saveDir,
           if (appDataDir != $none) #appDataDir: appDataDir,
           if (responseSchema != $none) #responseSchema: responseSchema,
@@ -1657,6 +1728,10 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
         subagents: data.get(#subagents, or: $value.subagents),
         workspaces: data.get(#workspaces, or: $value.workspaces),
         conversationId: data.get(#conversationId, or: $value.conversationId),
+        sessionContinuationMode: data.get(
+          #sessionContinuationMode,
+          or: $value.sessionContinuationMode,
+        ),
         saveDir: data.get(#saveDir, or: $value.saveDir),
         appDataDir: data.get(#appDataDir, or: $value.appDataDir),
         responseSchema: data.get(#responseSchema, or: $value.responseSchema),

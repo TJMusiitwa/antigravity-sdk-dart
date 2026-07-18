@@ -25,6 +25,7 @@ class AgentConfigMapper extends ClassMapperBase<AgentConfig> {
       CapabilitiesConfigMapper.ensureInitialized();
       McpServerConfigMapper.ensureInitialized();
       SubagentConfigMapper.ensureInitialized();
+      SessionContinuationModeMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -66,9 +67,10 @@ class AgentConfigMapper extends ClassMapperBase<AgentConfig> {
   );
   static List<FutureOr<void> Function(TriggerContext)> _$triggers(
     AgentConfig v,
-  ) => v.triggers;
+  ) =>
+      v.triggers;
   static const Field<AgentConfig, List<FutureOr<void> Function(TriggerContext)>>
-  _f$triggers = Field('triggers', _$triggers, opt: true);
+      _f$triggers = Field('triggers', _$triggers, opt: true);
   static List<McpServerConfig> _$mcpServers(AgentConfig v) => v.mcpServers;
   static const Field<AgentConfig, List<McpServerConfig>> _f$mcpServers = Field(
     'mcpServers',
@@ -91,6 +93,14 @@ class AgentConfigMapper extends ClassMapperBase<AgentConfig> {
   static const Field<AgentConfig, String> _f$conversationId = Field(
     'conversationId',
     _$conversationId,
+    opt: true,
+  );
+  static SessionContinuationMode? _$sessionContinuationMode(AgentConfig v) =>
+      v.sessionContinuationMode;
+  static const Field<AgentConfig, SessionContinuationMode>
+      _f$sessionContinuationMode = Field(
+    'sessionContinuationMode',
+    _$sessionContinuationMode,
     opt: true,
   );
   static String? _$saveDir(AgentConfig v) => v.saveDir;
@@ -130,6 +140,7 @@ class AgentConfigMapper extends ClassMapperBase<AgentConfig> {
     #subagents: _f$subagents,
     #workspaces: _f$workspaces,
     #conversationId: _f$conversationId,
+    #sessionContinuationMode: _f$sessionContinuationMode,
     #saveDir: _f$saveDir,
     #appDataDir: _f$appDataDir,
     #responseSchema: _f$responseSchema,
@@ -163,32 +174,20 @@ mixin AgentConfigMappable {
 abstract class AgentConfigCopyWith<$R, $In extends AgentConfig, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   CapabilitiesConfigCopyWith<$R, CapabilitiesConfig, CapabilitiesConfig>
-  get capabilities;
+      get capabilities;
   ListCopyWith<$R, Tool, ObjectCopyWith<$R, Tool, Tool>> get tools;
   ListCopyWith<$R, dynamic, ObjectCopyWith<$R, dynamic, dynamic>?> get policies;
   ListCopyWith<$R, Hook, ObjectCopyWith<$R, Hook, Hook>> get hooks;
   ListCopyWith<
-    $R,
-    FutureOr<void> Function(TriggerContext),
-    ObjectCopyWith<
       $R,
       FutureOr<void> Function(TriggerContext),
-      FutureOr<void> Function(TriggerContext)
-    >
-  >
-  get triggers;
-  ListCopyWith<
-    $R,
-    McpServerConfig,
-    McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>
-  >
-  get mcpServers;
-  ListCopyWith<
-    $R,
-    SubagentConfig,
-    SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>
-  >
-  get subagents;
+      ObjectCopyWith<$R, FutureOr<void> Function(TriggerContext),
+          FutureOr<void> Function(TriggerContext)>> get triggers;
+  ListCopyWith<$R, McpServerConfig,
+          McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>>
+      get mcpServers;
+  ListCopyWith<$R, SubagentConfig,
+      SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>> get subagents;
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get workspaces;
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get skillsPaths;
   $R call({
@@ -202,6 +201,7 @@ abstract class AgentConfigCopyWith<$R, $In extends AgentConfig, $Out>
     List<SubagentConfig>? subagents,
     List<String>? workspaces,
     String? conversationId,
+    SessionContinuationMode? sessionContinuationMode,
     String? saveDir,
     String? appDataDir,
     dynamic responseSchema,
@@ -209,4 +209,3 @@ abstract class AgentConfigCopyWith<$R, $In extends AgentConfig, $Out>
   });
   AgentConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
 }
-

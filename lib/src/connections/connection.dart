@@ -55,6 +55,9 @@ abstract class AgentConfig with AgentConfigMappable {
   /// The active conversation identifier, if resuming a previous session.
   final String? conversationId;
 
+  /// The mode for establishing a connection to an agent session.
+  final SessionContinuationMode? sessionContinuationMode;
+
   /// The directory where the agent's persistent state is saved.
   final String? saveDir;
 
@@ -67,7 +70,6 @@ abstract class AgentConfig with AgentConfigMappable {
   /// Paths containing reusable agent skills.
   final List<String> skillsPaths;
 
-  /// Creates a new [AgentConfig] instance.
   AgentConfig({
     this.systemInstructions,
     CapabilitiesConfig? capabilities,
@@ -79,6 +81,7 @@ abstract class AgentConfig with AgentConfigMappable {
     List<SubagentConfig>? subagents,
     List<String>? workspaces,
     this.conversationId,
+    this.sessionContinuationMode,
     this.saveDir,
     this.appDataDir,
     this.responseSchema,
@@ -92,7 +95,26 @@ abstract class AgentConfig with AgentConfigMappable {
         mcpServers = mcpServers ?? const [],
         subagents = subagents ?? const [],
         workspaces = workspaces ?? const [],
-        skillsPaths = skillsPaths ?? const [];
+        skillsPaths = skillsPaths ?? const [] {
+    if (conversationId != null) {
+      if (conversationId!.length < 32) {
+        throw AntigravityValidationException(
+          'conversationId must be at least 32 characters long, got ${conversationId!.length}',
+        );
+      }
+      if (!RegExp(r'^[a-zA-Z0-9-]+$').hasMatch(conversationId!)) {
+        throw AntigravityValidationException(
+          "conversationId must match [a-zA-Z0-9-], got '$conversationId'",
+        );
+      }
+    }
+    if (sessionContinuationMode == SessionContinuationMode.resume &&
+        conversationId == null) {
+      throw AntigravityValidationException(
+        'conversationId must be specified when sessionContinuationMode is RESUME',
+      );
+    }
+  }
 
   /// Creates the [ConnectionStrategy] for this configuration.
   ///
