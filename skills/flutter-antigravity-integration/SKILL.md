@@ -1,115 +1,28 @@
 ---
 name: flutter-antigravity-integration
-description: "Guidelines for integrating the Antigravity SDK into Flutter applications, managing states, and rendering reactive outputs."
+description: "Use when integrating the Antigravity SDK into Flutter applications, binding Riverpod/StateNotifier lifecycles, or building agent UI overlays."
 ---
 
 # Flutter Integration with Antigravity SDK
 
-This skill provides guidelines and pattern libraries for integrating the Google Antigravity SDK into a Flutter application.
+Pattern guidelines for integrating the Google Antigravity SDK into Flutter apps cleanly.
 
 ## 1. Agent Lifecycle Management
 
-To avoid leaking system resources or binary harness processes, coordinate the `Agent` session with Flutter's state lifecycle.
+-   **State Management (Riverpod)**: Bind `Agent` session startup to state providers and register disposal logic via `ref.onDispose(() => agent.stop())`.
+-   **App State Hooks**: Handle app suspension via `AppLifecycleListener` to pause/stop agent connections when paused.
 
-### State Management Integration (e.g., Riverpod)
-Expose the agent state using provider scopes and clean up the connection on disposal:
+For complete state management code, see [`examples/flutter_ui_patterns.md`](file:///Users/jonathanmusiitwa/Desktop/FLUTTER_PROJ/antigravity-sdk-dart/skills/flutter-antigravity-integration/examples/flutter_ui_patterns.md).
 
-```dart
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:antigravity/antigravity.dart';
+## 2. Reactive UI & Human-in-the-Loop Dialogs
 
-part 'agent_provider.g.dart';
+-   **Streaming Outputs**: Separate `thoughtStream` (internal reasoning) and `textStream` (final answer) into dedicated UI components using `StreamBuilder`.
+-   **Interactive UI Overlays**: Wire `askUser` policy handlers to `AlertDialog` or modal sheet widgets instead of blocking CLI stdin.
 
-@riverpod
-Future<Agent> activeAgent(Ref ref) async {
-  final config = LocalAgentConfig(
-    systemInstructions: "You are a helpful UI assistant.",
-  );
-  
-  final agent = Agent(config);
-  await agent.start();
-  
-  // Register cleanup when the provider is no longer watched
-  ref.onDispose(() async {
-    await agent.stop();
-  });
-  
-  return agent;
-}
-```
+For complete widget implementations, inspect [`examples/flutter_ui_patterns.md`](file:///Users/jonathanmusiitwa/Desktop/FLUTTER_PROJ/antigravity-sdk-dart/skills/flutter-antigravity-integration/examples/flutter_ui_patterns.md).
 
-### Application Lifecycle State
-If the application goes to the background or is suspended, ensure agent sessions are paused or closed:
-*   Use `WidgetsBindingObserver` or `AppLifecycleListener` to detect state transitions.
-*   Call `agent.stop()` when the app enters `AppLifecycleState.paused` or `detached`.
+## Completion Criteria
 
----
-
-## 2. Consuming Streaming Responses in Flutter
-
-Antigravity returns real-time streaming deltas. For maximum UI delight, render internal "thinking" tokens and final response tokens separately.
-
-### Reactive UI with StreamBuilder
-Feed the `textStream` and `thoughtStream` directly into `StreamBuilder` widgets:
-
-```dart
-Widget buildAgentResponse(ChatResponse response) {
-  return Column(
-    children: [
-      // 1. Thinking Process Block (Thoughts)
-      StreamBuilder<String>(
-        stream: response.thoughtStream,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const SizedBox.shrink();
-          return Container(
-            color: Colors.grey[200],
-            child: Text("Thinking: ${snapshot.data}"),
-          );
-        },
-      ),
-      
-      // 2. Final Text Output Block
-      StreamBuilder<String>(
-        stream: response.textStream,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const CircularProgressIndicator();
-          return Text(snapshot.data!);
-        },
-      ),
-    ],
-  );
-}
-```
-
----
-
-## 3. Human-in-the-Loop Overlay Widgets
-
-When safety policies require user confirmation (via the `askUser` decision) or when the agent asks questions, show interactive overlays instead of blocking on command-line stdin.
-
-### Replacing Stdin Handler with UI Prompts
-Configure policy handlers to resolve futures using UI element controllers or overlays:
-
-```dart
-Future<bool> showConfirmationDialog(BuildContext context, ToolCall tc) async {
-  final result = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text("Allow ${tc.name}?"),
-      content: Text("The agent wishes to run a tool with arguments:\n${tc.args}"),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text("Deny"),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, true),
-          child: const Text("Allow"),
-        ),
-      ],
-    ),
-  );
-  return result ?? false;
-}
-```
-Ensure you register this async handler within `policies: [ askUser("run_command", handler: customHandler) ]`.
+- [ ] `agent.stop()` is registered on state disposal (`ref.onDispose`) to prevent resource leaks.
+- [ ] UI separates streams for thinking process and final text output.
+- [ ] Interactive tool policies show non-blocking Flutter UI dialogs.

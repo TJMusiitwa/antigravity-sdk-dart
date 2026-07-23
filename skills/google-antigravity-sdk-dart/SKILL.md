@@ -1,23 +1,28 @@
 ---
 name: google-antigravity-sdk-dart
-description: "Design, implement, and debug autonomous AI agents and multi-agent systems using the Google Antigravity (AGY) Dart SDK. ACTIVATE this skill when the user wants to create, configure, or orchestrate Google Antigravity agents in Dart."
+description: "Use when initializing, configuring, or debugging Google Antigravity (AGY) agents, subagents, or persona configs in Dart."
 ---
 
 # Google Antigravity Dart SDK
 
-## Installation & Setup
+## 1. Environment & Setup Steps
 
-Ensure the Dart environment is ready:
+1.  **Check Dependencies**: Ensure `antigravity` is declared in `pubspec.yaml`.
+2.  **Authentication**: Pass `GEMINI_API_KEY` via `LocalAgentConfig(apiKey: "...")` or verify the `GEMINI_API_KEY` environment variable is set.
+3.  **Configure Session**: Initialize `LocalAgentConfig` with required tools, system instructions, and policies.
 
--   **Verify Applicability**: Verify that using this Dart SDK is possible and appropriate for the project.
--   **Check Dependencies**: Check if `antigravity` is listed in the project's `pubspec.yaml` dependencies.
--   **Authentication Setup**: Check for a valid `GEMINI_API_KEY` environment variable.
-    -   API key can be passed explicitly in code: `LocalAgentConfig(apiKey: "...")` or automatically read from the environment.
+## 2. Standard Example References
 
-## Examples
+Reference implementations for common setups:
 
--   `example/getting_started/hello_world.dart`: Simple hello world prompt.
--   `example/getting_started/custom_tools.dart`: Defining stateless and stateful tools.
--   `example/getting_started/persona_config.dart`: System instructions configurations.
--   `example/getting_started/subagents.dart`: Spawning child agents for delegation.
--   `example/getting_started/agent_skills.dart`: Loading and using agent skills.
+-   [`example/getting_started/hello_world.dart`](file:///Users/jonathanmusiitwa/Desktop/FLUTTER_PROJ/antigravity-sdk-dart/example/getting_started/hello_world.dart): Basic hello world agent setup.
+-   [`example/getting_started/custom_tools.dart`](file:///Users/jonathanmusiitwa/Desktop/FLUTTER_PROJ/antigravity-sdk-dart/example/getting_started/custom_tools.dart): Registering custom tool handlers.
+-   [`example/getting_started/persona_config.dart`](file:///Users/jonathanmusiitwa/Desktop/FLUTTER_PROJ/antigravity-sdk-dart/example/getting_started/persona_config.dart): Configuring system instructions.
+-   [`example/getting_started/subagents.dart`](file:///Users/jonathanmusiitwa/Desktop/FLUTTER_PROJ/antigravity-sdk-dart/example/getting_started/subagents.dart): Spawning and orchestrating subagents.
+-   [`example/getting_started/agent_skills.dart`](file:///Users/jonathanmusiitwa/Desktop/FLUTTER_PROJ/antigravity-sdk-dart/example/getting_started/agent_skills.dart): Loading agent skills.
+
+## Completion Criteria
+
+- [ ] `antigravity` dependency is present and resolved in `pubspec.yaml`.
+- [ ] `GEMINI_API_KEY` is provided either via config or environment.
+- [ ] Agent session initializes and responds cleanly to a test prompt.

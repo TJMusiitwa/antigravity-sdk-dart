@@ -1,80 +1,32 @@
 ---
 name: antigravity-policy-safety
-description: "Guidelines for configuring safety policies, sandboxing workspaces, and implementing user confirmations."
+description: "Use when configuring agent safety policies (allow/deny/askUser), path containment, interactive confirmation handlers, or sandboxing in Dart."
 ---
 
 # Safety Policies & Sandboxing in Dart
 
-This skill describes how to configure priority-bucketed declarative safety policies to safeguard local files and system processes from autonomous agent operations.
+Guidelines for configuring priority-bucketed declarative safety policies to safeguard local files and system processes.
 
-## 1. Declarative Policies Configuration
+## 1. Declarative Policy Setup
 
-The Antigravity SDK evaluates safety rules in a top-down list. The first rule matching a tool name dictates the action: `allow`, `deny`, or `askUser` (interactive prompt).
-
-### Default-Deny Configuration
-Always declare a fallback rule denying access to all tools (`deny("*")`) at the end of the policy list.
+1.  **Top-Down Evaluation**: The SDK evaluates safety rules sequentially. The first matching rule dictates the decision: `allow`, `deny`, or `askUser`.
+2.  **Default-Deny Fallback**: Always place a fallback rule denying all unmatched tools (`deny("*")`) at the bottom of the list.
 
 ```dart
-import 'package:antigravity/antigravity.dart';
-
 final policies = [
-  // 1. Explicitly allow safe read actions
   allow("view_file"),
-  
-  // 2. Interactively confirm high-risk operations
   askUser("run_command", handler: customCliHandler),
-  
-  // 3. Reject all other actions by default
   deny("*"),
 ];
-
-final config = LocalAgentConfig(
-  policies: policies,
-  capabilities: CapabilitiesConfig(),
-);
 ```
 
----
+## 2. Interactive Handlers & Sandboxing
 
-## 2. Interactive Policy Handlers
+-   **Interactive Prompts**: Implement asynchronous handlers returning `Future<bool>` to prompt users before tool execution. See [`references/safety_patterns.md`](file:///Users/jonathanmusiitwa/Desktop/FLUTTER_PROJ/antigravity-sdk-dart/skills/antigravity-policy-safety/references/safety_patterns.md) for code.
+-   **Path Containment**: Verify target file paths lie inside the safe workspace directory using path canonicalization. Read [`references/safety_patterns.md`](file:///Users/jonathanmusiitwa/Desktop/FLUTTER_PROJ/antigravity-sdk-dart/skills/antigravity-policy-safety/references/safety_patterns.md) for the helper function.
 
-Interactive handlers allow you to prompt the user (via CLI stdin or UI overlays) before executing matching tools.
+## Completion Criteria
 
-### Writing a CLI Confirmation Handler
-The handler function receives the `ToolCall` context and returns a `Future<bool>`:
-
-```dart
-import 'dart:io';
-
-Future<bool> customCliHandler(ToolCall toolCall) async {
-  stdout.writeln("\n[POLICY ALERT] Agent wants to execute: ${toolCall.name}");
-  if (toolCall.args.isNotEmpty) {
-    stdout.writeln("Arguments: ${toolCall.args}");
-  }
-  
-  stdout.write("Proceed? (y/N): ");
-  final input = stdin.readLineSync()?.trim().toLowerCase() ?? '';
-  return input == 'y' || input == 'yes';
-}
-```
-
----
-
-## 3. Path Containment & Sandboxing
-
-Prevent path-traversal attacks (`../../etc/passwd`) by checking that target paths are contained inside the designated workspace.
-
-### Safe Path Verification Utility
-```dart
-import 'package:path/path.dart' as p;
-
-bool isPathWithinWorkspace(String targetPath, String workspacePath) {
-  final canonicalTarget = p.canonicalize(targetPath);
-  final canonicalWorkspace = p.canonicalize(workspacePath);
-  
-  return p.isWithin(canonicalWorkspace, canonicalTarget) || 
-         canonicalTarget == canonicalWorkspace;
-}
-```
-
-Implement this check inside custom file tools or file-system hooks to reject target paths lying outside the safe workspace.
+- [ ] Policy list ends with an explicit fallback rule (`deny("*")`).
+- [ ] Interactive handlers return clean boolean decisions without hanging on stdin.
+- [ ] All workspace file operations validate path containment before reads/writes.
