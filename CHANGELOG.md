@@ -1,3 +1,12 @@
+# 0.6.0
+
+* **Sync with Python SDK v0.1.8**:
+  - **Default Model Upgrade to Gemini 3.6 Flash**: Updated default generative text model in `lib/src/models.dart` to `gemini-3.6-flash`.
+  - **Prompt Sanitization**: Strips null bytes (`\x00`) and dangerous control characters (`DEL`, `BEL`, `C1`) from incoming string prompts at the wire boundary.
+  - **Tool Execution Exception**: Introduced `ToolExecutionException` carrying `message`, `toolName`, and `serverName` metadata when tool execution fails, with updated hook routing in `HookRouter`.
+  - **Subagent Custom & Templated System Instructions**: Expanded `SubagentConfig` system instructions to support `CustomSystemInstructions` and `TemplatedSystemInstructions`.
+  - **SDK Version Bump & Alignment**: Bumping SDK version to 0.6.0 aligned with Python SDK v0.1.8 release updates.
+
 # 0.5.0
 
 * **Sync with Python SDK v0.1.7**:

@@ -184,22 +184,36 @@ class HookRouter {
       } else if (hookTypeStr == 'LIFECYCLE_HOOK_ON_TOOL_ERROR' ||
           hookTypeStr == 'ON_TOOL_ERROR') {
         var errorStr = 'Unknown tool error';
+        var rawToolName = '';
+        String? serverName;
         if (req.containsKey('on_tool_error_args') &&
             req['on_tool_error_args'] is Map) {
-          final args = req['on_tool_error_args'] as Map;
-          errorStr =
-              (args['error'] ?? args['errorMessage'] ?? 'Unknown tool error')
-                  .toString();
+          final extracted = _extractToolErrorDetails(
+            req['on_tool_error_args'] as Map,
+          );
+          errorStr = extracted.error;
+          rawToolName = extracted.rawToolName;
+          serverName = extracted.serverName;
         } else if (req.containsKey('post_tool_args') &&
             req['post_tool_args'] is Map) {
-          final args = req['post_tool_args'] as Map;
-          errorStr =
-              (args['error'] ?? args['errorMessage'] ?? 'Unknown tool error')
-                  .toString();
+          final extracted = _extractToolErrorDetails(
+            req['post_tool_args'] as Map,
+          );
+          errorStr = extracted.error;
+          rawToolName = extracted.rawToolName;
+          serverName = extracted.serverName;
         }
+        final toolName = _protoFieldToSdkName[rawToolName] ?? rawToolName;
 
         final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
-        await _hookRunner.dispatchOnToolError(turnCtx, Exception(errorStr));
+        await _hookRunner.dispatchOnToolError(
+          turnCtx,
+          ToolExecutionException(
+            errorStr,
+            toolName: toolName,
+            serverName: serverName,
+          ),
+        );
         response['empty_result'] = {};
       } else {
         _logger.warning('Unknown hook received: $hookTypeStr');
@@ -214,4 +228,17 @@ class HookRouter {
       'call_hook_response': response,
     });
   }
+}
+
+/// Extracts error message, raw tool name, and optional server name from hook argument payloads.
+({String error, String rawToolName, String? serverName})
+    _extractToolErrorDetails(Map args) {
+  final errorStr = (args['error'] ??
+          args['error_message'] ??
+          args['errorMessage'] ??
+          'Unknown tool error')
+      .toString();
+  final rawToolName = (args['tool_name'] ?? args['toolName'] ?? '').toString();
+  final serverName = (args['server_name'] ?? args['serverName'])?.toString();
+  return (error: errorStr, rawToolName: rawToolName, serverName: serverName);
 }

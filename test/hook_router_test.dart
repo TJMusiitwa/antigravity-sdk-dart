@@ -208,12 +208,16 @@ void main() {
         'type': 'LIFECYCLE_HOOK_ON_TOOL_ERROR',
         'on_tool_error_args': {
           'error': 'Failed to execute tool',
+          'tool_name': 'view_file',
+          'server_name': 'mcp_server_1',
         }
       });
 
-      expect(toolErrorHook.receivedError, isNotNull);
-      expect(toolErrorHook.receivedError.toString(),
-          contains('Failed to execute tool'));
+      expect(toolErrorHook.receivedError, isA<ToolExecutionException>());
+      final err = toolErrorHook.receivedError as ToolExecutionException;
+      expect(err.message, equals('Failed to execute tool'));
+      expect(err.toolName, equals('view_file'));
+      expect(err.serverName, equals('mcp_server_1'));
       expect(
           sentEvents.last['call_hook_response']['request_id'], equals('req-7'));
       expect(sentEvents.last['call_hook_response']['empty_result'], isNotNull);

@@ -912,4 +912,39 @@ void main() {
       expect(config, isNotNull);
     });
   });
+
+  group('v0.6.0 updates', () {
+    test('defaultModel is updated to gemini-3.6-flash', () {
+      expect(defaultModel, equals('gemini-3.6-flash'));
+    });
+
+    test('ToolExecutionException stores message, toolName, and serverName', () {
+      final exc = ToolExecutionException(
+        'Tool execution failed',
+        toolName: 'view_file',
+        serverName: 'mcp_server',
+      );
+      expect(exc.message, equals('Tool execution failed'));
+      expect(exc.toolName, equals('view_file'));
+      expect(exc.serverName, equals('mcp_server'));
+      expect(exc.toString(), contains('ToolExecutionException'));
+      expect(exc.toString(), contains('tool: view_file'));
+      expect(exc.toString(), contains('server: mcp_server'));
+    });
+
+    test('prompt sanitization strips null bytes and control chars correctly',
+        () {
+      final sanitized =
+          LocalConnection.sanitizePromptForTest('\x00Hello\x07World\x1f');
+      expect(sanitized, equals(' Hello World '));
+    });
+
+    test(
+        'prompt sanitization preserves empty input and collapses all-control to single space',
+        () {
+      expect(LocalConnection.sanitizePromptForTest(''), equals(''));
+      expect(
+          LocalConnection.sanitizePromptForTest('\x00\x07\x1f'), equals(' '));
+    });
+  });
 }

@@ -119,7 +119,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     final inputConfigBytes = LocalHarnessProto.encodeInputConfig(
       storageDirectory: _saveDir ?? '',
       clientLanguage: 'dart',
-      clientVersion: '0.5.0',
+      clientVersion: '0.6.0',
       clientLanguageVersion: Platform.version,
     );
     final packedMessage = LocalHarnessProto.packMessage(inputConfigBytes);
@@ -478,6 +478,25 @@ class LocalConnectionStrategy implements ConnectionStrategy {
                     .map((s) => {'title': s.title, 'content': s.content})
                     .toList(),
           };
+        } else if (subagent.systemInstructions is CustomSystemInstructions) {
+          final c = subagent.systemInstructions as CustomSystemInstructions;
+          subagentSystemInstructionsProto['custom'] = {
+            'part': [
+              {'text': c.text},
+            ],
+          };
+        } else if (subagent.systemInstructions is TemplatedSystemInstructions) {
+          final t = subagent.systemInstructions as TemplatedSystemInstructions;
+          subagentSystemInstructionsProto['appended'] = {
+            if (t.identity != null) 'custom_identity': t.identity,
+            'appended_sections': t.sections
+                .map((s) => {'title': s.title, 'content': s.content})
+                .toList(),
+          };
+        } else if (subagent.systemInstructions is SystemInstructions) {
+          subagentSystemInstructionsProto.addAll(
+            (subagent.systemInstructions as SystemInstructions).toMap(),
+          );
         }
       }
 
@@ -992,6 +1011,23 @@ class LocalConnection implements Connection {
     }
   }
 
+  static final _controlCharRegExp =
+      RegExp(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]');
+
+  /// Strips null bytes and dangerous control characters from user text prompts at the wire boundary.
+  ///
+  /// Empty strings return `''`. If a non-empty input is stripped down to whitespace/control characters only,
+  /// it collapses to a single space `' '` to avoid triggering HTTP 400 empty-payload errors on the backend wire ingress.
+  static String _sanitizePrompt(String text) {
+    if (text.isEmpty) return '';
+    final sanitized = text.replaceAll(_controlCharRegExp, ' ');
+    if (sanitized.trim().isEmpty) return ' ';
+    return sanitized;
+  }
+
+  /// Exposed for testing.
+  static String sanitizePromptForTest(String text) => _sanitizePrompt(text);
+
   @override
   Future<void> send(
     ContentPrimitive? prompt, {
@@ -1001,7 +1037,7 @@ class LocalConnection implements Connection {
     final List<Map<String, dynamic>> parts = [];
 
     if (prompt is String) {
-      parts.add({'text': prompt});
+      parts.add({'text': _sanitizePrompt(prompt)});
     } else if (prompt is SlashCommand) {
       parts.add({
         'slash_command': {'name': prompt.name.value},
@@ -1017,7 +1053,7 @@ class LocalConnection implements Connection {
     } else if (prompt is List) {
       for (final p in prompt) {
         if (p is String) {
-          parts.add({'text': p});
+          parts.add({'text': _sanitizePrompt(p)});
         } else if (p is SlashCommand) {
           parts.add({
             'slash_command': {'name': p.name.value},

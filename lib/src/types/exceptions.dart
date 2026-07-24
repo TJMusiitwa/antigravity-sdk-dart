@@ -35,3 +35,25 @@ class AntigravityExecutionException implements Exception {
   @override
   String toString() => 'AntigravityExecutionException: $message';
 }
+
+/// Exception thrown when a tool execution fails, carrying tool metadata.
+class ToolExecutionException implements Exception {
+  /// The error message returned by the failed tool execution.
+  final String message;
+
+  /// The name of the tool that encountered the error.
+  final String toolName;
+
+  /// The optional name of the Model Context Protocol (MCP) server if the tool belonged to an MCP server.
+  final String? serverName;
+
+  ToolExecutionException(
+    this.message, {
+    this.toolName = '',
+    this.serverName,
+  });
+
+  @override
+  String toString() =>
+      'ToolExecutionException: $message (tool: $toolName${serverName != null ? ', server: $serverName' : ''})';
+}

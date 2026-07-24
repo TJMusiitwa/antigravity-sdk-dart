@@ -25,9 +25,18 @@ class SubagentCapabilities with SubagentCapabilitiesMappable {
 /// Configuration for a static subagent.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class SubagentConfig with SubagentConfigMappable {
+  /// Unique identifier name of the subagent.
   final String name;
+
+  /// Description of the subagent's role and purpose.
   final String description;
-  final dynamic systemInstructions; // String or List<SystemInstructionSection>
+
+  /// Optional system instructions for the subagent.
+  /// Accepts a [String], [SystemInstructions] ([CustomSystemInstructions] or [TemplatedSystemInstructions]),
+  /// or `List<SystemInstructionSection>`.
+  final dynamic systemInstructions;
+
+  /// Optional capability configuration controlling enabled/disabled tools for this subagent.
   final SubagentCapabilities? capabilities;
 
   /// Optional list of additional custom tools (string names of tools registered
