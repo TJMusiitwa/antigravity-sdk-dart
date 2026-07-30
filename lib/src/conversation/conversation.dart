@@ -99,11 +99,50 @@ class Conversation {
     return null;
   }
 
+  static void validatePrompt(dynamic prompt) {
+    if (prompt == null) {
+      throw AntigravityValidationException(
+        "chat() requires non-empty message content. Got null.",
+      );
+    }
+    if (prompt is String && prompt.trim().isEmpty) {
+      throw AntigravityValidationException(
+        "chat() requires a non-empty message string. Got: '$prompt'",
+      );
+    }
+    if (prompt is Iterable) {
+      if (prompt.isEmpty) {
+        throw AntigravityValidationException(
+          "chat() requires non-empty message content. Got an empty list.",
+        );
+      }
+      bool allEmpty = true;
+      for (final item in prompt) {
+        if (item is String && item.trim().isNotEmpty) {
+          allEmpty = false;
+          break;
+        } else if (item is Text && item.text.trim().isNotEmpty) {
+          allEmpty = false;
+          break;
+        } else if (item != null && item is! String && item is! Text) {
+          allEmpty = false;
+          break;
+        }
+      }
+      if (allEmpty) {
+        throw AntigravityValidationException(
+          "chat() requires non-empty message content. Got: $prompt",
+        );
+      }
+    }
+  }
+
   /// Sends a prompt to the agent and returns a streamable response.
   Future<ChatResponse> chat(
     ContentPrimitive? prompt, {
     Map<String, dynamic>? kwargs,
   }) async {
+    validatePrompt(prompt);
     _turnUsage = _zeroUsage();
 
     // 2. Record user input step in history

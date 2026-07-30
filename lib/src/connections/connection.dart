@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dart_mappable/dart_mappable.dart';
+import 'package:logging/logging.dart';
 
 import '../hooks/hooks.dart';
 import '../hooks/policy.dart';
@@ -70,6 +71,12 @@ abstract class AgentConfig with AgentConfigMappable {
   /// Paths containing reusable agent skills.
   final List<String> skillsPaths;
 
+  /// Optional debug configuration for debugging and observability.
+  final DebugConfig? debugConfig;
+
+  /// Optional retry configuration for model API calls and output validation.
+  final RetryConfig? retryConfig;
+
   AgentConfig({
     this.systemInstructions,
     CapabilitiesConfig? capabilities,
@@ -86,6 +93,8 @@ abstract class AgentConfig with AgentConfigMappable {
     this.appDataDir,
     this.responseSchema,
     List<String>? skillsPaths,
+    this.debugConfig,
+    this.retryConfig,
   })  : capabilities = capabilities ??
             CapabilitiesConfig(enabledTools: BuiltinTools.readOnly()),
         tools = tools ?? const [],
@@ -172,6 +181,9 @@ abstract interface class Connection {
 
 /// Abstract strategy for establishing a [Connection] in the Google Antigravity SDK.
 abstract interface class ConnectionStrategy {
+  /// Returns the debug configuration for this strategy, or null if disabled.
+  DebugConfig? get debugConfig;
+
   /// Performs the setup and handshake (async).
   Future<void> start();
 
@@ -220,4 +232,51 @@ class TriggerMapper extends SimpleMapper<Trigger> {
   Trigger decode(dynamic value) => throw UnimplementedError();
   @override
   dynamic encode(Trigger value) => throw UnimplementedError();
+}
+
+/// Configuration for client-side and server-side debugging and observability.
+@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+class DebugConfig with DebugConfigMappable {
+  /// Whether to enable server-side distributed tracing in the backend.
+  final bool enableServerSideTracing;
+
+  /// Logging level string or instance to apply across SDK modules.
+  final String? loggingLevel;
+
+  /// Strongly-typed Dart [Level] corresponding to [loggingLevel].
+  Level? get level {
+    if (loggingLevel == null) return null;
+    final levelName = loggingLevel!.toUpperCase();
+    return Level.LEVELS.firstWhere(
+      (l) => l.name == levelName,
+      orElse: () => throw AntigravityValidationException(
+        "Unknown logging level '$loggingLevel'. Expected one of: ${Level.LEVELS.map((l) => l.name).join(', ')}.",
+      ),
+    );
+  }
+
+  /// Creates a new [DebugConfig] instance.
+  ///
+  /// Accepts either a string [loggingLevel] ('FINE', 'INFO') or a strongly-typed Dart [Level] ([level]).
+  DebugConfig({
+    this.enableServerSideTracing = true,
+    dynamic loggingLevel = 'FINE',
+    Level? level,
+  }) : loggingLevel = level != null
+            ? level.name
+            : (loggingLevel is Level
+                ? loggingLevel.name
+                : loggingLevel as String?);
+
+  /// Applies the configured logging level to SDK loggers.
+  void applyLogging() {
+    final targetLevel = level;
+    if (targetLevel != null) {
+      hierarchicalLoggingEnabled = true;
+      Logger('antigravity').level = targetLevel;
+    }
+  }
+
+  static const fromMap = DebugConfigMapper.fromMap;
+  static const fromJson = DebugConfigMapper.fromJson;
 }

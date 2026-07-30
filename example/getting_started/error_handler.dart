@@ -58,12 +58,21 @@ class CustomToolErrorHandler extends OnToolErrorHook {
 Future<void> main() async {
   print('  🔌 Error Handling Example\n');
 
-  // Create the agent configuration with the tool and hook.
+  // Create the agent configuration with the tool, hook, and retry backoff.
   final config = LocalAgentConfig(
     tools: [explodingTool],
     hooks: [CustomToolErrorHandler()],
     // We must permit the exploding_tool
     policies: [allow('exploding_tool')],
+    retryConfig: RetryConfig(
+      apiRetry: ModelAPIRetryConfig(
+        maxRetries: 3,
+        initialSleepDuration: const Duration(milliseconds: 500),
+        exponentialMultiplier: 2.0,
+        jitterRange: 0.1,
+      ),
+      modelOutputRetry: ModelOutputRetryConfig(maxRetries: 2),
+    ),
   );
 
   final agent = Agent(config);

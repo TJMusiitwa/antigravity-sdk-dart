@@ -1,7 +1,10 @@
 import 'dart:io' if (dart.library.html) 'dart:async';
+import 'dart:typed_data';
 
 import 'package:dart_mappable/dart_mappable.dart';
 import 'package:path/path.dart' as p;
+
+import 'exceptions.dart';
 
 part 'content.mapper.dart';
 
@@ -26,7 +29,12 @@ const supportedDocumentMimes = {
 
 const supportedAudioMimes = {
   "audio/wav",
+  "audio/x-wav",
+  "audio/wave",
+  "audio/vnd.wave",
   "audio/mp3",
+  "audio/mp4",
+  "audio/webm",
   "audio/aac",
   "audio/ogg",
   "audio/flac",
@@ -87,7 +95,7 @@ String _guessMimeType(String path) {
   final ext = p.extension(path).toLowerCase();
   final mime = _extToMime[ext];
   if (mime == null) {
-    throw ArgumentError(
+    throw AntigravityValidationException(
       "Could not infer a valid MIME type for extension: '$ext'",
     );
   }
@@ -98,6 +106,9 @@ sealed class MediaContent {
   final String mimeType;
   final String description;
   final List<int> data;
+
+  /// Returns the underlying media data as a strongly-typed Dart [Uint8List].
+  Uint8List get bytes => Uint8List.fromList(data);
 
   MediaContent({
     required this.mimeType,
@@ -119,11 +130,13 @@ sealed class MediaContent {
     } else if (supportedVideoMimes.contains(mimeType)) {
       return Video(mimeType: mimeType, description: description, data: data);
     } else {
-      throw ArgumentError("Unsupported MIME type: '$mimeType'");
+      throw AntigravityValidationException(
+          "Unsupported MIME type: '$mimeType'");
     }
   }
 
-  static MediaContent fromFile(String path, {String description = ''}) {
+  static MediaContent fromFile(dynamic fileOrPath, {String description = ''}) {
+    final path = fileOrPath is File ? fileOrPath.path : fileOrPath as String;
     final file = File(path);
     if (!file.existsSync()) {
       throw FileSystemException("File not found", path);
@@ -140,7 +153,7 @@ sealed class MediaContent {
     } else if (supportedVideoMimes.contains(mime)) {
       return Video(mimeType: mime, description: description, data: data);
     } else {
-      throw ArgumentError("Unsupported MIME type: '$mime'");
+      throw AntigravityValidationException("Unsupported MIME type: '$mime'");
     }
   }
 }
@@ -152,18 +165,21 @@ class Image extends MediaContent {
     required super.data,
   }) {
     if (!supportedImageMimes.contains(mimeType)) {
-      throw ArgumentError("Unsupported Image MIME type: '$mimeType'");
+      throw AntigravityValidationException(
+          "Unsupported Image MIME type: '$mimeType'");
     }
   }
 
-  factory Image.fromFile(String path, {String description = ''}) {
+  factory Image.fromFile(dynamic fileOrPath, {String description = ''}) {
+    final path = fileOrPath is File ? fileOrPath.path : fileOrPath as String;
     final file = File(path);
     if (!file.existsSync()) {
       throw FileSystemException("File not found", path);
     }
     final mime = _guessMimeType(path);
     if (!supportedImageMimes.contains(mime)) {
-      throw ArgumentError("Unsupported Image MIME type: '$mime'");
+      throw AntigravityValidationException(
+          "Unsupported Image MIME type: '$mime'");
     }
     final data = file.readAsBytesSync();
     return Image(mimeType: mime, description: description, data: data);
@@ -177,18 +193,21 @@ class Document extends MediaContent {
     required super.data,
   }) {
     if (!supportedDocumentMimes.contains(mimeType)) {
-      throw ArgumentError("Unsupported Document MIME type: '$mimeType'");
+      throw AntigravityValidationException(
+          "Unsupported Document MIME type: '$mimeType'");
     }
   }
 
-  factory Document.fromFile(String path, {String description = ''}) {
+  factory Document.fromFile(dynamic fileOrPath, {String description = ''}) {
+    final path = fileOrPath is File ? fileOrPath.path : fileOrPath as String;
     final file = File(path);
     if (!file.existsSync()) {
       throw FileSystemException("File not found", path);
     }
     final mime = _guessMimeType(path);
     if (!supportedDocumentMimes.contains(mime)) {
-      throw ArgumentError("Unsupported Document MIME type: '$mime'");
+      throw AntigravityValidationException(
+          "Unsupported Document MIME type: '$mime'");
     }
     final data = file.readAsBytesSync();
     return Document(mimeType: mime, description: description, data: data);
@@ -202,18 +221,21 @@ class Audio extends MediaContent {
     required super.data,
   }) {
     if (!supportedAudioMimes.contains(mimeType)) {
-      throw ArgumentError("Unsupported Audio MIME type: '$mimeType'");
+      throw AntigravityValidationException(
+          "Unsupported Audio MIME type: '$mimeType'");
     }
   }
 
-  factory Audio.fromFile(String path, {String description = ''}) {
+  factory Audio.fromFile(dynamic fileOrPath, {String description = ''}) {
+    final path = fileOrPath is File ? fileOrPath.path : fileOrPath as String;
     final file = File(path);
     if (!file.existsSync()) {
       throw FileSystemException("File not found", path);
     }
     final mime = _guessMimeType(path);
     if (!supportedAudioMimes.contains(mime)) {
-      throw ArgumentError("Unsupported Audio MIME type: '$mime'");
+      throw AntigravityValidationException(
+          "Unsupported Audio MIME type: '$mime'");
     }
     final data = file.readAsBytesSync();
     return Audio(mimeType: mime, description: description, data: data);
@@ -227,18 +249,21 @@ class Video extends MediaContent {
     required super.data,
   }) {
     if (!supportedVideoMimes.contains(mimeType)) {
-      throw ArgumentError("Unsupported Video MIME type: '$mimeType'");
+      throw AntigravityValidationException(
+          "Unsupported Video MIME type: '$mimeType'");
     }
   }
 
-  factory Video.fromFile(String path, {String description = ''}) {
+  factory Video.fromFile(dynamic fileOrPath, {String description = ''}) {
+    final path = fileOrPath is File ? fileOrPath.path : fileOrPath as String;
     final file = File(path);
     if (!file.existsSync()) {
       throw FileSystemException("File not found", path);
     }
     final mime = _guessMimeType(path);
     if (!supportedVideoMimes.contains(mime)) {
-      throw ArgumentError("Unsupported Video MIME type: '$mime'");
+      throw AntigravityValidationException(
+          "Unsupported Video MIME type: '$mime'");
     }
     final data = file.readAsBytesSync();
     return Video(mimeType: mime, description: description, data: data);

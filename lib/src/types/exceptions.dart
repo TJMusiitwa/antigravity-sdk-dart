@@ -8,9 +8,18 @@ class AntigravityConnectionException implements Exception {
 }
 
 /// Validation exception at the SDK boundary.
-class AntigravityValidationException implements Exception {
+class AntigravityValidationException implements Exception, ArgumentError {
+  @override
   final String message;
-  AntigravityValidationException(this.message);
+  @override
+  final dynamic invalidValue;
+  @override
+  final String? name;
+
+  AntigravityValidationException(this.message, {this.invalidValue, this.name});
+
+  @override
+  StackTrace? get stackTrace => null;
 
   @override
   String toString() => 'AntigravityValidationException: $message';

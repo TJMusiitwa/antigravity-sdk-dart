@@ -483,3 +483,42 @@ class Step with StepMappable {
 
   factory Step.fromJson(String json) => StepMapper.fromJson(json);
 }
+
+/// Extension methods for [StepSource] providing idiomatic boolean checks.
+extension StepSourceX on StepSource {
+  /// Returns true if this step originated from the user.
+  bool get isUser => this == StepSource.user;
+
+  /// Returns true if this step originated from the model agent.
+  bool get isModel => this == StepSource.model;
+
+  /// Returns true if this step originated from the system.
+  bool get isSystem => this == StepSource.system;
+}
+
+/// Extension methods for [StepStatus] providing idiomatic boolean checks.
+extension StepStatusX on StepStatus {
+  /// Returns true if the step has completed execution successfully.
+  bool get isDone => this == StepStatus.done;
+
+  /// Returns true if the step is currently executing.
+  bool get isActive => this == StepStatus.active;
+
+  /// Returns true if the step was canceled.
+  bool get isCanceled => this == StepStatus.canceled;
+
+  /// Returns true if the step encountered an error.
+  bool get isError => this == StepStatus.error;
+}
+
+/// Extension methods for [Step] providing idiomatic turn and state checks.
+extension StepX on Step {
+  /// Returns true if this step is a user turn.
+  bool get isUserTurn => source.isUser;
+
+  /// Returns true if this step is a model turn.
+  bool get isModelTurn => source.isModel;
+
+  /// Returns true if this step is finished (done, canceled, or error).
+  bool get isFinished => status.isDone || status.isCanceled || status.isError;
+}

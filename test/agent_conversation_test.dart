@@ -343,6 +343,9 @@ class FakeConnectionStrategy implements ConnectionStrategy {
   bool started = false;
 
   @override
+  DebugConfig? get debugConfig => null;
+
+  @override
   Future<void> start() async {
     started = true;
   }

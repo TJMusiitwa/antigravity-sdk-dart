@@ -48,6 +48,7 @@ class Agent {
   /// Starts the agent session.
   Future<Agent> start() async {
     try {
+      _config.debugConfig?.applyLogging();
       _hookRunner = HookRunner();
 
       // Register pending hooks
@@ -148,7 +149,7 @@ class Agent {
 
   /// Sends a prompt and returns the final response.
   Future<ChatResponse> chat(
-    ContentPrimitive prompt, {
+    ContentPrimitive? prompt, {
     Map<String, dynamic>? kwargs,
   }) async {
     return await conversation.chat(prompt, kwargs: kwargs);

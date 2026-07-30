@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:dart_mappable/dart_mappable.dart';
 
+import 'types/exceptions.dart';
+
 part 'models.mapper.dart';
 
 // =============================================================================
@@ -65,6 +67,9 @@ abstract class ModelEndpoint with ModelEndpointMappable {
   final String? baseUrl;
   final Map<String, String>? httpHeaders;
 
+  /// Returns the base URL as a strongly-typed Dart [Uri].
+  Uri? get baseUri => baseUrl != null ? Uri.tryParse(baseUrl!) : null;
+
   ModelEndpoint({this.baseUrl, this.httpHeaders});
 
   /// Validates the configuration of the endpoint.
@@ -103,7 +108,7 @@ class GeminiAPIEndpoint extends ModelEndpoint with GeminiAPIEndpointMappable {
     }
 
     if (apiKey == null && Platform.environment['GEMINI_API_KEY'] == null) {
-      throw ArgumentError(
+      throw AntigravityValidationException(
         'A Gemini API key is required. Set it via GEMINI_API_KEY environment '
         'variable or via LocalAgentConfig(apiKey: ...).',
       );
@@ -138,7 +143,7 @@ class VertexEndpoint extends ModelEndpoint with VertexEndpointMappable {
   @override
   void validateEndpoint() {
     if (project == null || location == null) {
-      throw ArgumentError(
+      throw AntigravityValidationException(
         'For Vertex AI, a GCP project and location, or an API key (Express '
         'Mode), must be set.',
       );

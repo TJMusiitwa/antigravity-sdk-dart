@@ -1,3 +1,17 @@
+# 0.7.0
+
+* **Sync with Python SDK v0.1.9 & Dart-Idiomatic Enhancements**:
+  - **Model-Call Retry & Backoff Configuration**: Introduced `RetryConfig`, `ModelAPIRetryConfig`, and `ModelOutputRetryConfig` with `RetryConfig.benchmark()` preset for controlling exponential backoff and output retry behavior across `LocalAgentConfig`, `LocalOpenAIAgentConfig`, and `LiteRTAgentConfig`.
+  - **Strongly-Typed `Duration` & Jitter Ratio Validation**: Added `Duration` support (`initialSleepDuration`, `serverTimeout`) to `ModelAPIRetryConfig` and `McpServerConfig`. Validates `jitterRange` as a ratio between `0.0` and `1.0`.
+  - **Strongly-Typed Logging with `package:logging`**: `DebugConfig` accepts strongly-typed `Level` objects (`level: Level.WARNING`) or string names, validating levels and applying process-safe logger updates on `Agent.start()`.
+  - **`Uri` & `Uint8List` Media Buffers**: Added `Uri` getters (`uri`, `baseUri`) on `McpStreamableHttpServer` and `ModelEndpoint`, plus `McpStreamableHttpServer.fromUri()` factory constructor. Added `Uint8List get bytes` getter on `MediaContent` and `File` object support in `fromFile()`.
+  - **Step & Turn Extensions**: Added extension getters (`isUserTurn`, `isModelTurn`, `isFinished`, `isDone`) on `Step`, `StepSource`, and `StepStatus`.
+  - **LiteRT Warm-up Timeout Scaling**: Dynamically scales LiteRT engine warm-up timeouts based on context size (`maxContextTokens`).
+  - **Expanded Audio Payload MIME Support**: Added support for `audio/x-wav`, `audio/wave`, `audio/vnd.wave`, `audio/mp4`, `audio/webm`, and additional audio formats.
+  - **Prompt Validation**: Added strict validation in `Conversation.chat()` to reject null, empty string, whitespace-only, or empty content prompts with `AntigravityValidationException`.
+  - **Hybrid Exception Hierarchy**: `AntigravityValidationException` implements both `Exception` and `ArgumentError` for backwards compatibility.
+  - **SDK Alignment**: Bumped SDK version to `0.7.0` aligned with Python SDK `v0.1.9` release.
+
 # 0.6.0
 
 * **Sync with Python SDK v0.1.8**:

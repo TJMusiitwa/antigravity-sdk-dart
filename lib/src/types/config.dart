@@ -1,6 +1,7 @@
 import 'package:dart_mappable/dart_mappable.dart';
 
 import 'capabilities.dart';
+import 'exceptions.dart';
 
 part 'config.mapper.dart';
 
@@ -78,4 +79,117 @@ enum SessionContinuationMode {
 
   final String value;
   const SessionContinuationMode(this.value);
+}
+
+/// Maximum value allowed for protobuf uint32 fields (2^32 - 1).
+const int _maxUint32 = 4294967295;
+
+/// Configuration for API retry behavior with exponential backoff.
+@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+class ModelAPIRetryConfig with ModelAPIRetryConfigMappable {
+  /// The maximum number of retries for transient API errors.
+  final int? maxRetries;
+
+  /// The initial sleep duration in milliseconds.
+  final int? initialSleepDurationMs;
+
+  /// The multiplier for exponential backoff.
+  final double? exponentialMultiplier;
+
+  /// The range for jitter when calculating backoff (as a ratio between 0.0 and 1.0, e.g. 0.2 = ±20%).
+  final double? jitterRange;
+
+  /// Returns the initial sleep duration as a strongly-typed Dart [Duration].
+  Duration? get initialSleepDuration => initialSleepDurationMs != null
+      ? Duration(milliseconds: initialSleepDurationMs!)
+      : null;
+
+  /// Creates a new [ModelAPIRetryConfig] instance.
+  ///
+  /// Can take either an integer [initialSleepDurationMs] or a Dart [Duration] [initialSleepDuration].
+  ModelAPIRetryConfig({
+    this.maxRetries,
+    int? initialSleepDurationMs,
+    Duration? initialSleepDuration,
+    this.exponentialMultiplier,
+    this.jitterRange,
+  }) : initialSleepDurationMs =
+            initialSleepDurationMs ?? initialSleepDuration?.inMilliseconds {
+    if (maxRetries != null && (maxRetries! < 0 || maxRetries! > _maxUint32)) {
+      throw AntigravityValidationException(
+        'maxRetries must be between 0 and $_maxUint32 inclusive.',
+      );
+    }
+    if (this.initialSleepDurationMs != null &&
+        (this.initialSleepDurationMs! < 0 ||
+            this.initialSleepDurationMs! > _maxUint32)) {
+      throw AntigravityValidationException(
+        'initialSleepDurationMs must be between 0 and $_maxUint32 inclusive.',
+      );
+    }
+    if (exponentialMultiplier != null && exponentialMultiplier! < 0.0) {
+      throw AntigravityValidationException(
+        'exponentialMultiplier must be non-negative.',
+      );
+    }
+    if (jitterRange != null && (jitterRange! < 0.0 || jitterRange! > 1.0)) {
+      throw AntigravityValidationException(
+        'jitterRange must be a ratio between 0.0 and 1.0 inclusive (e.g. 0.2 = 20% jitter).',
+      );
+    }
+  }
+
+  static const fromMap = ModelAPIRetryConfigMapper.fromMap;
+  static const fromJson = ModelAPIRetryConfigMapper.fromJson;
+}
+
+/// Configuration for model output retry behavior.
+@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+class ModelOutputRetryConfig with ModelOutputRetryConfigMappable {
+  /// The maximum number of retries for malformed model outputs.
+  final int? maxRetries;
+
+  /// Creates a new [ModelOutputRetryConfig] instance.
+  ModelOutputRetryConfig({this.maxRetries}) {
+    if (maxRetries != null && (maxRetries! < 0 || maxRetries! > _maxUint32)) {
+      throw AntigravityValidationException(
+        'maxRetries must be between 0 and $_maxUint32 inclusive.',
+      );
+    }
+  }
+
+  static const fromMap = ModelOutputRetryConfigMapper.fromMap;
+  static const fromJson = ModelOutputRetryConfigMapper.fromJson;
+}
+
+/// Combined retry configuration for model API calls and output validation.
+///
+/// When [retryConfig] is omitted (or fields are left as null), the backend
+/// automatically applies built-in interactive defaults.
+@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+class RetryConfig with RetryConfigMappable {
+  /// Optional configuration for API retry behavior with exponential backoff.
+  final ModelAPIRetryConfig? apiRetry;
+
+  /// Optional configuration for model output retry behavior.
+  final ModelOutputRetryConfig? modelOutputRetry;
+
+  /// Creates a new [RetryConfig] instance.
+  RetryConfig({this.apiRetry, this.modelOutputRetry});
+
+  /// Optimized for evaluation suites, automated benchmarks, and load testing.
+  ///
+  /// Uses unbounded retry tolerance (max uint32: 4,294,967,295 attempts) for
+  /// transient API errors (429 rate limits, 503 service throttling).
+  factory RetryConfig.benchmark() {
+    return RetryConfig(
+      apiRetry: ModelAPIRetryConfig(
+        maxRetries: _maxUint32,
+        initialSleepDurationMs: 1000,
+      ),
+    );
+  }
+
+  static const fromMap = RetryConfigMapper.fromMap;
+  static const fromJson = RetryConfigMapper.fromJson;
 }

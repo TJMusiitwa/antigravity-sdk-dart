@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:antigravity/antigravity.dart';
+import 'package:logging/logging.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -945,6 +947,217 @@ void main() {
       expect(LocalConnection.sanitizePromptForTest(''), equals(''));
       expect(
           LocalConnection.sanitizePromptForTest('\x00\x07\x1f'), equals(' '));
+    });
+  });
+
+  group('v0.7.0 updates', () {
+    test('RetryConfig.benchmark creates benchmark configuration preset', () {
+      final config = RetryConfig.benchmark();
+      expect(config.apiRetry, isNotNull);
+      expect(config.apiRetry!.maxRetries, equals(4294967295));
+      expect(config.apiRetry!.initialSleepDurationMs, equals(1000));
+      expect(config.modelOutputRetry, isNull);
+    });
+
+    test('ModelAPIRetryConfig validates uint32 limits and multipliers', () {
+      expect(
+        () => ModelAPIRetryConfig(maxRetries: -1),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => ModelAPIRetryConfig(maxRetries: 4294967296),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => ModelAPIRetryConfig(initialSleepDurationMs: -5),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => ModelAPIRetryConfig(exponentialMultiplier: -1.0),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => ModelAPIRetryConfig(jitterRange: -0.5),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => ModelAPIRetryConfig(jitterRange: 1.5),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      final valid = ModelAPIRetryConfig(
+        maxRetries: 5,
+        initialSleepDuration: const Duration(milliseconds: 500),
+        exponentialMultiplier: 2.0,
+        jitterRange: 0.1,
+      );
+      expect(valid.maxRetries, equals(5));
+      expect(valid.initialSleepDurationMs, equals(500));
+      expect(valid.initialSleepDuration,
+          equals(const Duration(milliseconds: 500)));
+      expect(valid.exponentialMultiplier, equals(2.0));
+      expect(valid.jitterRange, equals(0.1));
+    });
+
+    test('ModelOutputRetryConfig validates maxRetries uint32 limit', () {
+      expect(
+        () => ModelOutputRetryConfig(maxRetries: -1),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => ModelOutputRetryConfig(maxRetries: 4294967296),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      final valid = ModelOutputRetryConfig(maxRetries: 3);
+      expect(valid.maxRetries, equals(3));
+    });
+
+    test('DebugConfig default construction enables server-side tracing', () {
+      final debug = DebugConfig();
+      expect(debug.enableServerSideTracing, isTrue);
+      expect(debug.loggingLevel, equals('FINE'));
+    });
+
+    test('Audio accepts extended MIME types introduced in v0.1.9', () {
+      final mimes = [
+        'audio/wav',
+        'audio/x-wav',
+        'audio/wave',
+        'audio/vnd.wave',
+        'audio/mp3',
+        'audio/mp4',
+        'audio/webm',
+        'audio/aac',
+        'audio/ogg',
+        'audio/flac',
+        'audio/opus',
+        'audio/mpeg',
+        'audio/m4a',
+        'audio/l16',
+      ];
+      for (final mime in mimes) {
+        final audio =
+            Audio(data: [1, 2, 3], mimeType: mime, description: 'sample audio');
+        expect(audio.mimeType, equals(mime));
+      }
+    });
+
+    test(
+        'LocalOpenAIAgentConfig and LiteRTAgentConfig forward retryConfig and debugConfig',
+        () {
+      final retry = RetryConfig.benchmark();
+      final debug = DebugConfig(loggingLevel: 'INFO');
+
+      final openAiConfig = LocalOpenAIAgentConfig(
+        baseUrl: 'http://localhost:11434/v1',
+        model: 'gemma:2b',
+        retryConfig: retry,
+        debugConfig: debug,
+      );
+      final openAiStrategy = openAiConfig.createStrategy(
+        toolRunner: ToolRunner(tools: []),
+        hookRunner: HookRunner(),
+      );
+      expect(openAiStrategy.debugConfig, equals(debug));
+
+      final liteRtConfig = LiteRTAgentConfig(
+        modelPath: '/path/to/model.litertlm',
+        retryConfig: retry,
+        debugConfig: debug,
+      );
+      final liteRtStrategy = liteRtConfig.createStrategy(
+        toolRunner: ToolRunner(tools: []),
+        hookRunner: HookRunner(),
+      );
+      expect(liteRtStrategy.debugConfig, equals(debug));
+    });
+
+    test(
+        'DebugConfig applyLogging validates level name and supports Level object',
+        () {
+      final valid = DebugConfig(loggingLevel: 'INFO');
+      valid.applyLogging();
+      expect(valid.level, equals(Level.INFO));
+
+      final typedLevel = DebugConfig(level: Level.WARNING);
+      expect(typedLevel.loggingLevel, equals('WARNING'));
+      expect(typedLevel.level, equals(Level.WARNING));
+
+      final invalid = DebugConfig(loggingLevel: 'INVALID_LEVEL');
+      expect(
+        () => invalid.applyLogging(),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+    });
+
+    test(
+        'Conversation.validatePrompt throws AntigravityValidationException on empty or null prompts',
+        () {
+      expect(
+        () => Conversation.validatePrompt('   '),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => Conversation.validatePrompt(null),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => Conversation.validatePrompt([]),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => Conversation.validatePrompt(['  ']),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+    });
+
+    test('McpServerConfig supports Duration and Uri parameters', () {
+      final stdio = McpStdioServer(
+        name: 'test-stdio',
+        command: 'npx',
+        serverTimeout: const Duration(seconds: 15),
+      );
+      expect(stdio.timeoutSeconds, equals(15));
+      expect(stdio.serverTimeout, equals(const Duration(seconds: 15)));
+
+      final http = McpStreamableHttpServer.fromUri(
+        name: 'test-http',
+        uri: Uri.parse('http://localhost:8080/mcp'),
+      );
+      expect(http.url, equals('http://localhost:8080/mcp'));
+      expect(http.uri, equals(Uri.parse('http://localhost:8080/mcp')));
+    });
+
+    test('MediaContent exposes Uint8List bytes getter', () {
+      final audio = Audio(
+        mimeType: 'audio/wav',
+        description: 'sample',
+        data: [1, 2, 3, 4],
+      );
+      expect(audio.bytes, isA<TypedData>());
+      expect(audio.bytes, equals([1, 2, 3, 4]));
+    });
+
+    test('Step extension getters evaluate turns and statuses accurately', () {
+      final step = Step(
+        id: '1',
+        stepIndex: 1,
+        type: StepType.textResponse,
+        source: StepSource.user,
+        target: StepTarget.environment,
+        status: StepStatus.done,
+      );
+      expect(step.isUserTurn, isTrue);
+      expect(step.isModelTurn, isFalse);
+      expect(step.isFinished, isTrue);
+    });
+
+    test('ModelEndpoint exposes baseUri getter', () {
+      final endpoint = GeminiAPIEndpoint(
+          baseUrl: 'https://generativelanguage.googleapis.com');
+      expect(endpoint.baseUri,
+          equals(Uri.parse('https://generativelanguage.googleapis.com')));
     });
   });
 }

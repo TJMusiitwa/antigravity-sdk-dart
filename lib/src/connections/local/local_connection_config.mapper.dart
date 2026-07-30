@@ -78,6 +78,8 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
       McpServerConfigMapper.ensureInitialized();
       SubagentConfigMapper.ensureInitialized();
       SessionContinuationModeMapper.ensureInitialized();
+      DebugConfigMapper.ensureInitialized();
+      RetryConfigMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -174,6 +176,18 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
     _$skillsPaths,
     opt: true,
   );
+  static DebugConfig? _$debugConfig(BaseLocalAgentConfig v) => v.debugConfig;
+  static const Field<BaseLocalAgentConfig, DebugConfig> _f$debugConfig = Field(
+    'debugConfig',
+    _$debugConfig,
+    opt: true,
+  );
+  static RetryConfig? _$retryConfig(BaseLocalAgentConfig v) => v.retryConfig;
+  static const Field<BaseLocalAgentConfig, RetryConfig> _f$retryConfig = Field(
+    'retryConfig',
+    _$retryConfig,
+    opt: true,
+  );
 
   @override
   final MappableFields<BaseLocalAgentConfig> fields = const {
@@ -192,6 +206,8 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
     #appDataDir: _f$appDataDir,
     #responseSchema: _f$responseSchema,
     #skillsPaths: _f$skillsPaths,
+    #debugConfig: _f$debugConfig,
+    #retryConfig: _f$retryConfig,
   };
 
   static BaseLocalAgentConfig _instantiate(DecodingData data) {
@@ -242,6 +258,10 @@ abstract class BaseLocalAgentConfigCopyWith<
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get workspaces;
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get skillsPaths;
   @override
+  DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig;
+  @override
+  RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig;
+  @override
   $R call({
     dynamic systemInstructions,
     CapabilitiesConfig? capabilities,
@@ -258,6 +278,8 @@ abstract class BaseLocalAgentConfigCopyWith<
     String? appDataDir,
     dynamic responseSchema,
     List<String>? skillsPaths,
+    DebugConfig? debugConfig,
+    RetryConfig? retryConfig,
   });
   BaseLocalAgentConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -283,6 +305,8 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
       McpServerConfigMapper.ensureInitialized();
       SubagentConfigMapper.ensureInitialized();
       SessionContinuationModeMapper.ensureInitialized();
+      DebugConfigMapper.ensureInitialized();
+      RetryConfigMapper.ensureInitialized();
       ModelTargetMapper.ensureInitialized();
     }
     return _instance!;
@@ -381,6 +405,18 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
     _$skillsPaths,
     opt: true,
   );
+  static DebugConfig? _$debugConfig(LocalAgentConfig v) => v.debugConfig;
+  static const Field<LocalAgentConfig, DebugConfig> _f$debugConfig = Field(
+    'debugConfig',
+    _$debugConfig,
+    opt: true,
+  );
+  static RetryConfig? _$retryConfig(LocalAgentConfig v) => v.retryConfig;
+  static const Field<LocalAgentConfig, RetryConfig> _f$retryConfig = Field(
+    'retryConfig',
+    _$retryConfig,
+    opt: true,
+  );
   static dynamic _$model(LocalAgentConfig v) => v.model;
   static const Field<LocalAgentConfig, dynamic> _f$model = Field(
     'model',
@@ -441,6 +477,8 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
     #appDataDir: _f$appDataDir,
     #responseSchema: _f$responseSchema,
     #skillsPaths: _f$skillsPaths,
+    #debugConfig: _f$debugConfig,
+    #retryConfig: _f$retryConfig,
     #model: _f$model,
     #models: _f$models,
     #apiKey: _f$apiKey,
@@ -467,6 +505,8 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
       appDataDir: data.dec(_f$appDataDir),
       responseSchema: data.dec(_f$responseSchema),
       skillsPaths: data.dec(_f$skillsPaths),
+      debugConfig: data.dec(_f$debugConfig),
+      retryConfig: data.dec(_f$retryConfig),
       model: data.dec(_f$model),
       models: data.dec(_f$models),
       apiKey: data.dec(_f$apiKey),
@@ -568,6 +608,10 @@ abstract class LocalAgentConfigCopyWith<$R, $In extends LocalAgentConfig, $Out>
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get workspaces;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get skillsPaths;
+  @override
+  DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig;
+  @override
+  RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig;
   ListCopyWith<$R, ModelTarget,
       ModelTargetCopyWith<$R, ModelTarget, ModelTarget>>? get models;
   @override
@@ -587,6 +631,8 @@ abstract class LocalAgentConfigCopyWith<$R, $In extends LocalAgentConfig, $Out>
     String? appDataDir,
     dynamic responseSchema,
     List<String>? skillsPaths,
+    DebugConfig? debugConfig,
+    RetryConfig? retryConfig,
     dynamic model,
     List<ModelTarget>? models,
     String? apiKey,
@@ -677,6 +723,12 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
             (v) => call(skillsPaths: v),
           );
   @override
+  DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig =>
+      $value.debugConfig?.copyWith.$chain((v) => call(debugConfig: v));
+  @override
+  RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig =>
+      $value.retryConfig?.copyWith.$chain((v) => call(retryConfig: v));
+  @override
   ListCopyWith<$R, ModelTarget,
           ModelTargetCopyWith<$R, ModelTarget, ModelTarget>>?
       get models => $value.models != null
@@ -703,6 +755,8 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
     Object? appDataDir = $none,
     Object? responseSchema = $none,
     Object? skillsPaths = $none,
+    Object? debugConfig = $none,
+    Object? retryConfig = $none,
     Object? model = $none,
     Object? models = $none,
     Object? apiKey = $none,
@@ -730,6 +784,8 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
           if (appDataDir != $none) #appDataDir: appDataDir,
           if (responseSchema != $none) #responseSchema: responseSchema,
           if (skillsPaths != $none) #skillsPaths: skillsPaths,
+          if (debugConfig != $none) #debugConfig: debugConfig,
+          if (retryConfig != $none) #retryConfig: retryConfig,
           if (model != $none) #model: model,
           if (models != $none) #models: models,
           if (apiKey != $none) #apiKey: apiKey,
@@ -762,6 +818,8 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
         appDataDir: data.get(#appDataDir, or: $value.appDataDir),
         responseSchema: data.get(#responseSchema, or: $value.responseSchema),
         skillsPaths: data.get(#skillsPaths, or: $value.skillsPaths),
+        debugConfig: data.get(#debugConfig, or: $value.debugConfig),
+        retryConfig: data.get(#retryConfig, or: $value.retryConfig),
         model: data.get(#model, or: $value.model),
         models: data.get(#models, or: $value.models),
         apiKey: data.get(#apiKey, or: $value.apiKey),
@@ -792,6 +850,8 @@ class LocalOpenAIAgentConfigMapper
       McpServerConfigMapper.ensureInitialized();
       SubagentConfigMapper.ensureInitialized();
       SessionContinuationModeMapper.ensureInitialized();
+      DebugConfigMapper.ensureInitialized();
+      RetryConfigMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -894,6 +954,12 @@ class LocalOpenAIAgentConfigMapper
   static List<String> _$skillsPaths(LocalOpenAIAgentConfig v) => v.skillsPaths;
   static const Field<LocalOpenAIAgentConfig, List<String>> _f$skillsPaths =
       Field('skillsPaths', _$skillsPaths, opt: true);
+  static DebugConfig? _$debugConfig(LocalOpenAIAgentConfig v) => v.debugConfig;
+  static const Field<LocalOpenAIAgentConfig, DebugConfig> _f$debugConfig =
+      Field('debugConfig', _$debugConfig, opt: true);
+  static RetryConfig? _$retryConfig(LocalOpenAIAgentConfig v) => v.retryConfig;
+  static const Field<LocalOpenAIAgentConfig, RetryConfig> _f$retryConfig =
+      Field('retryConfig', _$retryConfig, opt: true);
 
   @override
   final MappableFields<LocalOpenAIAgentConfig> fields = const {
@@ -914,6 +980,8 @@ class LocalOpenAIAgentConfigMapper
     #appDataDir: _f$appDataDir,
     #responseSchema: _f$responseSchema,
     #skillsPaths: _f$skillsPaths,
+    #debugConfig: _f$debugConfig,
+    #retryConfig: _f$retryConfig,
   };
 
   static LocalOpenAIAgentConfig _instantiate(DecodingData data) {
@@ -935,6 +1003,8 @@ class LocalOpenAIAgentConfigMapper
       appDataDir: data.dec(_f$appDataDir),
       responseSchema: data.dec(_f$responseSchema),
       skillsPaths: data.dec(_f$skillsPaths),
+      debugConfig: data.dec(_f$debugConfig),
+      retryConfig: data.dec(_f$retryConfig),
     );
   }
 
@@ -1032,6 +1102,10 @@ abstract class LocalOpenAIAgentConfigCopyWith<
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get skillsPaths;
   @override
+  DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig;
+  @override
+  RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig;
+  @override
   $R call({
     dynamic model,
     String? baseUrl,
@@ -1050,6 +1124,8 @@ abstract class LocalOpenAIAgentConfigCopyWith<
     String? appDataDir,
     dynamic responseSchema,
     List<String>? skillsPaths,
+    DebugConfig? debugConfig,
+    RetryConfig? retryConfig,
   });
   LocalOpenAIAgentConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -1134,6 +1210,12 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
             (v) => call(skillsPaths: v),
           );
   @override
+  DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig =>
+      $value.debugConfig?.copyWith.$chain((v) => call(debugConfig: v));
+  @override
+  RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig =>
+      $value.retryConfig?.copyWith.$chain((v) => call(retryConfig: v));
+  @override
   $R call({
     Object? model = $none,
     Object? baseUrl = $none,
@@ -1152,6 +1234,8 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
     Object? appDataDir = $none,
     Object? responseSchema = $none,
     Object? skillsPaths = $none,
+    Object? debugConfig = $none,
+    Object? retryConfig = $none,
   }) =>
       $apply(
         FieldCopyWithData({
@@ -1174,6 +1258,8 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
           if (appDataDir != $none) #appDataDir: appDataDir,
           if (responseSchema != $none) #responseSchema: responseSchema,
           if (skillsPaths != $none) #skillsPaths: skillsPaths,
+          if (debugConfig != $none) #debugConfig: debugConfig,
+          if (retryConfig != $none) #retryConfig: retryConfig,
         }),
       );
   @override
@@ -1201,6 +1287,8 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
         appDataDir: data.get(#appDataDir, or: $value.appDataDir),
         responseSchema: data.get(#responseSchema, or: $value.responseSchema),
         skillsPaths: data.get(#skillsPaths, or: $value.skillsPaths),
+        debugConfig: data.get(#debugConfig, or: $value.debugConfig),
+        retryConfig: data.get(#retryConfig, or: $value.retryConfig),
       );
 
   @override
@@ -1223,6 +1311,8 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
       McpServerConfigMapper.ensureInitialized();
       SubagentConfigMapper.ensureInitialized();
       SessionContinuationModeMapper.ensureInitialized();
+      DebugConfigMapper.ensureInitialized();
+      RetryConfigMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -1380,6 +1470,18 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
     _$skillsPaths,
     opt: true,
   );
+  static DebugConfig? _$debugConfig(LiteRTAgentConfig v) => v.debugConfig;
+  static const Field<LiteRTAgentConfig, DebugConfig> _f$debugConfig = Field(
+    'debugConfig',
+    _$debugConfig,
+    opt: true,
+  );
+  static RetryConfig? _$retryConfig(LiteRTAgentConfig v) => v.retryConfig;
+  static const Field<LiteRTAgentConfig, RetryConfig> _f$retryConfig = Field(
+    'retryConfig',
+    _$retryConfig,
+    opt: true,
+  );
 
   @override
   final MappableFields<LiteRTAgentConfig> fields = const {
@@ -1407,6 +1509,8 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
     #appDataDir: _f$appDataDir,
     #responseSchema: _f$responseSchema,
     #skillsPaths: _f$skillsPaths,
+    #debugConfig: _f$debugConfig,
+    #retryConfig: _f$retryConfig,
   };
 
   static LiteRTAgentConfig _instantiate(DecodingData data) {
@@ -1435,6 +1539,8 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
       appDataDir: data.dec(_f$appDataDir),
       responseSchema: data.dec(_f$responseSchema),
       skillsPaths: data.dec(_f$skillsPaths),
+      debugConfig: data.dec(_f$debugConfig),
+      retryConfig: data.dec(_f$retryConfig),
     );
   }
 
@@ -1532,6 +1638,10 @@ abstract class LiteRTAgentConfigCopyWith<$R, $In extends LiteRTAgentConfig,
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get skillsPaths;
   @override
+  DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig;
+  @override
+  RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig;
+  @override
   $R call({
     String? modelPath,
     LiteRTBackend? backend,
@@ -1557,6 +1667,8 @@ abstract class LiteRTAgentConfigCopyWith<$R, $In extends LiteRTAgentConfig,
     String? appDataDir,
     dynamic responseSchema,
     List<String>? skillsPaths,
+    DebugConfig? debugConfig,
+    RetryConfig? retryConfig,
   });
   LiteRTAgentConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -1640,6 +1752,12 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
             (v) => call(skillsPaths: v),
           );
   @override
+  DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig =>
+      $value.debugConfig?.copyWith.$chain((v) => call(debugConfig: v));
+  @override
+  RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig =>
+      $value.retryConfig?.copyWith.$chain((v) => call(retryConfig: v));
+  @override
   $R call({
     String? modelPath,
     LiteRTBackend? backend,
@@ -1665,6 +1783,8 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
     Object? appDataDir = $none,
     Object? responseSchema = $none,
     Object? skillsPaths = $none,
+    Object? debugConfig = $none,
+    Object? retryConfig = $none,
   }) =>
       $apply(
         FieldCopyWithData({
@@ -1695,6 +1815,8 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
           if (appDataDir != $none) #appDataDir: appDataDir,
           if (responseSchema != $none) #responseSchema: responseSchema,
           if (skillsPaths != $none) #skillsPaths: skillsPaths,
+          if (debugConfig != $none) #debugConfig: debugConfig,
+          if (retryConfig != $none) #retryConfig: retryConfig,
         }),
       );
   @override
@@ -1736,6 +1858,8 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
         appDataDir: data.get(#appDataDir, or: $value.appDataDir),
         responseSchema: data.get(#responseSchema, or: $value.responseSchema),
         skillsPaths: data.get(#skillsPaths, or: $value.skillsPaths),
+        debugConfig: data.get(#debugConfig, or: $value.debugConfig),
+        retryConfig: data.get(#retryConfig, or: $value.retryConfig),
       );
 
   @override

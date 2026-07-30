@@ -33,6 +33,12 @@ class McpServerConfigMapper extends ClassMapperBase<McpServerConfig> {
     _$timeoutSeconds,
     opt: true,
   );
+  static Duration? _$serverTimeout(McpServerConfig v) => v.serverTimeout;
+  static const Field<McpServerConfig, Duration> _f$serverTimeout = Field(
+    'serverTimeout',
+    _$serverTimeout,
+    opt: true,
+  );
   static List<String>? _$enabledTools(McpServerConfig v) => v.enabledTools;
   static const Field<McpServerConfig, List<String>> _f$enabledTools = Field(
     'enabledTools',
@@ -50,6 +56,7 @@ class McpServerConfigMapper extends ClassMapperBase<McpServerConfig> {
   final MappableFields<McpServerConfig> fields = const {
     #name: _f$name,
     #timeoutSeconds: _f$timeoutSeconds,
+    #serverTimeout: _f$serverTimeout,
     #enabledTools: _f$enabledTools,
     #disabledTools: _f$disabledTools,
   };
@@ -92,6 +99,7 @@ abstract class McpServerConfigCopyWith<$R, $In extends McpServerConfig, $Out>
   $R call({
     String? name,
     int? timeoutSeconds,
+    Duration? serverTimeout,
     List<String>? enabledTools,
     List<String>? disabledTools,
   });
@@ -142,6 +150,13 @@ class McpStdioServerMapper extends SubClassMapperBase<McpStdioServer> {
     key: r'timeout_seconds',
     opt: true,
   );
+  static Duration? _$serverTimeout(McpStdioServer v) => v.serverTimeout;
+  static const Field<McpStdioServer, Duration> _f$serverTimeout = Field(
+    'serverTimeout',
+    _$serverTimeout,
+    key: r'server_timeout',
+    opt: true,
+  );
   static List<String>? _$enabledTools(McpStdioServer v) => v.enabledTools;
   static const Field<McpStdioServer, List<String>> _f$enabledTools = Field(
     'enabledTools',
@@ -164,6 +179,7 @@ class McpStdioServerMapper extends SubClassMapperBase<McpStdioServer> {
     #args: _f$args,
     #env: _f$env,
     #timeoutSeconds: _f$timeoutSeconds,
+    #serverTimeout: _f$serverTimeout,
     #enabledTools: _f$enabledTools,
     #disabledTools: _f$disabledTools,
   };
@@ -185,6 +201,7 @@ class McpStdioServerMapper extends SubClassMapperBase<McpStdioServer> {
       args: data.dec(_f$args),
       env: data.dec(_f$env),
       timeoutSeconds: data.dec(_f$timeoutSeconds),
+      serverTimeout: data.dec(_f$serverTimeout),
       enabledTools: data.dec(_f$enabledTools),
       disabledTools: data.dec(_f$disabledTools),
     );
@@ -271,6 +288,7 @@ abstract class McpStdioServerCopyWith<$R, $In extends McpStdioServer, $Out>
     List<String>? args,
     Map<String, String>? env,
     int? timeoutSeconds,
+    Duration? serverTimeout,
     List<String>? enabledTools,
     List<String>? disabledTools,
   });
@@ -329,6 +347,7 @@ class _McpStdioServerCopyWithImpl<$R, $Out>
     Object? args = $none,
     Object? env = $none,
     Object? timeoutSeconds = $none,
+    Object? serverTimeout = $none,
     Object? enabledTools = $none,
     Object? disabledTools = $none,
   }) =>
@@ -339,6 +358,7 @@ class _McpStdioServerCopyWithImpl<$R, $Out>
           if (args != $none) #args: args,
           if (env != $none) #env: env,
           if (timeoutSeconds != $none) #timeoutSeconds: timeoutSeconds,
+          if (serverTimeout != $none) #serverTimeout: serverTimeout,
           if (enabledTools != $none) #enabledTools: enabledTools,
           if (disabledTools != $none) #disabledTools: disabledTools,
         }),
@@ -350,6 +370,7 @@ class _McpStdioServerCopyWithImpl<$R, $Out>
         args: data.get(#args, or: $value.args),
         env: data.get(#env, or: $value.env),
         timeoutSeconds: data.get(#timeoutSeconds, or: $value.timeoutSeconds),
+        serverTimeout: data.get(#serverTimeout, or: $value.serverTimeout),
         enabledTools: data.get(#enabledTools, or: $value.enabledTools),
         disabledTools: data.get(#disabledTools, or: $value.disabledTools),
       );
@@ -424,6 +445,15 @@ class McpStreamableHttpServerMapper
     key: r'timeout_seconds',
     opt: true,
   );
+  static Duration? _$serverTimeout(McpStreamableHttpServer v) =>
+      v.serverTimeout;
+  static const Field<McpStreamableHttpServer, Duration> _f$serverTimeout =
+      Field(
+    'serverTimeout',
+    _$serverTimeout,
+    key: r'server_timeout',
+    opt: true,
+  );
   static List<String>? _$enabledTools(McpStreamableHttpServer v) =>
       v.enabledTools;
   static const Field<McpStreamableHttpServer, List<String>> _f$enabledTools =
@@ -447,6 +477,7 @@ class McpStreamableHttpServerMapper
     #sseReadTimeout: _f$sseReadTimeout,
     #terminateOnClose: _f$terminateOnClose,
     #timeoutSeconds: _f$timeoutSeconds,
+    #serverTimeout: _f$serverTimeout,
     #enabledTools: _f$enabledTools,
     #disabledTools: _f$disabledTools,
   };
@@ -470,6 +501,7 @@ class McpStreamableHttpServerMapper
       sseReadTimeout: data.dec(_f$sseReadTimeout),
       terminateOnClose: data.dec(_f$terminateOnClose),
       timeoutSeconds: data.dec(_f$timeoutSeconds),
+      serverTimeout: data.dec(_f$serverTimeout),
       enabledTools: data.dec(_f$enabledTools),
       disabledTools: data.dec(_f$disabledTools),
     );
@@ -559,6 +591,7 @@ abstract class McpStreamableHttpServerCopyWith<
     double? sseReadTimeout,
     bool? terminateOnClose,
     int? timeoutSeconds,
+    Duration? serverTimeout,
     List<String>? enabledTools,
     List<String>? disabledTools,
   });
@@ -613,6 +646,7 @@ class _McpStreamableHttpServerCopyWithImpl<$R, $Out>
     double? sseReadTimeout,
     bool? terminateOnClose,
     Object? timeoutSeconds = $none,
+    Object? serverTimeout = $none,
     Object? enabledTools = $none,
     Object? disabledTools = $none,
   }) =>
@@ -625,6 +659,7 @@ class _McpStreamableHttpServerCopyWithImpl<$R, $Out>
           if (sseReadTimeout != null) #sseReadTimeout: sseReadTimeout,
           if (terminateOnClose != null) #terminateOnClose: terminateOnClose,
           if (timeoutSeconds != $none) #timeoutSeconds: timeoutSeconds,
+          if (serverTimeout != $none) #serverTimeout: serverTimeout,
           if (enabledTools != $none) #enabledTools: enabledTools,
           if (disabledTools != $none) #disabledTools: disabledTools,
         }),
@@ -639,6 +674,7 @@ class _McpStreamableHttpServerCopyWithImpl<$R, $Out>
         terminateOnClose:
             data.get(#terminateOnClose, or: $value.terminateOnClose),
         timeoutSeconds: data.get(#timeoutSeconds, or: $value.timeoutSeconds),
+        serverTimeout: data.get(#serverTimeout, or: $value.serverTimeout),
         enabledTools: data.get(#enabledTools, or: $value.enabledTools),
         disabledTools: data.get(#disabledTools, or: $value.disabledTools),
       );

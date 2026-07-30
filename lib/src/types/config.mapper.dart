@@ -440,3 +440,506 @@ class _SubagentConfigCopyWithImpl<$R, $Out>
   ) =>
       _SubagentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
+
+/// @nodoc
+class ModelAPIRetryConfigMapper extends ClassMapperBase<ModelAPIRetryConfig> {
+  ModelAPIRetryConfigMapper._();
+
+  static ModelAPIRetryConfigMapper? _instance;
+  static ModelAPIRetryConfigMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(_instance = ModelAPIRetryConfigMapper._());
+    }
+    return _instance!;
+  }
+
+  @override
+  final String id = 'ModelAPIRetryConfig';
+
+  static int? _$maxRetries(ModelAPIRetryConfig v) => v.maxRetries;
+  static const Field<ModelAPIRetryConfig, int> _f$maxRetries = Field(
+    'maxRetries',
+    _$maxRetries,
+    key: r'max_retries',
+    opt: true,
+  );
+  static int? _$initialSleepDurationMs(ModelAPIRetryConfig v) =>
+      v.initialSleepDurationMs;
+  static const Field<ModelAPIRetryConfig, int> _f$initialSleepDurationMs =
+      Field(
+    'initialSleepDurationMs',
+    _$initialSleepDurationMs,
+    key: r'initial_sleep_duration_ms',
+    opt: true,
+  );
+  static Duration? _$initialSleepDuration(ModelAPIRetryConfig v) =>
+      v.initialSleepDuration;
+  static const Field<ModelAPIRetryConfig, Duration> _f$initialSleepDuration =
+      Field(
+    'initialSleepDuration',
+    _$initialSleepDuration,
+    key: r'initial_sleep_duration',
+    opt: true,
+  );
+  static double? _$exponentialMultiplier(ModelAPIRetryConfig v) =>
+      v.exponentialMultiplier;
+  static const Field<ModelAPIRetryConfig, double> _f$exponentialMultiplier =
+      Field(
+    'exponentialMultiplier',
+    _$exponentialMultiplier,
+    key: r'exponential_multiplier',
+    opt: true,
+  );
+  static double? _$jitterRange(ModelAPIRetryConfig v) => v.jitterRange;
+  static const Field<ModelAPIRetryConfig, double> _f$jitterRange = Field(
+    'jitterRange',
+    _$jitterRange,
+    key: r'jitter_range',
+    opt: true,
+  );
+
+  @override
+  final MappableFields<ModelAPIRetryConfig> fields = const {
+    #maxRetries: _f$maxRetries,
+    #initialSleepDurationMs: _f$initialSleepDurationMs,
+    #initialSleepDuration: _f$initialSleepDuration,
+    #exponentialMultiplier: _f$exponentialMultiplier,
+    #jitterRange: _f$jitterRange,
+  };
+  @override
+  final bool ignoreNull = true;
+
+  static ModelAPIRetryConfig _instantiate(DecodingData data) {
+    return ModelAPIRetryConfig(
+      maxRetries: data.dec(_f$maxRetries),
+      initialSleepDurationMs: data.dec(_f$initialSleepDurationMs),
+      initialSleepDuration: data.dec(_f$initialSleepDuration),
+      exponentialMultiplier: data.dec(_f$exponentialMultiplier),
+      jitterRange: data.dec(_f$jitterRange),
+    );
+  }
+
+  @override
+  final Function instantiate = _instantiate;
+
+  static ModelAPIRetryConfig fromMap(Map<String, dynamic> map) {
+    return ensureInitialized().decodeMap<ModelAPIRetryConfig>(map);
+  }
+
+  static ModelAPIRetryConfig fromJson(String json) {
+    return ensureInitialized().decodeJson<ModelAPIRetryConfig>(json);
+  }
+}
+
+/// @nodoc
+mixin ModelAPIRetryConfigMappable {
+  String toJson() {
+    return ModelAPIRetryConfigMapper.ensureInitialized()
+        .encodeJson<ModelAPIRetryConfig>(this as ModelAPIRetryConfig);
+  }
+
+  Map<String, dynamic> toMap() {
+    return ModelAPIRetryConfigMapper.ensureInitialized()
+        .encodeMap<ModelAPIRetryConfig>(this as ModelAPIRetryConfig);
+  }
+
+  ModelAPIRetryConfigCopyWith<ModelAPIRetryConfig, ModelAPIRetryConfig,
+      ModelAPIRetryConfig> get copyWith => _ModelAPIRetryConfigCopyWithImpl<
+          ModelAPIRetryConfig, ModelAPIRetryConfig>(
+      this as ModelAPIRetryConfig, $identity, $identity);
+  @override
+  String toString() {
+    return ModelAPIRetryConfigMapper.ensureInitialized().stringifyValue(
+      this as ModelAPIRetryConfig,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return ModelAPIRetryConfigMapper.ensureInitialized().equalsValue(
+      this as ModelAPIRetryConfig,
+      other,
+    );
+  }
+
+  @override
+  int get hashCode {
+    return ModelAPIRetryConfigMapper.ensureInitialized().hashValue(
+      this as ModelAPIRetryConfig,
+    );
+  }
+}
+
+/// @nodoc
+extension ModelAPIRetryConfigValueCopy<$R, $Out>
+    on ObjectCopyWith<$R, ModelAPIRetryConfig, $Out> {
+  ModelAPIRetryConfigCopyWith<$R, ModelAPIRetryConfig, $Out>
+      get $asModelAPIRetryConfig => $base.as(
+            (v, t, t2) => _ModelAPIRetryConfigCopyWithImpl<$R, $Out>(v, t, t2),
+          );
+}
+
+/// @nodoc
+abstract class ModelAPIRetryConfigCopyWith<$R, $In extends ModelAPIRetryConfig,
+    $Out> implements ClassCopyWith<$R, $In, $Out> {
+  $R call({
+    int? maxRetries,
+    int? initialSleepDurationMs,
+    Duration? initialSleepDuration,
+    double? exponentialMultiplier,
+    double? jitterRange,
+  });
+  ModelAPIRetryConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  );
+}
+
+/// @nodoc
+class _ModelAPIRetryConfigCopyWithImpl<$R, $Out>
+    extends ClassCopyWithBase<$R, ModelAPIRetryConfig, $Out>
+    implements ModelAPIRetryConfigCopyWith<$R, ModelAPIRetryConfig, $Out> {
+  _ModelAPIRetryConfigCopyWithImpl(super.value, super.then, super.then2);
+
+  @override
+  late final ClassMapperBase<ModelAPIRetryConfig> $mapper =
+      ModelAPIRetryConfigMapper.ensureInitialized();
+  @override
+  $R call({
+    Object? maxRetries = $none,
+    Object? initialSleepDurationMs = $none,
+    Object? initialSleepDuration = $none,
+    Object? exponentialMultiplier = $none,
+    Object? jitterRange = $none,
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (maxRetries != $none) #maxRetries: maxRetries,
+          if (initialSleepDurationMs != $none)
+            #initialSleepDurationMs: initialSleepDurationMs,
+          if (initialSleepDuration != $none)
+            #initialSleepDuration: initialSleepDuration,
+          if (exponentialMultiplier != $none)
+            #exponentialMultiplier: exponentialMultiplier,
+          if (jitterRange != $none) #jitterRange: jitterRange,
+        }),
+      );
+  @override
+  ModelAPIRetryConfig $make(CopyWithData data) => ModelAPIRetryConfig(
+        maxRetries: data.get(#maxRetries, or: $value.maxRetries),
+        initialSleepDurationMs: data.get(
+          #initialSleepDurationMs,
+          or: $value.initialSleepDurationMs,
+        ),
+        initialSleepDuration: data.get(
+          #initialSleepDuration,
+          or: $value.initialSleepDuration,
+        ),
+        exponentialMultiplier: data.get(
+          #exponentialMultiplier,
+          or: $value.exponentialMultiplier,
+        ),
+        jitterRange: data.get(#jitterRange, or: $value.jitterRange),
+      );
+
+  @override
+  ModelAPIRetryConfigCopyWith<$R2, ModelAPIRetryConfig, $Out2>
+      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+          _ModelAPIRetryConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+}
+
+/// @nodoc
+class ModelOutputRetryConfigMapper
+    extends ClassMapperBase<ModelOutputRetryConfig> {
+  ModelOutputRetryConfigMapper._();
+
+  static ModelOutputRetryConfigMapper? _instance;
+  static ModelOutputRetryConfigMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(_instance = ModelOutputRetryConfigMapper._());
+    }
+    return _instance!;
+  }
+
+  @override
+  final String id = 'ModelOutputRetryConfig';
+
+  static int? _$maxRetries(ModelOutputRetryConfig v) => v.maxRetries;
+  static const Field<ModelOutputRetryConfig, int> _f$maxRetries = Field(
+    'maxRetries',
+    _$maxRetries,
+    key: r'max_retries',
+    opt: true,
+  );
+
+  @override
+  final MappableFields<ModelOutputRetryConfig> fields = const {
+    #maxRetries: _f$maxRetries,
+  };
+  @override
+  final bool ignoreNull = true;
+
+  static ModelOutputRetryConfig _instantiate(DecodingData data) {
+    return ModelOutputRetryConfig(maxRetries: data.dec(_f$maxRetries));
+  }
+
+  @override
+  final Function instantiate = _instantiate;
+
+  static ModelOutputRetryConfig fromMap(Map<String, dynamic> map) {
+    return ensureInitialized().decodeMap<ModelOutputRetryConfig>(map);
+  }
+
+  static ModelOutputRetryConfig fromJson(String json) {
+    return ensureInitialized().decodeJson<ModelOutputRetryConfig>(json);
+  }
+}
+
+/// @nodoc
+mixin ModelOutputRetryConfigMappable {
+  String toJson() {
+    return ModelOutputRetryConfigMapper.ensureInitialized()
+        .encodeJson<ModelOutputRetryConfig>(this as ModelOutputRetryConfig);
+  }
+
+  Map<String, dynamic> toMap() {
+    return ModelOutputRetryConfigMapper.ensureInitialized()
+        .encodeMap<ModelOutputRetryConfig>(this as ModelOutputRetryConfig);
+  }
+
+  ModelOutputRetryConfigCopyWith<ModelOutputRetryConfig, ModelOutputRetryConfig,
+          ModelOutputRetryConfig>
+      get copyWith => _ModelOutputRetryConfigCopyWithImpl<
+              ModelOutputRetryConfig, ModelOutputRetryConfig>(
+          this as ModelOutputRetryConfig, $identity, $identity);
+  @override
+  String toString() {
+    return ModelOutputRetryConfigMapper.ensureInitialized().stringifyValue(
+      this as ModelOutputRetryConfig,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return ModelOutputRetryConfigMapper.ensureInitialized().equalsValue(
+      this as ModelOutputRetryConfig,
+      other,
+    );
+  }
+
+  @override
+  int get hashCode {
+    return ModelOutputRetryConfigMapper.ensureInitialized().hashValue(
+      this as ModelOutputRetryConfig,
+    );
+  }
+}
+
+/// @nodoc
+extension ModelOutputRetryConfigValueCopy<$R, $Out>
+    on ObjectCopyWith<$R, ModelOutputRetryConfig, $Out> {
+  ModelOutputRetryConfigCopyWith<$R, ModelOutputRetryConfig, $Out>
+      get $asModelOutputRetryConfig => $base.as(
+            (v, t, t2) =>
+                _ModelOutputRetryConfigCopyWithImpl<$R, $Out>(v, t, t2),
+          );
+}
+
+/// @nodoc
+abstract class ModelOutputRetryConfigCopyWith<
+    $R,
+    $In extends ModelOutputRetryConfig,
+    $Out> implements ClassCopyWith<$R, $In, $Out> {
+  $R call({int? maxRetries});
+  ModelOutputRetryConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  );
+}
+
+/// @nodoc
+class _ModelOutputRetryConfigCopyWithImpl<$R, $Out>
+    extends ClassCopyWithBase<$R, ModelOutputRetryConfig, $Out>
+    implements
+        ModelOutputRetryConfigCopyWith<$R, ModelOutputRetryConfig, $Out> {
+  _ModelOutputRetryConfigCopyWithImpl(super.value, super.then, super.then2);
+
+  @override
+  late final ClassMapperBase<ModelOutputRetryConfig> $mapper =
+      ModelOutputRetryConfigMapper.ensureInitialized();
+  @override
+  $R call({Object? maxRetries = $none}) => $apply(
+        FieldCopyWithData({if (maxRetries != $none) #maxRetries: maxRetries}),
+      );
+  @override
+  ModelOutputRetryConfig $make(CopyWithData data) => ModelOutputRetryConfig(
+        maxRetries: data.get(#maxRetries, or: $value.maxRetries),
+      );
+
+  @override
+  ModelOutputRetryConfigCopyWith<$R2, ModelOutputRetryConfig, $Out2>
+      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+          _ModelOutputRetryConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+}
+
+/// @nodoc
+class RetryConfigMapper extends ClassMapperBase<RetryConfig> {
+  RetryConfigMapper._();
+
+  static RetryConfigMapper? _instance;
+  static RetryConfigMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(_instance = RetryConfigMapper._());
+      ModelAPIRetryConfigMapper.ensureInitialized();
+      ModelOutputRetryConfigMapper.ensureInitialized();
+    }
+    return _instance!;
+  }
+
+  @override
+  final String id = 'RetryConfig';
+
+  static ModelAPIRetryConfig? _$apiRetry(RetryConfig v) => v.apiRetry;
+  static const Field<RetryConfig, ModelAPIRetryConfig> _f$apiRetry = Field(
+    'apiRetry',
+    _$apiRetry,
+    key: r'api_retry',
+    opt: true,
+  );
+  static ModelOutputRetryConfig? _$modelOutputRetry(RetryConfig v) =>
+      v.modelOutputRetry;
+  static const Field<RetryConfig, ModelOutputRetryConfig> _f$modelOutputRetry =
+      Field(
+    'modelOutputRetry',
+    _$modelOutputRetry,
+    key: r'model_output_retry',
+    opt: true,
+  );
+
+  @override
+  final MappableFields<RetryConfig> fields = const {
+    #apiRetry: _f$apiRetry,
+    #modelOutputRetry: _f$modelOutputRetry,
+  };
+  @override
+  final bool ignoreNull = true;
+
+  static RetryConfig _instantiate(DecodingData data) {
+    return RetryConfig(
+      apiRetry: data.dec(_f$apiRetry),
+      modelOutputRetry: data.dec(_f$modelOutputRetry),
+    );
+  }
+
+  @override
+  final Function instantiate = _instantiate;
+
+  static RetryConfig fromMap(Map<String, dynamic> map) {
+    return ensureInitialized().decodeMap<RetryConfig>(map);
+  }
+
+  static RetryConfig fromJson(String json) {
+    return ensureInitialized().decodeJson<RetryConfig>(json);
+  }
+}
+
+/// @nodoc
+mixin RetryConfigMappable {
+  String toJson() {
+    return RetryConfigMapper.ensureInitialized().encodeJson<RetryConfig>(
+      this as RetryConfig,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return RetryConfigMapper.ensureInitialized().encodeMap<RetryConfig>(
+      this as RetryConfig,
+    );
+  }
+
+  RetryConfigCopyWith<RetryConfig, RetryConfig, RetryConfig> get copyWith =>
+      _RetryConfigCopyWithImpl<RetryConfig, RetryConfig>(
+        this as RetryConfig,
+        $identity,
+        $identity,
+      );
+  @override
+  String toString() {
+    return RetryConfigMapper.ensureInitialized().stringifyValue(
+      this as RetryConfig,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return RetryConfigMapper.ensureInitialized().equalsValue(
+      this as RetryConfig,
+      other,
+    );
+  }
+
+  @override
+  int get hashCode {
+    return RetryConfigMapper.ensureInitialized().hashValue(this as RetryConfig);
+  }
+}
+
+/// @nodoc
+extension RetryConfigValueCopy<$R, $Out>
+    on ObjectCopyWith<$R, RetryConfig, $Out> {
+  RetryConfigCopyWith<$R, RetryConfig, $Out> get $asRetryConfig =>
+      $base.as((v, t, t2) => _RetryConfigCopyWithImpl<$R, $Out>(v, t, t2));
+}
+
+/// @nodoc
+abstract class RetryConfigCopyWith<$R, $In extends RetryConfig, $Out>
+    implements ClassCopyWith<$R, $In, $Out> {
+  ModelAPIRetryConfigCopyWith<$R, ModelAPIRetryConfig, ModelAPIRetryConfig>?
+      get apiRetry;
+  ModelOutputRetryConfigCopyWith<$R, ModelOutputRetryConfig,
+      ModelOutputRetryConfig>? get modelOutputRetry;
+  $R call({
+    ModelAPIRetryConfig? apiRetry,
+    ModelOutputRetryConfig? modelOutputRetry,
+  });
+  RetryConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
+}
+
+/// @nodoc
+class _RetryConfigCopyWithImpl<$R, $Out>
+    extends ClassCopyWithBase<$R, RetryConfig, $Out>
+    implements RetryConfigCopyWith<$R, RetryConfig, $Out> {
+  _RetryConfigCopyWithImpl(super.value, super.then, super.then2);
+
+  @override
+  late final ClassMapperBase<RetryConfig> $mapper =
+      RetryConfigMapper.ensureInitialized();
+  @override
+  ModelAPIRetryConfigCopyWith<$R, ModelAPIRetryConfig, ModelAPIRetryConfig>?
+      get apiRetry =>
+          $value.apiRetry?.copyWith.$chain((v) => call(apiRetry: v));
+  @override
+  ModelOutputRetryConfigCopyWith<$R, ModelOutputRetryConfig,
+          ModelOutputRetryConfig>?
+      get modelOutputRetry => $value.modelOutputRetry?.copyWith.$chain(
+            (v) => call(modelOutputRetry: v),
+          );
+  @override
+  $R call({Object? apiRetry = $none, Object? modelOutputRetry = $none}) =>
+      $apply(
+        FieldCopyWithData({
+          if (apiRetry != $none) #apiRetry: apiRetry,
+          if (modelOutputRetry != $none) #modelOutputRetry: modelOutputRetry,
+        }),
+      );
+  @override
+  RetryConfig $make(CopyWithData data) => RetryConfig(
+        apiRetry: data.get(#apiRetry, or: $value.apiRetry),
+        modelOutputRetry:
+            data.get(#modelOutputRetry, or: $value.modelOutputRetry),
+      );
+
+  @override
+  RetryConfigCopyWith<$R2, RetryConfig, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  ) =>
+      _RetryConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+}

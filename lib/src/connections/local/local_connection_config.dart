@@ -40,6 +40,8 @@ abstract class BaseLocalAgentConfig extends AgentConfig
     super.appDataDir,
     super.responseSchema,
     List<String>? skillsPaths,
+    super.debugConfig,
+    super.retryConfig,
   }) : super(
           capabilities: capabilities ?? CapabilitiesConfig(),
           tools: tools ?? const [],
@@ -111,6 +113,8 @@ class LocalAgentConfig extends BaseLocalAgentConfig
     super.appDataDir,
     super.responseSchema,
     super.skillsPaths,
+    super.debugConfig,
+    super.retryConfig,
     this.model,
     this.models,
     this.apiKey,
@@ -215,6 +219,8 @@ class LocalAgentConfig extends BaseLocalAgentConfig
       skillsPaths: skillsPaths,
       mcpServers: mcpServers,
       subagents: subagents,
+      debugConfig: debugConfig,
+      retryConfig: retryConfig,
     );
   }
 }
@@ -247,6 +253,8 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
     super.appDataDir,
     super.responseSchema,
     super.skillsPaths,
+    super.debugConfig,
+    super.retryConfig,
   });
 
   @override
@@ -286,6 +294,8 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
       skillsPaths: skillsPaths,
       mcpServers: mcpServers,
       subagents: subagents,
+      debugConfig: debugConfig,
+      retryConfig: retryConfig,
     );
   }
 }
@@ -358,6 +368,8 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
     super.appDataDir,
     super.responseSchema,
     super.skillsPaths,
+    super.debugConfig,
+    super.retryConfig,
   });
 
   @override
@@ -390,6 +402,8 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
       skillsPaths: skillsPaths,
       mcpServers: mcpServers,
       subagents: subagents,
+      debugConfig: debugConfig,
+      retryConfig: retryConfig,
     );
   }
 }

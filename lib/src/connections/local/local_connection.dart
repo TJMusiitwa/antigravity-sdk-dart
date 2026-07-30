@@ -35,6 +35,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   final List<String> _skillsPaths;
   final List<McpServerConfig> _mcpServers;
   final List<SubagentConfig> _subagents;
+  final DebugConfig? _debugConfig;
+  final RetryConfig? _retryConfig;
 
   Process? _process;
   WebSocket? _ws;
@@ -59,6 +61,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     required List<String> skillsPaths,
     List<McpServerConfig>? mcpServers,
     List<SubagentConfig>? subagents,
+    DebugConfig? debugConfig,
+    RetryConfig? retryConfig,
   })  : _configuredBinaryPath = binaryPath,
         _toolRunner = toolRunner,
         _hookRunner = hookRunner,
@@ -72,7 +76,12 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         _appDataDir = appDataDir,
         _skillsPaths = skillsPaths,
         _mcpServers = mcpServers ?? const [],
-        _subagents = subagents ?? const [];
+        _subagents = subagents ?? const [],
+        _debugConfig = debugConfig,
+        _retryConfig = retryConfig;
+
+  @override
+  DebugConfig? get debugConfig => _debugConfig;
 
   @override
   Connection connect() {
@@ -544,6 +553,9 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       _ => 'SESSION_CONTINUATION_MODE_UNSPECIFIED',
     };
 
+    final retryConfigMap = _retryConfig?.toMap();
+    final debugConfigMap = _debugConfig?.toMap();
+
     return {
       'cascade_id': _conversationId ?? '',
       'session_continuation_mode': sessionContinuationModeProto,
@@ -559,6 +571,10 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       'mcp_servers': mcpServersProto,
       if (enabledHooks.isNotEmpty) 'enabled_hooks': enabledHooks,
       if (customAgentsProtos.isNotEmpty) 'custom_subagents': customAgentsProtos,
+      if (retryConfigMap != null && retryConfigMap.isNotEmpty)
+        'retry_config': retryConfigMap,
+      if (debugConfigMap != null && debugConfigMap.isNotEmpty)
+        'debug_config': debugConfigMap,
     };
   }
 }
@@ -1341,6 +1357,8 @@ class LocalOpenAIConnectionStrategy extends LocalConnectionStrategy {
     required super.skillsPaths,
     super.mcpServers,
     super.subagents,
+    super.debugConfig,
+    super.retryConfig,
   });
 
   @override
@@ -1405,6 +1423,8 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
     required super.skillsPaths,
     super.mcpServers,
     super.subagents,
+    super.debugConfig,
+    super.retryConfig,
   }) : super(
           baseUrl: '',
           modelName: p.basename(modelPath),
@@ -1512,6 +1532,13 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
 
     // 4. Warm-up request
     try {
+      var warmupTimeoutSeconds = 120.0;
+      if (maxContextTokens != null && maxContextTokens! > 0) {
+        final scaled = maxContextTokens! / 250.0;
+        if (scaled > warmupTimeoutSeconds) {
+          warmupTimeoutSeconds = scaled;
+        }
+      }
       final request =
           await client.postUrl(Uri.parse('$litertBaseUrl/v1/chat/completions'));
       request.headers.contentType = ContentType.json;
@@ -1522,8 +1549,8 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
         ],
         'stream': false,
       }));
-      final response =
-          await request.close().timeout(const Duration(seconds: 10));
+      final response = await request.close().timeout(
+          Duration(milliseconds: (warmupTimeoutSeconds * 1000).round()));
       await response.drain();
     } catch (e) {
       _logger.warning('LiteRT warm-up request timed out or failed: $e');

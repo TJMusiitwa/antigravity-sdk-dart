@@ -1,4 +1,5 @@
 import 'package:dart_mappable/dart_mappable.dart';
+import 'exceptions.dart';
 
 part 'mcp_config.mapper.dart';
 
@@ -10,20 +11,27 @@ abstract class McpServerConfig with McpServerConfigMappable {
   final List<String>? enabledTools;
   final List<String>? disabledTools;
 
+  /// Returns the configured timeout as a strongly-typed Dart [Duration].
+  Duration? get serverTimeout =>
+      timeoutSeconds != null ? Duration(seconds: timeoutSeconds!) : null;
+
   McpServerConfig({
     required this.name,
-    this.timeoutSeconds,
+    int? timeoutSeconds,
+    Duration? serverTimeout,
     this.enabledTools,
     this.disabledTools,
-  }) {
+  }) : timeoutSeconds = timeoutSeconds ?? serverTimeout?.inSeconds {
     if (enabledTools != null && disabledTools != null) {
-      throw ArgumentError(
+      throw AntigravityValidationException(
         'enabledTools and disabledTools should be mutually exclusive.',
       );
     }
     final regex = RegExp(r'^[a-zA-Z0-9_-]+$');
     if (!regex.hasMatch(name)) {
-      throw ArgumentError('name must match pattern ^[a-zA-Z0-9_-]+\$');
+      throw AntigravityValidationException(
+        'name must match pattern ^[a-zA-Z0-9_-]+\$',
+      );
     }
   }
 
@@ -52,6 +60,7 @@ class McpStdioServer extends McpServerConfig with McpStdioServerMappable {
     List<String>? args,
     this.env,
     super.timeoutSeconds,
+    super.serverTimeout,
     super.enabledTools,
     super.disabledTools,
   }) : args = args ?? [];
@@ -73,6 +82,9 @@ class McpStreamableHttpServer extends McpServerConfig
   final double sseReadTimeout;
   final bool terminateOnClose;
 
+  /// Returns the target URL as a strongly-typed Dart [Uri].
+  Uri get uri => Uri.parse(url);
+
   @override
   String get type => 'http';
 
@@ -84,9 +96,36 @@ class McpStreamableHttpServer extends McpServerConfig
     this.sseReadTimeout = 300.0,
     this.terminateOnClose = true,
     super.timeoutSeconds,
+    super.serverTimeout,
     super.enabledTools,
     super.disabledTools,
   });
+
+  /// Factory constructor creating an [McpStreamableHttpServer] from a strongly-typed Dart [Uri].
+  factory McpStreamableHttpServer.fromUri({
+    required String name,
+    required Uri uri,
+    Map<String, String>? headers,
+    double timeout = 30.0,
+    double sseReadTimeout = 300.0,
+    bool terminateOnClose = true,
+    int? timeoutSeconds,
+    Duration? serverTimeout,
+    List<String>? enabledTools,
+    List<String>? disabledTools,
+  }) =>
+      McpStreamableHttpServer(
+        name: name,
+        url: uri.toString(),
+        headers: headers,
+        timeout: timeout,
+        sseReadTimeout: sseReadTimeout,
+        terminateOnClose: terminateOnClose,
+        timeoutSeconds: timeoutSeconds,
+        serverTimeout: serverTimeout,
+        enabledTools: enabledTools,
+        disabledTools: disabledTools,
+      );
 
   static const fromMap = McpStreamableHttpServerMapper.fromMap;
   static const fromJson = McpStreamableHttpServerMapper.fromJson;
