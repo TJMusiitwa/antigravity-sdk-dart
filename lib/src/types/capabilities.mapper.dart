@@ -103,6 +103,56 @@ extension BuiltinToolsMapperExtension on BuiltinTools {
 }
 
 /// @nodoc
+
+class AgentModeMapper extends EnumMapper<AgentMode> {
+  AgentModeMapper._();
+
+  static AgentModeMapper? _instance;
+  static AgentModeMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(_instance = AgentModeMapper._());
+    }
+    return _instance!;
+  }
+
+  static AgentMode fromValue(dynamic value) {
+    ensureInitialized();
+    return MapperContainer.globals.fromValue(value);
+  }
+
+  @override
+  AgentMode decode(dynamic value) {
+    switch (value) {
+      case r'autonomous':
+        return AgentMode.autonomous;
+      case r'interactive':
+        return AgentMode.interactive;
+      default:
+        return AgentMode.values[0];
+    }
+  }
+
+  @override
+  dynamic encode(AgentMode self) {
+    switch (self) {
+      case AgentMode.autonomous:
+        return r'autonomous';
+      case AgentMode.interactive:
+        return r'interactive';
+    }
+  }
+}
+
+/// @nodoc
+
+extension AgentModeMapperExtension on AgentMode {
+  String toValue() {
+    AgentModeMapper.ensureInitialized();
+    return MapperContainer.globals.toValue<AgentMode>(this) as String;
+  }
+}
+
+/// @nodoc
 class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
   CapabilitiesConfigMapper._();
 
@@ -110,6 +160,7 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
   static CapabilitiesConfigMapper ensureInitialized() {
     if (_instance == null) {
       MapperContainer.globals.use(_instance = CapabilitiesConfigMapper._());
+      AgentModeMapper.ensureInitialized();
       BuiltinToolsMapper.ensureInitialized();
     }
     return _instance!;
@@ -125,6 +176,14 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
     key: r'enable_subagents',
     opt: true,
     def: true,
+  );
+  static AgentMode _$agentMode(CapabilitiesConfig v) => v.agentMode;
+  static const Field<CapabilitiesConfig, AgentMode> _f$agentMode = Field(
+    'agentMode',
+    _$agentMode,
+    key: r'agent_mode',
+    opt: true,
+    def: AgentMode.autonomous,
   );
   static List<BuiltinTools>? _$enabledTools(CapabilitiesConfig v) =>
       v.enabledTools;
@@ -160,6 +219,7 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
   @override
   final MappableFields<CapabilitiesConfig> fields = const {
     #enableSubagents: _f$enableSubagents,
+    #agentMode: _f$agentMode,
     #enabledTools: _f$enabledTools,
     #disabledTools: _f$disabledTools,
     #compactionThreshold: _f$compactionThreshold,
@@ -171,6 +231,7 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
   static CapabilitiesConfig _instantiate(DecodingData data) {
     return CapabilitiesConfig(
       enableSubagents: data.dec(_f$enableSubagents),
+      agentMode: data.dec(_f$agentMode),
       enabledTools: data.dec(_f$enabledTools),
       disabledTools: data.dec(_f$disabledTools),
       compactionThreshold: data.dec(_f$compactionThreshold),
@@ -250,6 +311,7 @@ abstract class CapabilitiesConfigCopyWith<$R, $In extends CapabilitiesConfig,
       ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get disabledTools;
   $R call({
     bool? enableSubagents,
+    AgentMode? agentMode,
     List<BuiltinTools>? enabledTools,
     List<BuiltinTools>? disabledTools,
     int? compactionThreshold,
@@ -292,6 +354,7 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
   @override
   $R call({
     bool? enableSubagents,
+    AgentMode? agentMode,
     Object? enabledTools = $none,
     Object? disabledTools = $none,
     Object? compactionThreshold = $none,
@@ -300,6 +363,7 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
       $apply(
         FieldCopyWithData({
           if (enableSubagents != null) #enableSubagents: enableSubagents,
+          if (agentMode != null) #agentMode: agentMode,
           if (enabledTools != $none) #enabledTools: enabledTools,
           if (disabledTools != $none) #disabledTools: disabledTools,
           if (compactionThreshold != $none)
@@ -311,6 +375,7 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
   @override
   CapabilitiesConfig $make(CopyWithData data) => CapabilitiesConfig(
         enableSubagents: data.get(#enableSubagents, or: $value.enableSubagents),
+        agentMode: data.get(#agentMode, or: $value.agentMode),
         enabledTools: data.get(#enabledTools, or: $value.enabledTools),
         disabledTools: data.get(#disabledTools, or: $value.disabledTools),
         compactionThreshold: data.get(

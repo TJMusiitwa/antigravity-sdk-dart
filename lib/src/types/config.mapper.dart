@@ -77,6 +77,7 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
   static SubagentCapabilitiesMapper ensureInitialized() {
     if (_instance == null) {
       MapperContainer.globals.use(_instance = SubagentCapabilitiesMapper._());
+      AgentModeMapper.ensureInitialized();
       BuiltinToolsMapper.ensureInitialized();
     }
     return _instance!;
@@ -85,6 +86,14 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
   @override
   final String id = 'SubagentCapabilities';
 
+  static AgentMode _$agentMode(SubagentCapabilities v) => v.agentMode;
+  static const Field<SubagentCapabilities, AgentMode> _f$agentMode = Field(
+    'agentMode',
+    _$agentMode,
+    key: r'agent_mode',
+    opt: true,
+    def: AgentMode.autonomous,
+  );
   static List<BuiltinTools>? _$enabledTools(SubagentCapabilities v) =>
       v.enabledTools;
   static const Field<SubagentCapabilities, List<BuiltinTools>> _f$enabledTools =
@@ -101,6 +110,7 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
 
   @override
   final MappableFields<SubagentCapabilities> fields = const {
+    #agentMode: _f$agentMode,
     #enabledTools: _f$enabledTools,
     #disabledTools: _f$disabledTools,
   };
@@ -109,6 +119,7 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
 
   static SubagentCapabilities _instantiate(DecodingData data) {
     return SubagentCapabilities(
+      agentMode: data.dec(_f$agentMode),
       enabledTools: data.dec(_f$enabledTools),
       disabledTools: data.dec(_f$disabledTools),
     );
@@ -184,6 +195,7 @@ abstract class SubagentCapabilitiesCopyWith<
   ListCopyWith<$R, BuiltinTools,
       ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get disabledTools;
   $R call({
+    AgentMode? agentMode,
     List<BuiltinTools>? enabledTools,
     List<BuiltinTools>? disabledTools,
   });
@@ -222,15 +234,21 @@ class _SubagentCapabilitiesCopyWithImpl<$R, $Out>
             )
           : null;
   @override
-  $R call({Object? enabledTools = $none, Object? disabledTools = $none}) =>
+  $R call({
+    AgentMode? agentMode,
+    Object? enabledTools = $none,
+    Object? disabledTools = $none,
+  }) =>
       $apply(
         FieldCopyWithData({
+          if (agentMode != null) #agentMode: agentMode,
           if (enabledTools != $none) #enabledTools: enabledTools,
           if (disabledTools != $none) #disabledTools: disabledTools,
         }),
       );
   @override
   SubagentCapabilities $make(CopyWithData data) => SubagentCapabilities(
+        agentMode: data.get(#agentMode, or: $value.agentMode),
         enabledTools: data.get(#enabledTools, or: $value.enabledTools),
         disabledTools: data.get(#disabledTools, or: $value.disabledTools),
       );

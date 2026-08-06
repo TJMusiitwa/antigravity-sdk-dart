@@ -11,6 +11,24 @@ import '../connections/connection.dart';
 // A shared broadcast stream for stdin lines to prevent "Stream has already been listened to" errors.
 Stream<String>? _stdinLines;
 
+/// Formats CLI interactive step spinner messages for single, concurrent, compaction, or reasoning steps.
+String? formatStepSpinnerMessage(Step step) {
+  if (step.type == StepType.toolCall) {
+    if (step.toolCalls.length == 1) {
+      return "Running tool '${step.toolCalls.first.name}'...";
+    } else if (step.toolCalls.length > 1) {
+      final toolNames = step.toolCalls.map((tc) => "'${tc.name}'").join(', ');
+      return 'Running tools $toolNames...';
+    }
+    return 'Running tool...';
+  } else if (step.type == StepType.compaction) {
+    return 'Compacting context...';
+  } else if (step.source == StepSource.model && step.thinkingDelta.isNotEmpty) {
+    return 'Reasoning...';
+  }
+  return null;
+}
+
 Stream<String> get _getStdinLines {
   _stdinLines ??= stdin
       .transform(utf8.decoder)
@@ -211,15 +229,9 @@ Future<void> runInteractiveLoop(
 
         Step? finalStep;
         await for (final step in agent.conversation.receiveSteps()) {
-          if (step.type == StepType.toolCall) {
-            final toolName =
-                step.toolCalls.isNotEmpty ? step.toolCalls.first.name : "tool";
-            spinner.update("Running tool '$toolName'...");
-          } else if (step.type == StepType.compaction) {
-            spinner.update("Compacting context...");
-          } else if (step.source == StepSource.model &&
-              step.thinkingDelta.isNotEmpty) {
-            spinner.update("Reasoning...");
+          final spinnerMsg = formatStepSpinnerMessage(step);
+          if (spinnerMsg != null) {
+            spinner.update(spinnerMsg);
           }
 
           if (step.isCompleteResponse == true) {

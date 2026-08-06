@@ -72,6 +72,60 @@ extension ThinkingLevelMapperExtension on ThinkingLevel {
 
 /// @nodoc
 
+class ServiceTierMapper extends EnumMapper<ServiceTier> {
+  ServiceTierMapper._();
+
+  static ServiceTierMapper? _instance;
+  static ServiceTierMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(_instance = ServiceTierMapper._());
+    }
+    return _instance!;
+  }
+
+  static ServiceTier fromValue(dynamic value) {
+    ensureInitialized();
+    return MapperContainer.globals.fromValue(value);
+  }
+
+  @override
+  ServiceTier decode(dynamic value) {
+    switch (value) {
+      case r'standard':
+        return ServiceTier.standard;
+      case r'priority':
+        return ServiceTier.priority;
+      case r'flex':
+        return ServiceTier.flex;
+      default:
+        return ServiceTier.values[0];
+    }
+  }
+
+  @override
+  dynamic encode(ServiceTier self) {
+    switch (self) {
+      case ServiceTier.standard:
+        return r'standard';
+      case ServiceTier.priority:
+        return r'priority';
+      case ServiceTier.flex:
+        return r'flex';
+    }
+  }
+}
+
+/// @nodoc
+
+extension ServiceTierMapperExtension on ServiceTier {
+  String toValue() {
+    ServiceTierMapper.ensureInitialized();
+    return MapperContainer.globals.toValue<ServiceTier>(this) as String;
+  }
+}
+
+/// @nodoc
+
 class ModelTypeMapper extends EnumMapper<ModelType> {
   ModelTypeMapper._();
 
@@ -206,6 +260,7 @@ class GeminiModelOptionsMapper extends ClassMapperBase<GeminiModelOptions> {
     if (_instance == null) {
       MapperContainer.globals.use(_instance = GeminiModelOptionsMapper._());
       ThinkingLevelMapper.ensureInitialized();
+      ServiceTierMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -222,16 +277,27 @@ class GeminiModelOptionsMapper extends ClassMapperBase<GeminiModelOptions> {
     key: r'thinking_level',
     opt: true,
   );
+  static ServiceTier? _$serviceTier(GeminiModelOptions v) => v.serviceTier;
+  static const Field<GeminiModelOptions, ServiceTier> _f$serviceTier = Field(
+    'serviceTier',
+    _$serviceTier,
+    key: r'service_tier',
+    opt: true,
+  );
 
   @override
   final MappableFields<GeminiModelOptions> fields = const {
     #thinkingLevel: _f$thinkingLevel,
+    #serviceTier: _f$serviceTier,
   };
   @override
   final bool ignoreNull = true;
 
   static GeminiModelOptions _instantiate(DecodingData data) {
-    return GeminiModelOptions(thinkingLevel: data.dec(_f$thinkingLevel));
+    return GeminiModelOptions(
+      thinkingLevel: data.dec(_f$thinkingLevel),
+      serviceTier: data.dec(_f$serviceTier),
+    );
   }
 
   @override
@@ -300,7 +366,7 @@ extension GeminiModelOptionsValueCopy<$R, $Out>
 /// @nodoc
 abstract class GeminiModelOptionsCopyWith<$R, $In extends GeminiModelOptions,
     $Out> implements ClassCopyWith<$R, $In, $Out> {
-  $R call({ThinkingLevel? thinkingLevel});
+  $R call({ThinkingLevel? thinkingLevel, ServiceTier? serviceTier});
   GeminiModelOptionsCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
   );
@@ -316,14 +382,17 @@ class _GeminiModelOptionsCopyWithImpl<$R, $Out>
   late final ClassMapperBase<GeminiModelOptions> $mapper =
       GeminiModelOptionsMapper.ensureInitialized();
   @override
-  $R call({Object? thinkingLevel = $none}) => $apply(
+  $R call({Object? thinkingLevel = $none, Object? serviceTier = $none}) =>
+      $apply(
         FieldCopyWithData({
           if (thinkingLevel != $none) #thinkingLevel: thinkingLevel,
+          if (serviceTier != $none) #serviceTier: serviceTier,
         }),
       );
   @override
   GeminiModelOptions $make(CopyWithData data) => GeminiModelOptions(
         thinkingLevel: data.get(#thinkingLevel, or: $value.thinkingLevel),
+        serviceTier: data.get(#serviceTier, or: $value.serviceTier),
       );
 
   @override

@@ -1160,4 +1160,92 @@ void main() {
           equals(Uri.parse('https://generativelanguage.googleapis.com')));
     });
   });
+
+  group('v0.8.0 updates', () {
+    test('ServiceTier enum values and GeminiModelOptions support', () {
+      expect(ServiceTier.standard.value, equals('standard'));
+      expect(ServiceTier.priority.value, equals('priority'));
+      expect(ServiceTier.flex.value, equals('flex'));
+      expect(ServiceTier.fromString('priority'), equals(ServiceTier.priority));
+      expect(ServiceTier.fromString('unknown'), equals(ServiceTier.standard));
+
+      final options = GeminiModelOptions(
+        thinkingLevel: ThinkingLevel.high,
+        serviceTier: ServiceTier.priority,
+      );
+      expect(options.serviceTier, equals(ServiceTier.priority));
+    });
+
+    test('AgentMode enum values, protoValue, and capabilities defaults', () {
+      expect(AgentMode.autonomous.value, equals('autonomous'));
+      expect(AgentMode.interactive.value, equals('interactive'));
+      expect(AgentMode.autonomous.protoValue, equals('AGENT_MODE_AUTONOMOUS'));
+      expect(
+          AgentMode.interactive.protoValue, equals('AGENT_MODE_INTERACTIVE'));
+
+      final caps = CapabilitiesConfig();
+      expect(caps.agentMode, equals(AgentMode.autonomous));
+
+      final subCaps = SubagentCapabilities(agentMode: AgentMode.interactive);
+      expect(subCaps.agentMode, equals(AgentMode.interactive));
+
+      // Constructing CapabilitiesConfig with askQuestion in non-interactive mode triggers warning without throwing
+      final warnCaps = CapabilitiesConfig(
+        enabledTools: [BuiltinTools.askQuestion],
+        agentMode: AgentMode.autonomous,
+      );
+      expect(warnCaps.agentMode, equals(AgentMode.autonomous));
+
+      final warnSubCaps = SubagentCapabilities(
+        enabledTools: [BuiltinTools.askQuestion],
+        agentMode: AgentMode.autonomous,
+      );
+      expect(warnSubCaps.agentMode, equals(AgentMode.autonomous));
+    });
+
+    test('UsageMetadata subtraction operator and serviceTier handling', () {
+      final u1 = UsageMetadata(
+        promptTokenCount: 100,
+        candidatesTokenCount: 50,
+        totalTokenCount: 150,
+        serviceTier: ServiceTier.priority,
+      );
+      final u2 = UsageMetadata(
+        promptTokenCount: 40,
+        candidatesTokenCount: 20,
+        totalTokenCount: 60,
+        serviceTier: ServiceTier.priority,
+      );
+
+      final diff = u1 - u2;
+      expect(diff.promptTokenCount, equals(60));
+      expect(diff.candidatesTokenCount, equals(30));
+      expect(diff.totalTokenCount, equals(90));
+      expect(diff.serviceTier, equals(ServiceTier.priority));
+
+      final sum = u1 + u2;
+      expect(sum.totalTokenCount, equals(210));
+      expect(sum.serviceTier, equals(ServiceTier.priority));
+    });
+
+    test('ToolCall, ToolResult, and ToolExecutionException carry callId', () {
+      final tc = ToolCall(name: 'run_command', callId: 'call_123');
+      expect(tc.callId, equals('call_123'));
+      expect(tc.effectiveCallId, equals('call_123'));
+
+      final tr =
+          ToolResult(name: 'run_command', callId: 'call_123', result: 'ok');
+      expect(tr.callId, equals('call_123'));
+      expect(tr.effectiveCallId, equals('call_123'));
+
+      final ex = ToolExecutionException(
+        'Failed',
+        toolName: 'run_command',
+        serverName: 'mcp_server',
+        callId: 'call_123',
+      );
+      expect(ex.callId, equals('call_123'));
+      expect(ex.toString(), contains('callId: call_123'));
+    });
+  });
 }

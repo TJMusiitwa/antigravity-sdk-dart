@@ -222,6 +222,20 @@ class LocalConnectionStrategy implements ConnectionStrategy {
                       );
                     }
                   }
+                  if (initResp.containsKey('cumulative_usage') &&
+                      initResp['cumulative_usage'] is Map) {
+                    _connection?._cumulativeUsage = UsageMetadata.fromMap(
+                      Map<String, dynamic>.from(
+                        initResp['cumulative_usage'] as Map,
+                      ),
+                    );
+                  }
+                  if (initResp.containsKey('trajectory_usage') &&
+                      initResp['trajectory_usage'] is List) {
+                    _connection?._parseTrajectoryUsages(
+                      initResp['trajectory_usage'] as List,
+                    );
+                  }
                   initCompleter.complete(initialHistory);
                   return; // Discard from forwarding as it's the startup handshake response.
                 }
@@ -307,9 +321,18 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     if (_systemInstructions != null) {
       if (_systemInstructions is String) {
         systemInstructionsProto = {
+          'appended': {
+            'appended_sections': [
+              {'title': 'System', 'content': _systemInstructions},
+            ],
+          },
+        };
+      } else if (_systemInstructions is CustomSystemInstructions) {
+        final c = _systemInstructions as CustomSystemInstructions;
+        systemInstructionsProto = {
           'custom': {
             'part': [
-              {'text': _systemInstructions},
+              {'text': c.text},
             ],
           },
         };
@@ -333,26 +356,22 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         if (model.endpoint != null) {
           if (model.endpoint is GeminiAPIEndpoint) {
             final ep = model.endpoint as GeminiAPIEndpoint;
+            final opts = _buildModelOptionsMap(ep.options);
             protoMap['gemini_api_endpoint'] = {
               if (ep.baseUrl != null) 'base_url': ep.baseUrl,
               if (ep.httpHeaders != null) 'http_headers': ep.httpHeaders,
               if (ep.apiKey != null) 'api_key': ep.apiKey,
-              if (ep.options?.thinkingLevel != null)
-                'options': {
-                  'thinking_level': ep.options!.thinkingLevel!.value,
-                },
+              if (opts != null) 'options': opts,
             };
           } else if (model.endpoint is VertexEndpoint) {
             final ep = model.endpoint as VertexEndpoint;
+            final opts = _buildModelOptionsMap(ep.options);
             protoMap['vertex_endpoint'] = {
               if (ep.baseUrl != null) 'base_url': ep.baseUrl,
               if (ep.httpHeaders != null) 'http_headers': ep.httpHeaders,
               if (ep.project != null) 'project': ep.project,
               if (ep.location != null) 'location': ep.location,
-              if (ep.options?.thinkingLevel != null)
-                'options': {
-                  'thinking_level': ep.options!.thinkingLevel!.value,
-                },
+              if (opts != null) 'options': opts,
             };
           }
         }
@@ -543,6 +562,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
           },
         },
         'tools': resolvedSubagentTools,
+        'agent_mode': (subagent.capabilities?.agentMode ?? AgentMode.autonomous)
+            .protoValue,
       });
     }
 
@@ -559,6 +580,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     return {
       'cascade_id': _conversationId ?? '',
       'session_continuation_mode': sessionContinuationModeProto,
+      'agent_mode': cfg.agentMode.protoValue,
       'tools': toolsProtos,
       'system_instructions': systemInstructionsProto,
       'models': modelsProtos,
@@ -575,6 +597,19 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         'retry_config': retryConfigMap,
       if (debugConfigMap != null && debugConfigMap.isNotEmpty)
         'debug_config': debugConfigMap,
+    };
+  }
+
+  Map<String, dynamic>? _buildModelOptionsMap(GeminiModelOptions? options) {
+    if (options == null) return null;
+    if (options.thinkingLevel == null && options.serviceTier == null) {
+      return null;
+    }
+    return {
+      if (options.thinkingLevel != null)
+        'thinking_level': options.thinkingLevel!.value,
+      if (options.serviceTier != null)
+        'service_tier': options.serviceTier!.value,
     };
   }
 }
@@ -651,6 +686,8 @@ class LocalConnection implements Connection {
   bool _idleState = true;
   String _convId = '';
   final List<Step> _initialHistory = [];
+  UsageMetadata _cumulativeUsage = UsageMetadata();
+  final Map<String, UsageMetadata> _trajectoryUsages = {};
 
   @override
   bool get isIdle => _idleState;
@@ -660,6 +697,13 @@ class LocalConnection implements Connection {
 
   @override
   List<Step> get initialHistory => List.unmodifiable(_initialHistory);
+
+  @override
+  UsageMetadata get cumulativeUsage => _cumulativeUsage;
+
+  @override
+  Map<String, UsageMetadata> get trajectoryUsages =>
+      Map.unmodifiable(_trajectoryUsages);
 
   /// Creates a new [LocalConnection] session.
   ///
@@ -784,6 +828,22 @@ class LocalConnection implements Connection {
       return;
     }
 
+    // Process usage update
+    if (normalizedEvent.containsKey('usage_update')) {
+      final usageUpdate = Map<String, dynamic>.from(
+        normalizedEvent['usage_update'] as Map,
+      );
+      if (usageUpdate.containsKey('total') && usageUpdate['total'] is Map) {
+        _cumulativeUsage = UsageMetadata.fromMap(
+          Map<String, dynamic>.from(usageUpdate['total'] as Map),
+        );
+      }
+      if (usageUpdate.containsKey('agents') && usageUpdate['agents'] is List) {
+        _parseTrajectoryUsages(usageUpdate['agents'] as List);
+      }
+      return;
+    }
+
     // 2. Process step update
     if (normalizedEvent.containsKey('step_update')) {
       final stepJson = Map<String, dynamic>.from(
@@ -808,6 +868,13 @@ class LocalConnection implements Connection {
 
       // Add step to stream
       _safeAdd(stepForQueue);
+
+      // Dispatch OnCompactionHook if step is compaction
+      if (step.type == StepType.compaction) {
+        final turnCtx =
+            _hookRouter?.currentTurnContext ?? _hookRunner.currentTurnContext;
+        unawaited(_hookRunner.dispatchCompaction(turnCtx, step));
+      }
 
       // Track step state transitions and dispatch pre/post step hooks
       final trajectoryId = stepJson['trajectory_id']?.toString() ?? '';
@@ -910,6 +977,22 @@ class LocalConnection implements Connection {
       final tc = ToolCall.fromMap(tcJson);
       _logger.info('Tool call requested: ${tc.name}');
       await _handleToolCall(tc);
+    }
+  }
+
+  void _parseTrajectoryUsages(List trajList) {
+    for (final entry in trajList) {
+      if (entry is Map) {
+        final entryMap = Map<String, dynamic>.from(entry);
+        final trajId = entryMap['trajectory_id']?.toString() ?? '';
+        if (trajId.isNotEmpty &&
+            entryMap.containsKey('usage') &&
+            entryMap['usage'] is Map) {
+          _trajectoryUsages[trajId] = UsageMetadata.fromMap(
+            Map<String, dynamic>.from(entryMap['usage'] as Map),
+          );
+        }
+      }
     }
   }
 

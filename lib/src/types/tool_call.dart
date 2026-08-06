@@ -6,6 +6,10 @@ part 'tool_call.mapper.dart';
 @MappableClass(ignoreNull: true)
 class ToolCall with ToolCallMappable {
   final String? id;
+
+  @MappableField(key: 'call_id')
+  final String? callId;
+
   final String name;
 
   @MappableField(key: 'arguments_json', hook: ArgumentsHook())
@@ -21,9 +25,13 @@ class ToolCall with ToolCallMappable {
     this.name = '',
     Map<String, dynamic>? args,
     this.id,
+    this.callId,
     this.canonicalPath,
     this.serverName,
   }) : args = args ?? {};
+
+  /// Returns effective correlation ID (either [callId] or [id]).
+  String? get effectiveCallId => callId ?? id;
 
   factory ToolCall.fromMap(Map<String, dynamic> map) {
     if (!map.containsKey('arguments_json') && map.containsKey('arguments')) {
@@ -66,6 +74,10 @@ class ArgumentsHook extends MappingHook {
 @MappableClass(ignoreNull: true)
 class ToolResult with ToolResultMappable {
   final String? id;
+
+  @MappableField(key: 'call_id')
+  final String? callId;
+
   final String name;
   final dynamic result;
   final String? error;
@@ -76,10 +88,14 @@ class ToolResult with ToolResultMappable {
   ToolResult({
     required this.name,
     this.id,
+    this.callId,
     this.result,
     this.error,
     this.exception,
   });
+
+  /// Returns effective correlation ID (either [callId] or [id]).
+  String? get effectiveCallId => callId ?? id;
 
   factory ToolResult.fromMap(Map<String, dynamic> map) =>
       ToolResultMapper.fromMap(map);

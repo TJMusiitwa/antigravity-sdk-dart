@@ -187,6 +187,68 @@ void main() {
 
       await agent.stop();
     });
+
+    test(
+        'Conversation.lastTurnUsage returns null before turn or when no tokens accumulated, and returns diff when tokens change',
+        () async {
+      final strategy = FakeConnectionStrategy();
+      final config = FakeAgentConfig(strategy, policies: [allowAll()]);
+      final agent = Agent(config);
+      await agent.start();
+
+      expect(agent.conversation.lastTurnUsage, isNull);
+
+      // Trigger chat prompt validation
+      expect(
+        () => agent.conversation.chat(''),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      expect(agent.conversation.trajectoryUsages, isEmpty);
+
+      await agent.stop();
+    });
+
+    test(
+        'Formats single, concurrent, compaction, and reasoning steps correctly',
+        () {
+      final singleToolStep = Step(
+        type: StepType.toolCall,
+        toolCalls: [ToolCall(name: 'view_file')],
+      );
+      expect(
+        formatStepSpinnerMessage(singleToolStep),
+        equals(
+          "Running tool 'view_file'...",
+        ),
+      );
+
+      final concurrentToolsStep = Step(
+        type: StepType.toolCall,
+        toolCalls: [ToolCall(name: 'view_file'), ToolCall(name: 'edit_file')],
+      );
+      expect(
+        formatStepSpinnerMessage(concurrentToolsStep),
+        equals(
+          "Running tools 'view_file', 'edit_file'...",
+        ),
+      );
+
+      final compactionStep = Step(type: StepType.compaction);
+      expect(
+        formatStepSpinnerMessage(compactionStep),
+        equals('Compacting context...'),
+      );
+
+      final reasoningStep = Step(
+        source: StepSource.model,
+        thinkingDelta: 'thinking...',
+      );
+      expect(
+        formatStepSpinnerMessage(reasoningStep),
+        equals('Reasoning...'),
+      );
+    });
   });
 
   group('MediaContent fromFile and MIME verification', () {
@@ -256,6 +318,12 @@ class FakeConnection implements Connection {
 
   @override
   List<Step> get initialHistory => _initialHistory;
+
+  @override
+  UsageMetadata get cumulativeUsage => UsageMetadata();
+
+  @override
+  Map<String, UsageMetadata> get trajectoryUsages => const {};
 
   @override
   bool get isIdle => _idle;

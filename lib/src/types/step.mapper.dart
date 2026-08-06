@@ -268,6 +268,7 @@ class UsageMetadataMapper extends ClassMapperBase<UsageMetadata> {
   static UsageMetadataMapper ensureInitialized() {
     if (_instance == null) {
       MapperContainer.globals.use(_instance = UsageMetadataMapper._());
+      ServiceTierMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -311,6 +312,13 @@ class UsageMetadataMapper extends ClassMapperBase<UsageMetadata> {
     key: r'total_token_count',
     opt: true,
   );
+  static ServiceTier? _$serviceTier(UsageMetadata v) => v.serviceTier;
+  static const Field<UsageMetadata, ServiceTier> _f$serviceTier = Field(
+    'serviceTier',
+    _$serviceTier,
+    key: r'service_tier',
+    opt: true,
+  );
 
   @override
   final MappableFields<UsageMetadata> fields = const {
@@ -319,6 +327,7 @@ class UsageMetadataMapper extends ClassMapperBase<UsageMetadata> {
     #candidatesTokenCount: _f$candidatesTokenCount,
     #thoughtsTokenCount: _f$thoughtsTokenCount,
     #totalTokenCount: _f$totalTokenCount,
+    #serviceTier: _f$serviceTier,
   };
   @override
   final bool ignoreNull = true;
@@ -330,6 +339,7 @@ class UsageMetadataMapper extends ClassMapperBase<UsageMetadata> {
       candidatesTokenCount: data.dec(_f$candidatesTokenCount),
       thoughtsTokenCount: data.dec(_f$thoughtsTokenCount),
       totalTokenCount: data.dec(_f$totalTokenCount),
+      serviceTier: data.dec(_f$serviceTier),
     );
   }
 
@@ -404,6 +414,7 @@ abstract class UsageMetadataCopyWith<$R, $In extends UsageMetadata, $Out>
     int? candidatesTokenCount,
     int? thoughtsTokenCount,
     int? totalTokenCount,
+    ServiceTier? serviceTier,
   });
   UsageMetadataCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
 }
@@ -424,6 +435,7 @@ class _UsageMetadataCopyWithImpl<$R, $Out>
     Object? candidatesTokenCount = $none,
     Object? thoughtsTokenCount = $none,
     Object? totalTokenCount = $none,
+    Object? serviceTier = $none,
   }) =>
       $apply(
         FieldCopyWithData({
@@ -435,6 +447,7 @@ class _UsageMetadataCopyWithImpl<$R, $Out>
           if (thoughtsTokenCount != $none)
             #thoughtsTokenCount: thoughtsTokenCount,
           if (totalTokenCount != $none) #totalTokenCount: totalTokenCount,
+          if (serviceTier != $none) #serviceTier: serviceTier,
         }),
       );
   @override
@@ -454,6 +467,7 @@ class _UsageMetadataCopyWithImpl<$R, $Out>
           or: $value.thoughtsTokenCount,
         ),
         totalTokenCount: data.get(#totalTokenCount, or: $value.totalTokenCount),
+        serviceTier: data.get(#serviceTier, or: $value.serviceTier),
       );
 
   @override

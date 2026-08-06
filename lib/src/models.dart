@@ -47,6 +47,28 @@ enum ThinkingLevel {
   }
 }
 
+/// Service tier for Gemini model inference.
+///
+/// Controls the compute queue priority and rate limit fallback behavior.
+/// See https://ai.google.dev/gemini-api/docs/priority-inference for details.
+@MappableEnum(defaultValue: ServiceTier.standard)
+enum ServiceTier {
+  standard('standard'),
+  priority('priority'),
+  flex('flex');
+
+  final String value;
+  const ServiceTier(this.value);
+
+  static ServiceTier fromString(String val) {
+    try {
+      return ServiceTierMapper.fromValue(val);
+    } catch (_) {
+      return ServiceTier.standard;
+    }
+  }
+}
+
 /// Discriminator for model purpose.
 @MappableEnum()
 enum ModelType {
@@ -80,8 +102,9 @@ abstract class ModelEndpoint with ModelEndpointMappable {
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class GeminiModelOptions with GeminiModelOptionsMappable {
   final ThinkingLevel? thinkingLevel;
+  final ServiceTier? serviceTier;
 
-  GeminiModelOptions({this.thinkingLevel});
+  GeminiModelOptions({this.thinkingLevel, this.serviceTier});
 }
 
 /// Endpoint for the Gemini Developer API.

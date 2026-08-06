@@ -67,8 +67,13 @@ abstract class TransformHook<T, R> implements Hook {
 class FunctionInspectHook<T> implements InspectHook<T> {
   final FutureOr<void> Function(HookContext context, T data) _func;
 
-  /// Creates a new [FunctionInspectHook] instance from the given callback functions.
+  /// Creates a new [FunctionInspectHook] instance accepting a [HookContext] and data.
   FunctionInspectHook(this._func);
+
+  /// Creates a stateless [FunctionInspectHook] instance accepting only data.
+  factory FunctionInspectHook.stateless(FutureOr<void> Function(T data) func) {
+    return FunctionInspectHook((_, data) => func(data));
+  }
 
   @override
   Future<void> run(HookContext context, T data) async {
@@ -80,8 +85,14 @@ class FunctionInspectHook<T> implements InspectHook<T> {
 class FunctionDecideHook<T> implements DecideHook<T> {
   final FutureOr<HookResult> Function(HookContext context, T data) _func;
 
-  /// Creates a new [FunctionDecideHook] instance from the given callback function.
+  /// Creates a new [FunctionDecideHook] instance accepting a [HookContext] and data.
   FunctionDecideHook(this._func);
+
+  /// Creates a stateless [FunctionDecideHook] instance accepting only data.
+  factory FunctionDecideHook.stateless(
+      FutureOr<HookResult> Function(T data) func) {
+    return FunctionDecideHook((_, data) => func(data));
+  }
 
   @override
   Future<HookResult> run(HookContext context, T data) async {
@@ -93,8 +104,13 @@ class FunctionDecideHook<T> implements DecideHook<T> {
 class FunctionTransformHook<T, R> implements TransformHook<T, R> {
   final FutureOr<R> Function(HookContext context, T data) _func;
 
-  /// Creates a new [FunctionTransformHook] instance from the given callback function.
+  /// Creates a new [FunctionTransformHook] instance accepting a [HookContext] and data.
   FunctionTransformHook(this._func);
+
+  /// Creates a stateless [FunctionTransformHook] instance accepting only data.
+  factory FunctionTransformHook.stateless(FutureOr<R> Function(T data) func) {
+    return FunctionTransformHook((_, data) => func(data));
+  }
 
   @override
   Future<R> run(HookContext context, T data) async {

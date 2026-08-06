@@ -56,13 +56,17 @@ class ToolExecutionException implements Exception {
   /// The optional name of the Model Context Protocol (MCP) server if the tool belonged to an MCP server.
   final String? serverName;
 
+  /// The optional tool call correlation ID.
+  final String? callId;
+
   ToolExecutionException(
     this.message, {
     this.toolName = '',
     this.serverName,
+    this.callId,
   });
 
   @override
   String toString() =>
-      'ToolExecutionException: $message (tool: $toolName${serverName != null ? ', server: $serverName' : ''})';
+      'ToolExecutionException: $message (tool: $toolName${serverName != null ? ', server: $serverName' : ''}${callId != null ? ', callId: $callId' : ''})';
 }

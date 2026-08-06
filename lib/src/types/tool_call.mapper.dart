@@ -40,6 +40,13 @@ class ToolCallMapper extends ClassMapperBase<ToolCall> {
   );
   static String? _$id(ToolCall v) => v.id;
   static const Field<ToolCall, String> _f$id = Field('id', _$id, opt: true);
+  static String? _$callId(ToolCall v) => v.callId;
+  static const Field<ToolCall, String> _f$callId = Field(
+    'callId',
+    _$callId,
+    key: r'call_id',
+    opt: true,
+  );
   static String? _$canonicalPath(ToolCall v) => v.canonicalPath;
   static const Field<ToolCall, String> _f$canonicalPath = Field(
     'canonicalPath',
@@ -60,6 +67,7 @@ class ToolCallMapper extends ClassMapperBase<ToolCall> {
     #name: _f$name,
     #args: _f$args,
     #id: _f$id,
+    #callId: _f$callId,
     #canonicalPath: _f$canonicalPath,
     #serverName: _f$serverName,
   };
@@ -71,6 +79,7 @@ class ToolCallMapper extends ClassMapperBase<ToolCall> {
       name: data.dec(_f$name),
       args: data.dec(_f$args),
       id: data.dec(_f$id),
+      callId: data.dec(_f$callId),
       canonicalPath: data.dec(_f$canonicalPath),
       serverName: data.dec(_f$serverName),
     );
@@ -142,6 +151,7 @@ abstract class ToolCallCopyWith<$R, $In extends ToolCall, $Out>
     String? name,
     Map<String, dynamic>? args,
     String? id,
+    String? callId,
     String? canonicalPath,
     String? serverName,
   });
@@ -169,6 +179,7 @@ class _ToolCallCopyWithImpl<$R, $Out>
     String? name,
     Object? args = $none,
     Object? id = $none,
+    Object? callId = $none,
     Object? canonicalPath = $none,
     Object? serverName = $none,
   }) =>
@@ -177,6 +188,7 @@ class _ToolCallCopyWithImpl<$R, $Out>
           if (name != null) #name: name,
           if (args != $none) #args: args,
           if (id != $none) #id: id,
+          if (callId != $none) #callId: callId,
           if (canonicalPath != $none) #canonicalPath: canonicalPath,
           if (serverName != $none) #serverName: serverName,
         }),
@@ -186,6 +198,7 @@ class _ToolCallCopyWithImpl<$R, $Out>
         name: data.get(#name, or: $value.name),
         args: data.get(#args, or: $value.args),
         id: data.get(#id, or: $value.id),
+        callId: data.get(#callId, or: $value.callId),
         canonicalPath: data.get(#canonicalPath, or: $value.canonicalPath),
         serverName: data.get(#serverName, or: $value.serverName),
       );
@@ -216,6 +229,13 @@ class ToolResultMapper extends ClassMapperBase<ToolResult> {
   static const Field<ToolResult, String> _f$name = Field('name', _$name);
   static String? _$id(ToolResult v) => v.id;
   static const Field<ToolResult, String> _f$id = Field('id', _$id, opt: true);
+  static String? _$callId(ToolResult v) => v.callId;
+  static const Field<ToolResult, String> _f$callId = Field(
+    'callId',
+    _$callId,
+    key: r'call_id',
+    opt: true,
+  );
   static dynamic _$result(ToolResult v) => v.result;
   static const Field<ToolResult, dynamic> _f$result = Field(
     'result',
@@ -240,6 +260,7 @@ class ToolResultMapper extends ClassMapperBase<ToolResult> {
   final MappableFields<ToolResult> fields = const {
     #name: _f$name,
     #id: _f$id,
+    #callId: _f$callId,
     #result: _f$result,
     #error: _f$error,
     #exception: _f$exception,
@@ -251,6 +272,7 @@ class ToolResultMapper extends ClassMapperBase<ToolResult> {
     return ToolResult(
       name: data.dec(_f$name),
       id: data.dec(_f$id),
+      callId: data.dec(_f$callId),
       result: data.dec(_f$result),
       error: data.dec(_f$error),
       exception: data.dec(_f$exception),
@@ -323,6 +345,7 @@ abstract class ToolResultCopyWith<$R, $In extends ToolResult, $Out>
   $R call({
     String? name,
     String? id,
+    String? callId,
     dynamic result,
     String? error,
     Exception? exception,
@@ -343,6 +366,7 @@ class _ToolResultCopyWithImpl<$R, $Out>
   $R call({
     String? name,
     Object? id = $none,
+    Object? callId = $none,
     Object? result = $none,
     Object? error = $none,
     Object? exception = $none,
@@ -351,6 +375,7 @@ class _ToolResultCopyWithImpl<$R, $Out>
         FieldCopyWithData({
           if (name != null) #name: name,
           if (id != $none) #id: id,
+          if (callId != $none) #callId: callId,
           if (result != $none) #result: result,
           if (error != $none) #error: error,
           if (exception != $none) #exception: exception,
@@ -360,6 +385,7 @@ class _ToolResultCopyWithImpl<$R, $Out>
   ToolResult $make(CopyWithData data) => ToolResult(
         name: data.get(#name, or: $value.name),
         id: data.get(#id, or: $value.id),
+        callId: data.get(#callId, or: $value.callId),
         result: data.get(#result, or: $value.result),
         error: data.get(#error, or: $value.error),
         exception: data.get(#exception, or: $value.exception),

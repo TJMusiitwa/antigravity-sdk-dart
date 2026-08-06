@@ -145,6 +145,12 @@ abstract interface class Connection {
   /// Returns the pre-existing session steps restored during handshake.
   List<Step> get initialHistory => const [];
 
+  /// Returns total cumulative token usage reported by the connection.
+  UsageMetadata get cumulativeUsage => UsageMetadata();
+
+  /// Returns per-trajectory cumulative token usage reported by the connection.
+  Map<String, UsageMetadata> get trajectoryUsages => const {};
+
   /// Returns true if the session is idle (waiting for user input or periodic task).
   bool get isIdle;
 

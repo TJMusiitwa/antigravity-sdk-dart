@@ -400,6 +400,63 @@ void main() {
       expect(callCount, equals(2));
     });
   });
+
+  group('Stateless & Context-Aware Hook Adapters', () {
+    test('FunctionInspectHook supports stateful and stateless callbacks',
+        () async {
+      bool statefulCalled = false;
+      bool statelessCalled = false;
+
+      final stateful = FunctionInspectHook<String>((ctx, data) {
+        statefulCalled = true;
+        expect(data, equals('test'));
+      });
+      final stateless = FunctionInspectHook<String>.stateless((data) {
+        statelessCalled = true;
+        expect(data, equals('test'));
+      });
+
+      final ctx = HookContext();
+      await stateful.run(ctx, 'test');
+      await stateless.run(ctx, 'test');
+
+      expect(statefulCalled, isTrue);
+      expect(statelessCalled, isTrue);
+    });
+
+    test('FunctionDecideHook supports stateful and stateless callbacks',
+        () async {
+      final stateful = FunctionDecideHook<String>((ctx, data) {
+        return HookResult(allow: true, message: data);
+      });
+      final stateless = FunctionDecideHook<String>.stateless((data) {
+        return HookResult(allow: false, message: data);
+      });
+
+      final ctx = HookContext();
+      final res1 = await stateful.run(ctx, 'allow_me');
+      final res2 = await stateless.run(ctx, 'deny_me');
+
+      expect(res1.allow, isTrue);
+      expect(res1.message, equals('allow_me'));
+      expect(res2.allow, isFalse);
+      expect(res2.message, equals('deny_me'));
+    });
+
+    test('FunctionTransformHook supports stateful and stateless callbacks',
+        () async {
+      final stateful = FunctionTransformHook<int, String>((ctx, data) {
+        return 'count: $data';
+      });
+      final stateless = FunctionTransformHook<int, String>.stateless((data) {
+        return 'stateless: $data';
+      });
+
+      final ctx = HookContext();
+      expect(await stateful.run(ctx, 5), equals('count: 5'));
+      expect(await stateless.run(ctx, 10), equals('stateless: 10'));
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------

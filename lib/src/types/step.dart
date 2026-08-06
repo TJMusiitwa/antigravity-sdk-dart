@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dart_mappable/dart_mappable.dart';
 import 'package:logging/logging.dart';
 
+import '../models.dart';
 import 'tool_call.dart';
 
 part 'step.mapper.dart';
@@ -126,6 +127,7 @@ class UsageMetadata with UsageMetadataMappable {
   final int? candidatesTokenCount;
   final int? thoughtsTokenCount;
   final int? totalTokenCount;
+  final ServiceTier? serviceTier;
 
   UsageMetadata({
     this.promptTokenCount,
@@ -133,6 +135,7 @@ class UsageMetadata with UsageMetadataMappable {
     this.candidatesTokenCount,
     this.thoughtsTokenCount,
     this.totalTokenCount,
+    this.serviceTier,
   });
 
   factory UsageMetadata.fromMap(Map<String, dynamic> map) =>
@@ -142,6 +145,14 @@ class UsageMetadata with UsageMetadataMappable {
 
   /// Combines two [UsageMetadata] instances by summing their token counts.
   UsageMetadata operator +(UsageMetadata other) {
+    ServiceTier? mergedTier;
+    if (serviceTier == other.serviceTier) {
+      mergedTier = serviceTier;
+    } else if (serviceTier == null || other.serviceTier == null) {
+      mergedTier = serviceTier ?? other.serviceTier;
+    } else {
+      mergedTier = ServiceTier.standard;
+    }
     return UsageMetadata(
       promptTokenCount: (promptTokenCount ?? 0) + (other.promptTokenCount ?? 0),
       cachedContentTokenCount:
@@ -151,6 +162,22 @@ class UsageMetadata with UsageMetadataMappable {
       thoughtsTokenCount:
           (thoughtsTokenCount ?? 0) + (other.thoughtsTokenCount ?? 0),
       totalTokenCount: (totalTokenCount ?? 0) + (other.totalTokenCount ?? 0),
+      serviceTier: mergedTier,
+    );
+  }
+
+  /// Computes the difference between two [UsageMetadata] instances by subtracting their token counts.
+  UsageMetadata operator -(UsageMetadata other) {
+    return UsageMetadata(
+      promptTokenCount: (promptTokenCount ?? 0) - (other.promptTokenCount ?? 0),
+      cachedContentTokenCount:
+          (cachedContentTokenCount ?? 0) - (other.cachedContentTokenCount ?? 0),
+      candidatesTokenCount:
+          (candidatesTokenCount ?? 0) - (other.candidatesTokenCount ?? 0),
+      thoughtsTokenCount:
+          (thoughtsTokenCount ?? 0) - (other.thoughtsTokenCount ?? 0),
+      totalTokenCount: (totalTokenCount ?? 0) - (other.totalTokenCount ?? 0),
+      serviceTier: serviceTier ?? other.serviceTier,
     );
   }
 }

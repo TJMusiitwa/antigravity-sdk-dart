@@ -14,7 +14,6 @@ class Conversation {
   /// The maximum number of processing steps retained in conversation history.
   int? maxHistorySize;
   UsageMetadata _cumulativeUsage = _zeroUsage();
-  UsageMetadata? _turnUsage;
 
   /// Creates a new [Conversation] on the given underlying connection.
   Conversation(this._connection, {HookRunner? hookRunner})
@@ -80,14 +79,32 @@ class Conversation {
     return last.content;
   }
 
-  /// Returns the total token usage for this conversation.
-  UsageMetadata get usage => _cumulativeUsage;
+  UsageMetadata? _turnStartUsage;
+
+  /// Returns the total token usage for this conversation session.
+  UsageMetadata get usage => _connection.cumulativeUsage.totalTokenCount != null
+      ? _connection.cumulativeUsage
+      : _cumulativeUsage;
 
   /// Returns the total token usage (alias for common examples).
-  UsageMetadata get totalUsage => _cumulativeUsage;
+  UsageMetadata get totalUsage => usage;
 
-  /// Returns usage for the last turn.
-  UsageMetadata get lastTurnUsage => _turnUsage ?? _zeroUsage();
+  /// Returns a map of trajectory ID to cumulative token usage for subagents and main agent.
+  Map<String, UsageMetadata> get trajectoryUsages =>
+      _connection.trajectoryUsages;
+
+  /// Returns usage accumulated during the last turn, or null if no tokens were recorded.
+  UsageMetadata? get lastTurnUsage {
+    if (_turnStartUsage == null) return null;
+    final currentUsage = usage;
+    final diff = currentUsage - _turnStartUsage!;
+    if ((diff.totalTokenCount ?? 0) == 0 &&
+        (diff.promptTokenCount ?? 0) == 0 &&
+        (diff.candidatesTokenCount ?? 0) == 0) {
+      return null;
+    }
+    return diff;
+  }
 
   /// Extracts the structured output payload from the most recent finish step.
   dynamic get lastStructuredOutput {
@@ -143,7 +160,7 @@ class Conversation {
     Map<String, dynamic>? kwargs,
   }) async {
     validatePrompt(prompt);
-    _turnUsage = _zeroUsage();
+    _turnStartUsage = usage;
 
     // 2. Record user input step in history
     final userStep = Step(
@@ -294,7 +311,6 @@ class Conversation {
 
   void _accumulateUsage(UsageMetadata usage) {
     _cumulativeUsage = _cumulativeUsage + usage;
-    _turnUsage = (_turnUsage ?? _zeroUsage()) + usage;
   }
 
   /// Cancels the current turn in progress.

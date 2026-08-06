@@ -1,20 +1,37 @@
 import 'package:dart_mappable/dart_mappable.dart';
+import 'package:logging/logging.dart';
 
 import 'capabilities.dart';
 import 'exceptions.dart';
 
 part 'config.mapper.dart';
 
+final _subagentLogger = Logger('antigravity.subagent');
+
 /// Capabilities configuration for subagents.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class SubagentCapabilities with SubagentCapabilitiesMappable {
+  final AgentMode agentMode;
   final List<BuiltinTools>? enabledTools;
   final List<BuiltinTools>? disabledTools;
 
-  SubagentCapabilities({this.enabledTools, this.disabledTools}) {
+  SubagentCapabilities({
+    this.agentMode = AgentMode.autonomous,
+    this.enabledTools,
+    this.disabledTools,
+  }) {
     if (enabledTools != null && disabledTools != null) {
       throw ArgumentError(
         'enabledTools and disabledTools should be mutually exclusive.',
+      );
+    }
+    if (enabledTools != null &&
+        enabledTools!.contains(BuiltinTools.askQuestion) &&
+        agentMode != AgentMode.interactive) {
+      _subagentLogger.warning(
+        'BuiltinTools.askQuestion is enabled on subagent, but agentMode is not '
+        'INTERACTIVE. Set SubagentCapabilities(agentMode: AgentMode.interactive) '
+        'if interactive question-and-answer behavior is desired.',
       );
     }
   }

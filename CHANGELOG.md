@@ -1,3 +1,17 @@
+# 0.8.0
+
+* **Sync with Python SDK v0.1.10 & Dart-Idiomatic Enhancements**:
+  - **Breaking API Change**: `Conversation.lastTurnUsage` signature updated to `UsageMetadata?` (matching Python SDK v0.1.10) to return `null` when no token usage was recorded during a turn.
+  - **Gemini Prioritized Inference (`ServiceTier`)**: Introduced `ServiceTier` enum (`standard`, `priority`, `flex`) and support in `GeminiModelOptions` and `UsageMetadata` to configure high-priority model execution with automated fallback.
+  - **Live Token Usage Updates**: Added support for live `UsageUpdate` event streaming over WebSockets, accumulating per-trajectory token usage live during execution. Added subtraction (`-`) operator support to `UsageMetadata`.
+  - **Agent Execution Modes (`AgentMode`)**: Introduced `AgentMode` enum (`autonomous`, `interactive`) in `CapabilitiesConfig` and `SubagentCapabilities` with interactive tool validation warnings (`BuiltinTools.askQuestion`).
+  - **Interactive CLI Spinner**: Updated interactive CLI step spinner formatting (`formatStepSpinnerMessage`) to display all active tool names during concurrent tool calls (e.g. `Running tools 'tool_a', 'tool_b'...`).
+  - **Tool Call Correlation ID**: Added `callId` correlation support across `ToolCall`, `ToolResult`, `ToolExecutionException`, and lifecycle hook payloads.
+  - **Flexible Context-Aware Lifecycle Hooks**: Added `.stateless()` factory constructors to `FunctionInspectHook`, `FunctionDecideHook`, and `FunctionTransformHook` to seamlessly support both `(data)` and `(context, data)` callback signatures.
+  - **ActionCompaction Handling**: Emits context window compaction events over WebSockets and dispatches registered `OnCompactionHook` handlers.
+  - **Standardized System Instructions Strategy**: Plain string instructions default to an appended system instruction strategy, while `CustomSystemInstructions` completely replaces built-in instructions.
+  - **LiteRT Token Output Limit**: Increased LiteRT default `maxOutputTokens` from 8192 to 16,384 tokens to prevent truncation during complex generation.
+
 # 0.7.0
 
 * **Sync with Python SDK v0.1.9 & Dart-Idiomatic Enhancements**:

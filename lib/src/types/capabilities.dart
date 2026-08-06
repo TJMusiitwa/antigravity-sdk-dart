@@ -1,7 +1,10 @@
 import 'package:dart_mappable/dart_mappable.dart';
+import 'package:logging/logging.dart';
 import 'exceptions.dart';
 
 part 'capabilities.mapper.dart';
+
+final _logger = Logger('antigravity.capabilities');
 
 /// Identifiers for common connection-provided builtin tools.
 @MappableEnum()
@@ -73,10 +76,32 @@ enum BuiltinTools {
   }
 }
 
+/// Operational execution mode for an agent or subagent.
+@MappableEnum(defaultValue: AgentMode.autonomous)
+enum AgentMode {
+  autonomous('autonomous'),
+  interactive('interactive');
+
+  final String value;
+  const AgentMode(this.value);
+
+  /// Returns the corresponding Protobuf enum string value.
+  String get protoValue => 'AGENT_MODE_${value.toUpperCase()}';
+
+  static AgentMode fromString(String val) {
+    try {
+      return AgentModeMapper.fromValue(val);
+    } catch (_) {
+      return AgentMode.autonomous;
+    }
+  }
+}
+
 /// General agent capability configuration.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class CapabilitiesConfig with CapabilitiesConfigMappable {
   final bool enableSubagents;
+  final AgentMode agentMode;
   final List<BuiltinTools>? enabledTools;
   final List<BuiltinTools>? disabledTools;
   final int? compactionThreshold;
@@ -84,6 +109,7 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
 
   CapabilitiesConfig({
     this.enableSubagents = true,
+    this.agentMode = AgentMode.autonomous,
     this.enabledTools,
     this.disabledTools,
     this.compactionThreshold,
@@ -92,6 +118,15 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
     if (enabledTools != null && disabledTools != null) {
       throw AntigravityValidationException(
         'enabledTools and disabledTools are mutually exclusive.',
+      );
+    }
+    if (enabledTools != null &&
+        enabledTools!.contains(BuiltinTools.askQuestion) &&
+        agentMode != AgentMode.interactive) {
+      _logger.warning(
+        'BuiltinTools.askQuestion is enabled on agent, but agentMode is not '
+        'INTERACTIVE. Set CapabilitiesConfig(agentMode: AgentMode.interactive) '
+        'if interactive question-and-answer behavior is desired.',
       );
     }
   }
