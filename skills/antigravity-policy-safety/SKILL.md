@@ -1,16 +1,17 @@
 ---
 name: antigravity-policy-safety
-description: "Use when configuring agent safety policies (allow/deny/askUser), path containment, interactive confirmation handlers, or sandboxing in Dart."
+description: "Configure declarative safety policies (allow/deny/askUser), path containment, confirmation handlers, or sandboxing in Dart."
 ---
 
 # Safety Policies & Sandboxing in Dart
 
 Guidelines for configuring priority-bucketed declarative safety policies to safeguard local files and system processes.
 
-## 1. Declarative Policy Setup
+## 1. Declarative Policy Setup & Agent Modes
 
-1.  **Top-Down Evaluation**: The SDK evaluates safety rules sequentially. The first matching rule dictates the decision: `allow`, `deny`, or `askUser`.
-2.  **Default-Deny Fallback**: Always place a fallback rule denying all unmatched tools (`deny("*")`) at the bottom of the list.
+1. **Top-Down Evaluation**: The SDK evaluates safety rules sequentially across a 9-level priority framework. The first matching rule dictates the decision (`allow`, `deny`, or `askUser`).
+2. **Default-Deny Fallback**: Always place an explicit catch-all fallback rule denying unmatched tools (`deny("*")`) at the end of the rule list.
+3. **Agent Mode Interaction**: In `AgentMode.interactive`, tool execution policies trigger user confirmation prompts (`askUser`), whereas `AgentMode.autonomous` processes policies silently according to matching rules.
 
 ```dart
 final policies = [
@@ -22,11 +23,13 @@ final policies = [
 
 ## 2. Interactive Handlers & Sandboxing
 
--   **Interactive Prompts**: Implement asynchronous handlers returning `Future<bool>` to prompt users before tool execution. See [`references/safety_patterns.md`](file:///Users/jonathanmusiitwa/Desktop/FLUTTER_PROJ/antigravity-sdk-dart/skills/antigravity-policy-safety/references/safety_patterns.md) for code.
--   **Path Containment**: Verify target file paths lie inside the safe workspace directory using path canonicalization. Read [`references/safety_patterns.md`](file:///Users/jonathanmusiitwa/Desktop/FLUTTER_PROJ/antigravity-sdk-dart/skills/antigravity-policy-safety/references/safety_patterns.md) for the helper function.
+- **Asynchronous Confirmation Gate**: Implement asynchronous handlers returning `Future<bool>` to prompt users prior to executing privileged tools. Inspect [`references/safety_patterns.md`](file://references/safety_patterns.md).
+- **Workspace Path Containment**: Verify target file paths lie inside the active workspace directory using path canonicalization. Read [`references/safety_patterns.md`](file://references/safety_patterns.md) for implementation.
 
 ## Completion Criteria
 
-- [ ] Policy list ends with an explicit fallback rule (`deny("*")`).
-- [ ] Interactive handlers return clean boolean decisions without hanging on stdin.
-- [ ] All workspace file operations validate path containment before reads/writes.
+- [ ] Policy configuration ends with an explicit fallback rule (`deny("*")`).
+- [ ] Interactive handlers return non-blocking `Future<bool>` decisions.
+- [ ] File operations enforce workspace path containment checks (`p.isWithin`).
+
+

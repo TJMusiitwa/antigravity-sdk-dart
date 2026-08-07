@@ -52,7 +52,33 @@ handler: (args, _) async {
 }
 ```
 
-## 3. Registering MCP Servers
+## 3. Custom Tool Returning Supplemental Media Assets
+
+```dart
+final generateChartTool = Tool(
+  name: 'generate_chart',
+  description: 'Generates a PNG chart and returns it as supplemental media.',
+  schema: {
+    'type': 'object',
+    'properties': {
+      'title': {'type': 'string'}
+    },
+    'required': ['title']
+  },
+  handler: (args, context) async {
+    final imageFile = File('output/chart.png');
+    final media = MediaContent.fromFile(imageFile, mimeType: 'image/png');
+    
+    // Return structured media output alongside text confirmation
+    return ToolResult(
+      output: 'Generated chart successfully.',
+      media: [media],
+    );
+  },
+);
+```
+
+## 4. Registering MCP Servers
 
 ```dart
 final config = LocalAgentConfig(
@@ -66,3 +92,4 @@ final config = LocalAgentConfig(
   ],
 );
 ```
+

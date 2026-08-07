@@ -1,28 +1,32 @@
 ---
 name: flutter-antigravity-integration
-description: "Use when integrating the Antigravity SDK into Flutter applications, binding Riverpod/StateNotifier lifecycles, or building agent UI overlays."
+description: "Integrate Antigravity SDK into Flutter apps, bind Riverpod session lifecycles, or build reactive agent UI overlays."
 ---
 
 # Flutter Integration with Antigravity SDK
 
 Pattern guidelines for integrating the Google Antigravity SDK into Flutter apps cleanly.
 
-## 1. Agent Lifecycle Management
+## 1. Agent Lifecycle & Cancellation Management
 
--   **State Management (Riverpod)**: Bind `Agent` session startup to state providers and register disposal logic via `ref.onDispose(() => agent.stop())`.
--   **App State Hooks**: Handle app suspension via `AppLifecycleListener` to pause/stop agent connections when paused.
+- **Lifecycle Binding (Riverpod)**: Bind `Agent` session startup to state providers and register disposal cleanup via `ref.onDispose(() => agent.stop())`.
+- **Turn Cancellation**: Bind user abort actions (e.g. Stop Button) directly to `agent.cancel()` to cleanly terminate ongoing streaming trajectories without unmounting the agent.
+- **App State Hooks**: Intercept app state transitions with `AppLifecycleListener` to pause or stop active connections when backgrounded.
 
-For complete state management code, see [`examples/flutter_ui_patterns.md`](file:///Users/jonathanmusiitwa/Desktop/FLUTTER_PROJ/antigravity-sdk-dart/skills/flutter-antigravity-integration/examples/flutter_ui_patterns.md).
+For complete state management code, see [`examples/flutter_ui_patterns.md`](file://examples/flutter_ui_patterns.md).
 
-## 2. Reactive UI & Human-in-the-Loop Dialogs
+## 2. Reactive UI, Live Usage & Human-in-the-Loop Dialogs
 
--   **Streaming Outputs**: Separate `thoughtStream` (internal reasoning) and `textStream` (final answer) into dedicated UI components using `StreamBuilder`.
--   **Interactive UI Overlays**: Wire `askUser` policy handlers to `AlertDialog` or modal sheet widgets instead of blocking CLI stdin.
+- **Dual-Stream UI & Token Telemetry**: Separate `thoughtStream` (internal reasoning process) and `textStream` into distinct `StreamBuilder` widgets, and display live trajectory token counts from `UsageUpdate` events.
+- **Non-Blocking Confirmation Dialogs**: Wire `askUser` policy confirmation handlers to Flutter `AlertDialog` or modal bottom sheets instead of blocking CLI standard input.
 
-For complete widget implementations, inspect [`examples/flutter_ui_patterns.md`](file:///Users/jonathanmusiitwa/Desktop/FLUTTER_PROJ/antigravity-sdk-dart/skills/flutter-antigravity-integration/examples/flutter_ui_patterns.md).
+For complete widget implementations, inspect [`examples/flutter_ui_patterns.md`](file://examples/flutter_ui_patterns.md).
 
 ## Completion Criteria
 
-- [ ] `agent.stop()` is registered on state disposal (`ref.onDispose`) to prevent resource leaks.
-- [ ] UI separates streams for thinking process and final text output.
-- [ ] Interactive tool policies show non-blocking Flutter UI dialogs.
+- [ ] `agent.stop()` is registered on state disposal (`ref.onDispose`) to prevent socket and resource leaks.
+- [ ] User abort actions trigger `agent.cancel()` cleanly during active generation.
+- [ ] UI splits streams for internal reasoning (`thoughtStream`) and final text output (`textStream`).
+- [ ] Policy confirmation handlers trigger non-blocking Flutter UI dialogs.
+
+
