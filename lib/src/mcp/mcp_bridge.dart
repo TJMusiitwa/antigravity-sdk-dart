@@ -24,6 +24,7 @@ import 'package:mcp_dart/mcp_dart.dart' hide Tool, Logger;
 
 import '../tools/tool_runner.dart';
 import '../types/mcp_config.dart';
+import '../version.dart';
 
 final _logger = Logger('antigravity.mcp');
 
@@ -32,14 +33,9 @@ class McpTool extends Tool {
   McpTool._({
     required super.name,
     required super.description,
-    required Map<String, dynamic> schema,
+    required super.schema,
     required McpClient client,
   }) : super(
-          schema: {
-            'name': name,
-            'description': description,
-            'input_schema': schema,
-          },
           handler: (args, context) async {
             final result = await client.callTool(
               CallToolRequest(name: name, arguments: args),
@@ -56,7 +52,7 @@ class McpTool extends Tool {
         );
 }
 
-/// Facilitates connecting to external Model Context Protocol (MCP) servers and exposes their tools to the Google Antigravity SDK.
+/// Discovers tools from configured MCP servers and exposes them as native [Tool] instances.
 class McpBridge {
   final List<McpClient> _clients = [];
   final List<McpTool> _tools = [];
@@ -71,7 +67,8 @@ class McpBridge {
 
   /// Connects to an MCP server based on its configuration type.
   Future<void> connect(McpServerConfig serverCfg) async {
-    final impl = Implementation(name: 'antigravity-dart-sdk', version: '0.8.0');
+    final impl =
+        Implementation(name: 'antigravity-dart-sdk', version: packageVersion);
     final client =
         _clientFactory != null ? _clientFactory!(impl) : McpClient(impl);
 

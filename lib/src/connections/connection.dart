@@ -77,6 +77,9 @@ abstract class AgentConfig with AgentConfigMappable {
   /// Optional retry configuration for model API calls and output validation.
   final RetryConfig? retryConfig;
 
+  /// Optional budget configuration for session-level caps on model/tool calls and tokens.
+  final BudgetConfig? budgetConfig;
+
   AgentConfig({
     this.systemInstructions,
     CapabilitiesConfig? capabilities,
@@ -95,6 +98,7 @@ abstract class AgentConfig with AgentConfigMappable {
     List<String>? skillsPaths,
     this.debugConfig,
     this.retryConfig,
+    this.budgetConfig,
   })  : capabilities = capabilities ??
             CapabilitiesConfig(enabledTools: BuiltinTools.readOnly()),
         tools = tools ?? const [],
@@ -150,6 +154,9 @@ abstract interface class Connection {
 
   /// Returns per-trajectory cumulative token usage reported by the connection.
   Map<String, UsageMetadata> get trajectoryUsages => const {};
+
+  /// Returns the reason why the most recent turn stopped.
+  StopReason get lastTurnStopReason => StopReason.unspecified;
 
   /// Returns true if the session is idle (waiting for user input or periodic task).
   bool get isIdle;

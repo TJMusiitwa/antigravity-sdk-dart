@@ -80,6 +80,10 @@ class Conversation {
   }
 
   UsageMetadata? _turnStartUsage;
+  StopReason _lastTurnStopReason = StopReason.unspecified;
+
+  /// Returns the reason why the most recent turn stopped.
+  StopReason get lastTurnStopReason => _lastTurnStopReason;
 
   /// Returns the total token usage for this conversation session.
   UsageMetadata get usage => _connection.cumulativeUsage.totalTokenCount != null
@@ -161,6 +165,7 @@ class Conversation {
   }) async {
     validatePrompt(prompt);
     _turnStartUsage = usage;
+    _lastTurnStopReason = StopReason.unspecified;
 
     // 2. Record user input step in history
     final userStep = Step(
@@ -212,6 +217,7 @@ class Conversation {
     subscription = originalStream.listen(
       (step) {
         if (step.id == 'idle_sentinel') {
+          _lastTurnStopReason = _connection.lastTurnStopReason;
           // Check for post-turn hook
           if (_hookRunner != null) {
             final ctx = _hookRunner!.createTurnContext();
@@ -271,6 +277,7 @@ class Conversation {
         final isTurnComplete = isFinish || isError;
 
         if (isTurnComplete) {
+          _lastTurnStopReason = _connection.lastTurnStopReason;
           // Check for post-turn hook
           if (_hookRunner != null) {
             final ctx = _hookRunner!.createTurnContext();

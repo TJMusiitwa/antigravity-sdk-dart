@@ -10,6 +10,76 @@ part of 'config.dart';
 
 /// @nodoc
 
+class StopReasonMapper extends EnumMapper<StopReason> {
+  StopReasonMapper._();
+
+  static StopReasonMapper? _instance;
+  static StopReasonMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(_instance = StopReasonMapper._());
+    }
+    return _instance!;
+  }
+
+  static StopReason fromValue(dynamic value) {
+    ensureInitialized();
+    return MapperContainer.globals.fromValue(value);
+  }
+
+  @override
+  StopReason decode(dynamic value) {
+    switch (value) {
+      case 'UNSPECIFIED':
+        return StopReason.unspecified;
+      case 'MAX_MODEL_CALLS_EXCEEDED':
+        return StopReason.maxModelCallsExceeded;
+      case 'MAX_TOOL_CALLS_EXCEEDED':
+        return StopReason.maxToolCallsExceeded;
+      case 'MAX_INPUT_TOKENS_EXCEEDED':
+        return StopReason.maxInputTokensExceeded;
+      case 'MAX_OUTPUT_TOKENS_EXCEEDED':
+        return StopReason.maxOutputTokensExceeded;
+      case 'MAX_TOTAL_TOKENS_EXCEEDED':
+        return StopReason.maxTotalTokensExceeded;
+      case 'QUOTA_EXHAUSTED':
+        return StopReason.quotaExhausted;
+      default:
+        return StopReason.values[0];
+    }
+  }
+
+  @override
+  dynamic encode(StopReason self) {
+    switch (self) {
+      case StopReason.unspecified:
+        return 'UNSPECIFIED';
+      case StopReason.maxModelCallsExceeded:
+        return 'MAX_MODEL_CALLS_EXCEEDED';
+      case StopReason.maxToolCallsExceeded:
+        return 'MAX_TOOL_CALLS_EXCEEDED';
+      case StopReason.maxInputTokensExceeded:
+        return 'MAX_INPUT_TOKENS_EXCEEDED';
+      case StopReason.maxOutputTokensExceeded:
+        return 'MAX_OUTPUT_TOKENS_EXCEEDED';
+      case StopReason.maxTotalTokensExceeded:
+        return 'MAX_TOTAL_TOKENS_EXCEEDED';
+      case StopReason.quotaExhausted:
+        return 'QUOTA_EXHAUSTED';
+    }
+  }
+}
+
+/// @nodoc
+
+extension StopReasonMapperExtension on StopReason {
+  dynamic toValue() {
+    StopReasonMapper.ensureInitialized();
+    return MapperContainer.globals.toValue<StopReason>(this);
+  }
+}
+
+/// @nodoc
+
 class SessionContinuationModeMapper
     extends EnumMapper<SessionContinuationMode> {
   SessionContinuationModeMapper._();
@@ -77,7 +147,7 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
   static SubagentCapabilitiesMapper ensureInitialized() {
     if (_instance == null) {
       MapperContainer.globals.use(_instance = SubagentCapabilitiesMapper._());
-      AgentModeMapper.ensureInitialized();
+      AgentBehaviorMapper.ensureInitialized();
       BuiltinToolsMapper.ensureInitialized();
     }
     return _instance!;
@@ -86,13 +156,21 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
   @override
   final String id = 'SubagentCapabilities';
 
-  static AgentMode _$agentMode(SubagentCapabilities v) => v.agentMode;
-  static const Field<SubagentCapabilities, AgentMode> _f$agentMode = Field(
+  static AgentBehavior _$agentBehavior(SubagentCapabilities v) =>
+      v.agentBehavior;
+  static const Field<SubagentCapabilities, AgentBehavior> _f$agentBehavior =
+      Field(
+    'agentBehavior',
+    _$agentBehavior,
+    key: r'agent_behavior',
+    opt: true,
+  );
+  static AgentBehavior _$agentMode(SubagentCapabilities v) => v.agentMode;
+  static const Field<SubagentCapabilities, AgentBehavior> _f$agentMode = Field(
     'agentMode',
     _$agentMode,
     key: r'agent_mode',
     opt: true,
-    def: AgentMode.autonomous,
   );
   static List<BuiltinTools>? _$enabledTools(SubagentCapabilities v) =>
       v.enabledTools;
@@ -107,21 +185,34 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
     key: r'disabled_tools',
     opt: true,
   );
+  static List<String>? _$allowedSubagents(SubagentCapabilities v) =>
+      v.allowedSubagents;
+  static const Field<SubagentCapabilities, List<String>> _f$allowedSubagents =
+      Field(
+    'allowedSubagents',
+    _$allowedSubagents,
+    key: r'allowed_subagents',
+    opt: true,
+  );
 
   @override
   final MappableFields<SubagentCapabilities> fields = const {
+    #agentBehavior: _f$agentBehavior,
     #agentMode: _f$agentMode,
     #enabledTools: _f$enabledTools,
     #disabledTools: _f$disabledTools,
+    #allowedSubagents: _f$allowedSubagents,
   };
   @override
   final bool ignoreNull = true;
 
   static SubagentCapabilities _instantiate(DecodingData data) {
     return SubagentCapabilities(
+      agentBehavior: data.dec(_f$agentBehavior),
       agentMode: data.dec(_f$agentMode),
       enabledTools: data.dec(_f$enabledTools),
       disabledTools: data.dec(_f$disabledTools),
+      allowedSubagents: data.dec(_f$allowedSubagents),
     );
   }
 
@@ -194,10 +285,14 @@ abstract class SubagentCapabilitiesCopyWith<
       ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get enabledTools;
   ListCopyWith<$R, BuiltinTools,
       ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get disabledTools;
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
+      get allowedSubagents;
   $R call({
-    AgentMode? agentMode,
+    AgentBehavior? agentBehavior,
+    AgentBehavior? agentMode,
     List<BuiltinTools>? enabledTools,
     List<BuiltinTools>? disabledTools,
+    List<String>? allowedSubagents,
   });
   SubagentCapabilitiesCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -234,29 +329,234 @@ class _SubagentCapabilitiesCopyWithImpl<$R, $Out>
             )
           : null;
   @override
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
+      get allowedSubagents => $value.allowedSubagents != null
+          ? ListCopyWith(
+              $value.allowedSubagents!,
+              (v, t) => ObjectCopyWith(v, $identity, t),
+              (v) => call(allowedSubagents: v),
+            )
+          : null;
+  @override
   $R call({
-    AgentMode? agentMode,
+    Object? agentBehavior = $none,
+    Object? agentMode = $none,
     Object? enabledTools = $none,
     Object? disabledTools = $none,
+    Object? allowedSubagents = $none,
   }) =>
       $apply(
         FieldCopyWithData({
-          if (agentMode != null) #agentMode: agentMode,
+          if (agentBehavior != $none) #agentBehavior: agentBehavior,
+          if (agentMode != $none) #agentMode: agentMode,
           if (enabledTools != $none) #enabledTools: enabledTools,
           if (disabledTools != $none) #disabledTools: disabledTools,
+          if (allowedSubagents != $none) #allowedSubagents: allowedSubagents,
         }),
       );
   @override
   SubagentCapabilities $make(CopyWithData data) => SubagentCapabilities(
+        agentBehavior: data.get(#agentBehavior, or: $value.agentBehavior),
         agentMode: data.get(#agentMode, or: $value.agentMode),
         enabledTools: data.get(#enabledTools, or: $value.enabledTools),
         disabledTools: data.get(#disabledTools, or: $value.disabledTools),
+        allowedSubagents:
+            data.get(#allowedSubagents, or: $value.allowedSubagents),
       );
 
   @override
   SubagentCapabilitiesCopyWith<$R2, SubagentCapabilities, $Out2>
       $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
           _SubagentCapabilitiesCopyWithImpl<$R2, $Out2>($value, $cast, t);
+}
+
+/// @nodoc
+class BudgetConfigMapper extends ClassMapperBase<BudgetConfig> {
+  BudgetConfigMapper._();
+
+  static BudgetConfigMapper? _instance;
+  static BudgetConfigMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(_instance = BudgetConfigMapper._());
+    }
+    return _instance!;
+  }
+
+  @override
+  final String id = 'BudgetConfig';
+
+  static int? _$maxModelCalls(BudgetConfig v) => v.maxModelCalls;
+  static const Field<BudgetConfig, int> _f$maxModelCalls = Field(
+    'maxModelCalls',
+    _$maxModelCalls,
+    key: r'max_model_calls',
+    opt: true,
+  );
+  static int? _$maxToolCalls(BudgetConfig v) => v.maxToolCalls;
+  static const Field<BudgetConfig, int> _f$maxToolCalls = Field(
+    'maxToolCalls',
+    _$maxToolCalls,
+    key: r'max_tool_calls',
+    opt: true,
+  );
+  static int? _$maxInputTokens(BudgetConfig v) => v.maxInputTokens;
+  static const Field<BudgetConfig, int> _f$maxInputTokens = Field(
+    'maxInputTokens',
+    _$maxInputTokens,
+    key: r'max_input_tokens',
+    opt: true,
+  );
+  static int? _$maxOutputTokens(BudgetConfig v) => v.maxOutputTokens;
+  static const Field<BudgetConfig, int> _f$maxOutputTokens = Field(
+    'maxOutputTokens',
+    _$maxOutputTokens,
+    key: r'max_output_tokens',
+    opt: true,
+  );
+  static int? _$maxTotalTokens(BudgetConfig v) => v.maxTotalTokens;
+  static const Field<BudgetConfig, int> _f$maxTotalTokens = Field(
+    'maxTotalTokens',
+    _$maxTotalTokens,
+    key: r'max_total_tokens',
+    opt: true,
+  );
+
+  @override
+  final MappableFields<BudgetConfig> fields = const {
+    #maxModelCalls: _f$maxModelCalls,
+    #maxToolCalls: _f$maxToolCalls,
+    #maxInputTokens: _f$maxInputTokens,
+    #maxOutputTokens: _f$maxOutputTokens,
+    #maxTotalTokens: _f$maxTotalTokens,
+  };
+  @override
+  final bool ignoreNull = true;
+
+  static BudgetConfig _instantiate(DecodingData data) {
+    return BudgetConfig(
+      maxModelCalls: data.dec(_f$maxModelCalls),
+      maxToolCalls: data.dec(_f$maxToolCalls),
+      maxInputTokens: data.dec(_f$maxInputTokens),
+      maxOutputTokens: data.dec(_f$maxOutputTokens),
+      maxTotalTokens: data.dec(_f$maxTotalTokens),
+    );
+  }
+
+  @override
+  final Function instantiate = _instantiate;
+
+  static BudgetConfig fromMap(Map<String, dynamic> map) {
+    return ensureInitialized().decodeMap<BudgetConfig>(map);
+  }
+
+  static BudgetConfig fromJson(String json) {
+    return ensureInitialized().decodeJson<BudgetConfig>(json);
+  }
+}
+
+/// @nodoc
+mixin BudgetConfigMappable {
+  String toJson() {
+    return BudgetConfigMapper.ensureInitialized().encodeJson<BudgetConfig>(
+      this as BudgetConfig,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return BudgetConfigMapper.ensureInitialized().encodeMap<BudgetConfig>(
+      this as BudgetConfig,
+    );
+  }
+
+  BudgetConfigCopyWith<BudgetConfig, BudgetConfig, BudgetConfig> get copyWith =>
+      _BudgetConfigCopyWithImpl<BudgetConfig, BudgetConfig>(
+        this as BudgetConfig,
+        $identity,
+        $identity,
+      );
+  @override
+  String toString() {
+    return BudgetConfigMapper.ensureInitialized().stringifyValue(
+      this as BudgetConfig,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return BudgetConfigMapper.ensureInitialized().equalsValue(
+      this as BudgetConfig,
+      other,
+    );
+  }
+
+  @override
+  int get hashCode {
+    return BudgetConfigMapper.ensureInitialized().hashValue(
+      this as BudgetConfig,
+    );
+  }
+}
+
+/// @nodoc
+extension BudgetConfigValueCopy<$R, $Out>
+    on ObjectCopyWith<$R, BudgetConfig, $Out> {
+  BudgetConfigCopyWith<$R, BudgetConfig, $Out> get $asBudgetConfig =>
+      $base.as((v, t, t2) => _BudgetConfigCopyWithImpl<$R, $Out>(v, t, t2));
+}
+
+/// @nodoc
+abstract class BudgetConfigCopyWith<$R, $In extends BudgetConfig, $Out>
+    implements ClassCopyWith<$R, $In, $Out> {
+  $R call({
+    int? maxModelCalls,
+    int? maxToolCalls,
+    int? maxInputTokens,
+    int? maxOutputTokens,
+    int? maxTotalTokens,
+  });
+  BudgetConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
+}
+
+/// @nodoc
+class _BudgetConfigCopyWithImpl<$R, $Out>
+    extends ClassCopyWithBase<$R, BudgetConfig, $Out>
+    implements BudgetConfigCopyWith<$R, BudgetConfig, $Out> {
+  _BudgetConfigCopyWithImpl(super.value, super.then, super.then2);
+
+  @override
+  late final ClassMapperBase<BudgetConfig> $mapper =
+      BudgetConfigMapper.ensureInitialized();
+  @override
+  $R call({
+    Object? maxModelCalls = $none,
+    Object? maxToolCalls = $none,
+    Object? maxInputTokens = $none,
+    Object? maxOutputTokens = $none,
+    Object? maxTotalTokens = $none,
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (maxModelCalls != $none) #maxModelCalls: maxModelCalls,
+          if (maxToolCalls != $none) #maxToolCalls: maxToolCalls,
+          if (maxInputTokens != $none) #maxInputTokens: maxInputTokens,
+          if (maxOutputTokens != $none) #maxOutputTokens: maxOutputTokens,
+          if (maxTotalTokens != $none) #maxTotalTokens: maxTotalTokens,
+        }),
+      );
+  @override
+  BudgetConfig $make(CopyWithData data) => BudgetConfig(
+        maxModelCalls: data.get(#maxModelCalls, or: $value.maxModelCalls),
+        maxToolCalls: data.get(#maxToolCalls, or: $value.maxToolCalls),
+        maxInputTokens: data.get(#maxInputTokens, or: $value.maxInputTokens),
+        maxOutputTokens: data.get(#maxOutputTokens, or: $value.maxOutputTokens),
+        maxTotalTokens: data.get(#maxTotalTokens, or: $value.maxTotalTokens),
+      );
+
+  @override
+  BudgetConfigCopyWith<$R2, BudgetConfig, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  ) =>
+      _BudgetConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc

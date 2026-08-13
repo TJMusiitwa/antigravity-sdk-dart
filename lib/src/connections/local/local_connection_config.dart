@@ -42,6 +42,7 @@ abstract class BaseLocalAgentConfig extends AgentConfig
     List<String>? skillsPaths,
     super.debugConfig,
     super.retryConfig,
+    super.budgetConfig,
   }) : super(
           capabilities: capabilities ?? CapabilitiesConfig(),
           tools: tools ?? const [],
@@ -52,7 +53,40 @@ abstract class BaseLocalAgentConfig extends AgentConfig
           workspaces: workspaces ?? [Directory.current.absolute.path],
           skillsPaths: skillsPaths ?? const [],
         ) {
+    _validateAllowedSubagents();
     _applyWorkspacePolicies();
+  }
+
+  void _validateAllowedSubagents() {
+    final declaredNames = subagents.map((s) => s.name).toSet();
+    _checkUnknownSubagents(
+      'CapabilitiesConfig.allowedSubagents',
+      capabilities.allowedSubagents,
+      declaredNames,
+    );
+    for (final sub in subagents) {
+      _checkUnknownSubagents(
+        "SubagentConfig('${sub.name}').capabilities.allowedSubagents",
+        sub.capabilities?.allowedSubagents,
+        declaredNames,
+      );
+    }
+  }
+
+  void _checkUnknownSubagents(
+    String contextName,
+    List<String>? allowed,
+    Set<String> declared,
+  ) {
+    if (allowed == null || allowed.isEmpty) return;
+    final unknown = allowed.toSet().difference(declared);
+    if (unknown.isNotEmpty) {
+      final sortedUnknown = unknown.toList()..sort();
+      final sortedValid = declared.toList()..sort();
+      throw AntigravityValidationException(
+        'Unknown subagent name(s) in $contextName: $sortedUnknown. Valid subagents are: $sortedValid',
+      );
+    }
   }
 
   void _applyWorkspacePolicies() {
@@ -115,6 +149,7 @@ class LocalAgentConfig extends BaseLocalAgentConfig
     super.skillsPaths,
     super.debugConfig,
     super.retryConfig,
+    super.budgetConfig,
     this.model,
     this.models,
     this.apiKey,
@@ -134,7 +169,11 @@ class LocalAgentConfig extends BaseLocalAgentConfig
 
   ModelEndpoint? _buildShorthandEndpoint() {
     if (vertex) {
-      return VertexEndpoint(project: project, location: location);
+      return VertexEndpoint(
+        project: project,
+        location: location,
+        apiKey: apiKey,
+      );
     }
     return GeminiAPIEndpoint(apiKey: apiKey);
   }
@@ -221,6 +260,7 @@ class LocalAgentConfig extends BaseLocalAgentConfig
       subagents: subagents,
       debugConfig: debugConfig,
       retryConfig: retryConfig,
+      budgetConfig: budgetConfig,
     );
   }
 }
@@ -255,6 +295,7 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
     super.skillsPaths,
     super.debugConfig,
     super.retryConfig,
+    super.budgetConfig,
   });
 
   @override
@@ -296,6 +337,7 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
       subagents: subagents,
       debugConfig: debugConfig,
       retryConfig: retryConfig,
+      budgetConfig: budgetConfig,
     );
   }
 }
@@ -370,6 +412,7 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
     super.skillsPaths,
     super.debugConfig,
     super.retryConfig,
+    super.budgetConfig,
   });
 
   @override
@@ -404,6 +447,7 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
       subagents: subagents,
       debugConfig: debugConfig,
       retryConfig: retryConfig,
+      budgetConfig: budgetConfig,
     );
   }
 }

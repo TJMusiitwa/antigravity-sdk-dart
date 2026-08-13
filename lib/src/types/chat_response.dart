@@ -2,6 +2,8 @@ import 'dart:async';
 
 import '../conversation/conversation.dart';
 import 'chunks.dart';
+import 'config.dart';
+import 'step.dart';
 import 'tool_call.dart';
 
 class ChatResponse {
@@ -110,6 +112,13 @@ class ChatResponse {
     await text(); // Await full stream consumption
     return _conversation?.lastStructuredOutput;
   }
+
+  /// Accumulated token usage across all model invocations in this turn.
+  UsageMetadata? get usage => _conversation?.lastTurnUsage;
+
+  /// The reason why the execution turn stopped.
+  StopReason get stopReason =>
+      _conversation?.lastTurnStopReason ?? StopReason.unspecified;
 
   /// Cancels the active execution turn and halts generation.
   Future<void> cancel() async {

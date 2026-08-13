@@ -11,33 +11,155 @@ final _subagentLogger = Logger('antigravity.subagent');
 /// Capabilities configuration for subagents.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class SubagentCapabilities with SubagentCapabilitiesMappable {
-  final AgentMode agentMode;
+  /// The execution behavior of the subagent (e.g. autonomous or interactive).
+  final AgentBehavior agentBehavior;
+
+  /// Optional explicit list of builtin tools enabled for this subagent.
   final List<BuiltinTools>? enabledTools;
+
+  /// Optional explicit list of builtin tools disabled for this subagent.
   final List<BuiltinTools>? disabledTools;
 
+  /// Whitelist of allowed subagent names that this subagent is permitted to invoke.
+  final List<String>? allowedSubagents;
+
+  /// Backward compatibility alias for [agentBehavior].
+  AgentBehavior get agentMode => agentBehavior;
+
   SubagentCapabilities({
-    this.agentMode = AgentMode.autonomous,
+    AgentBehavior? agentBehavior,
+    AgentBehavior? agentMode,
     this.enabledTools,
     this.disabledTools,
-  }) {
+    this.allowedSubagents,
+  }) : agentBehavior = resolveAgentBehaviorAndWarn(
+          agentBehavior: agentBehavior,
+          agentMode: agentMode,
+          enabledTools: enabledTools,
+          targetName: 'SubagentCapabilities',
+          logger: _subagentLogger,
+        ) {
     if (enabledTools != null && disabledTools != null) {
-      throw ArgumentError(
-        'enabledTools and disabledTools should be mutually exclusive.',
+      throw AntigravityValidationException(
+        'enabledTools and disabledTools are mutually exclusive.',
       );
     }
-    if (enabledTools != null &&
-        enabledTools!.contains(BuiltinTools.askQuestion) &&
-        agentMode != AgentMode.interactive) {
-      _subagentLogger.warning(
-        'BuiltinTools.askQuestion is enabled on subagent, but agentMode is not '
-        'INTERACTIVE. Set SubagentCapabilities(agentMode: AgentMode.interactive) '
-        'if interactive question-and-answer behavior is desired.',
-      );
+    if (allowedSubagents != null && allowedSubagents!.isNotEmpty) {
+      final hasStartSubagent = (enabledTools == null ||
+              enabledTools!.contains(BuiltinTools.startSubagent)) &&
+          (disabledTools == null ||
+              !disabledTools!.contains(BuiltinTools.startSubagent));
+      if (!hasStartSubagent) {
+        throw AntigravityValidationException(
+          'Cannot configure allowedSubagents when BuiltinTools.startSubagent is disabled for this subagent.',
+        );
+      }
     }
   }
 
   static const fromMap = SubagentCapabilitiesMapper.fromMap;
   static const fromJson = SubagentCapabilitiesMapper.fromJson;
+}
+
+const int _maxInt32 = 2147483647;
+const int _maxInt64 = 9223372036854775807; // 0x7FFFFFFFFFFFFFFF
+
+/// Configuration for session-level budget limits and caps.
+@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+class BudgetConfig with BudgetConfigMappable {
+  /// Maximum number of model invocations (reasoning steps / generator calls) permitted across the session.
+  final int? maxModelCalls;
+
+  /// Maximum number of tool invocations permitted across the session, regardless of tool source.
+  final int? maxToolCalls;
+
+  /// Maximum net uncached input tokens permitted across the session (prompt tokens minus cached content tokens).
+  final int? maxInputTokens;
+
+  /// Maximum output tokens permitted across the session (candidates + thoughts).
+  final int? maxOutputTokens;
+
+  /// Maximum total net tokens permitted across the session (net uncached input tokens + output tokens).
+  final int? maxTotalTokens;
+
+  BudgetConfig({
+    this.maxModelCalls,
+    this.maxToolCalls,
+    this.maxInputTokens,
+    this.maxOutputTokens,
+    this.maxTotalTokens,
+  }) {
+    _validateRange('maxModelCalls', maxModelCalls, 1, _maxInt32);
+    _validateRange('maxToolCalls', maxToolCalls, 1, _maxInt32);
+    _validateRange('maxInputTokens', maxInputTokens, 1, _maxInt64);
+    _validateRange('maxOutputTokens', maxOutputTokens, 1, _maxInt64);
+    _validateRange('maxTotalTokens', maxTotalTokens, 1, _maxInt64);
+  }
+
+  static void _validateRange(String name, int? value, int min, int max) {
+    if (value != null && (value < min || value > max)) {
+      throw AntigravityValidationException(
+        '$name must be between $min and $max inclusive, got $value',
+      );
+    }
+  }
+
+  static const fromMap = BudgetConfigMapper.fromMap;
+  static const fromJson = BudgetConfigMapper.fromJson;
+}
+
+/// Reason why the execution turn stopped.
+@MappableEnum(defaultValue: StopReason.unspecified)
+enum StopReason {
+  @MappableValue('UNSPECIFIED')
+  unspecified('UNSPECIFIED'),
+
+  @MappableValue('MAX_MODEL_CALLS_EXCEEDED')
+  maxModelCallsExceeded('MAX_MODEL_CALLS_EXCEEDED'),
+
+  @MappableValue('MAX_TOOL_CALLS_EXCEEDED')
+  maxToolCallsExceeded('MAX_TOOL_CALLS_EXCEEDED'),
+
+  @MappableValue('MAX_INPUT_TOKENS_EXCEEDED')
+  maxInputTokensExceeded('MAX_INPUT_TOKENS_EXCEEDED'),
+
+  @MappableValue('MAX_OUTPUT_TOKENS_EXCEEDED')
+  maxOutputTokensExceeded('MAX_OUTPUT_TOKENS_EXCEEDED'),
+
+  @MappableValue('MAX_TOTAL_TOKENS_EXCEEDED')
+  maxTotalTokensExceeded('MAX_TOTAL_TOKENS_EXCEEDED'),
+
+  @MappableValue('QUOTA_EXHAUSTED')
+  quotaExhausted('QUOTA_EXHAUSTED');
+
+  final String value;
+  const StopReason(this.value);
+
+  /// Parses a [StopReason] from a string, supporting proto-prefixed wire strings
+  /// (e.g. `STOP_REASON_MAX_MODEL_CALLS_EXCEEDED` or `MAX_MODEL_CALLS_EXCEEDED`).
+  static StopReason fromString(String val) {
+    final normalized =
+        val.toUpperCase().trim().replaceFirst('STOP_REASON_', '');
+    return switch (normalized) {
+      'MAX_MODEL_CALLS_EXCEEDED' ||
+      'MAXMODELCALLSEXCEEDED' =>
+        StopReason.maxModelCallsExceeded,
+      'MAX_TOOL_CALLS_EXCEEDED' ||
+      'MAXTOOLCALLSEXCEEDED' =>
+        StopReason.maxToolCallsExceeded,
+      'MAX_INPUT_TOKENS_EXCEEDED' ||
+      'MAXINPUTTOKENSEXCEEDED' =>
+        StopReason.maxInputTokensExceeded,
+      'MAX_OUTPUT_TOKENS_EXCEEDED' ||
+      'MAXOUTPUTTOKENSEXCEEDED' =>
+        StopReason.maxOutputTokensExceeded,
+      'MAX_TOTAL_TOKENS_EXCEEDED' ||
+      'MAXTOTALTOKENSEXCEEDED' =>
+        StopReason.maxTotalTokensExceeded,
+      'QUOTA_EXHAUSTED' || 'QUOTAEXHAUSTED' => StopReason.quotaExhausted,
+      _ => StopReason.unspecified,
+    };
+  }
 }
 
 /// Configuration for a static subagent.

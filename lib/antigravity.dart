@@ -18,3 +18,4 @@ export 'src/types.dart';
 export 'src/utils/binary_discovery.dart';
 export 'src/utils/harness_downloader.dart';
 export 'src/utils/interactive.dart';
+export 'src/version.dart';

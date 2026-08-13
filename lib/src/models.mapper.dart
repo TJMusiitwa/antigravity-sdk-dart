@@ -645,6 +645,13 @@ class VertexEndpointMapper extends SubClassMapperBase<VertexEndpoint> {
     _$location,
     opt: true,
   );
+  static String? _$apiKey(VertexEndpoint v) => v.apiKey;
+  static const Field<VertexEndpoint, String> _f$apiKey = Field(
+    'apiKey',
+    _$apiKey,
+    key: r'api_key',
+    opt: true,
+  );
   static GeminiModelOptions? _$options(VertexEndpoint v) => v.options;
   static const Field<VertexEndpoint, GeminiModelOptions> _f$options = Field(
     'options',
@@ -658,6 +665,7 @@ class VertexEndpointMapper extends SubClassMapperBase<VertexEndpoint> {
     #httpHeaders: _f$httpHeaders,
     #project: _f$project,
     #location: _f$location,
+    #apiKey: _f$apiKey,
     #options: _f$options,
   };
   @override
@@ -677,6 +685,7 @@ class VertexEndpointMapper extends SubClassMapperBase<VertexEndpoint> {
       httpHeaders: data.dec(_f$httpHeaders),
       project: data.dec(_f$project),
       location: data.dec(_f$location),
+      apiKey: data.dec(_f$apiKey),
       options: data.dec(_f$options),
     );
   }
@@ -758,6 +767,7 @@ abstract class VertexEndpointCopyWith<$R, $In extends VertexEndpoint, $Out>
     Map<String, String>? httpHeaders,
     String? project,
     String? location,
+    String? apiKey,
     GeminiModelOptions? options,
   });
   VertexEndpointCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
@@ -792,6 +802,7 @@ class _VertexEndpointCopyWithImpl<$R, $Out>
     Object? httpHeaders = $none,
     Object? project = $none,
     Object? location = $none,
+    Object? apiKey = $none,
     Object? options = $none,
   }) =>
       $apply(
@@ -800,6 +811,7 @@ class _VertexEndpointCopyWithImpl<$R, $Out>
           if (httpHeaders != $none) #httpHeaders: httpHeaders,
           if (project != $none) #project: project,
           if (location != $none) #location: location,
+          if (apiKey != $none) #apiKey: apiKey,
           if (options != $none) #options: options,
         }),
       );
@@ -809,6 +821,7 @@ class _VertexEndpointCopyWithImpl<$R, $Out>
         httpHeaders: data.get(#httpHeaders, or: $value.httpHeaders),
         project: data.get(#project, or: $value.project),
         location: data.get(#location, or: $value.location),
+        apiKey: data.get(#apiKey, or: $value.apiKey),
         options: data.get(#options, or: $value.options),
       );
 

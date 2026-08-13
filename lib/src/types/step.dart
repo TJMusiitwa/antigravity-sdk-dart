@@ -182,27 +182,64 @@ class UsageMetadata with UsageMetadataMappable {
   }
 }
 
+/// Represents a single execution step or lifecycle event emitted during an agent trajectory.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class Step with StepMappable {
+  /// Unique identifier of the step.
   final String id;
+
+  /// 0-indexed step position within the trajectory sequence.
   final int stepIndex;
+
+  /// Root conversation identifier.
   final String cascadeId;
+
+  /// Identifier of the specific trajectory execution.
   final String trajectoryId;
 
+  /// Trajectory identifier of the parent agent when invoked as a subagent.
+  final String parentTrajectoryId;
+
+  /// Nesting depth of subagent invocation (0 for root agent).
+  final int depth;
+
+  /// The category or classification of this step.
   final StepType type;
+
+  /// Originator of the step (system, user, or model).
   final StepSource source;
+
+  /// Intended recipient/target for the step event.
   final StepTarget target;
+
+  /// Lifecycle or execution status of the step.
   final StepStatus status;
 
+  /// Accumulated text content associated with this step.
   final String content;
+
+  /// Incremental token delta for streaming text responses.
   final String contentDelta;
+
+  /// Accumulated reasoning/thinking content for models supporting extended thinking.
   final String thinking;
+
+  /// Incremental token delta for streaming reasoning thoughts.
   final String thinkingDelta;
+
+  /// Tool invocations requested or completed in this step.
   final List<ToolCall> toolCalls;
+
+  /// Error message if step execution failed.
   final String error;
 
+  /// Whether this step constitutes the complete terminal response for the turn.
   final bool? isCompleteResponse;
+
+  /// Structured JSON output extracted from finish payload, if schema enforcement was enabled.
   final dynamic structuredOutput;
+
+  /// Token usage metadata associated with this step.
   final UsageMetadata? usageMetadata;
 
   Step({
@@ -210,6 +247,8 @@ class Step with StepMappable {
     this.stepIndex = 0,
     this.cascadeId = '',
     this.trajectoryId = '',
+    this.parentTrajectoryId = '',
+    this.depth = 0,
     this.type = StepType.unknown,
     this.source = StepSource.unknown,
     this.target = StepTarget.unknown,
@@ -232,6 +271,10 @@ class Step with StepMappable {
       final snakeKey = _toSnakeCase(key);
       updatedMap[snakeKey] = val;
     });
+
+    if (updatedMap.containsKey('depth')) {
+      updatedMap['depth'] = int.tryParse(updatedMap['depth'].toString()) ?? 0;
+    }
 
     // 2. Map 'text' to 'content'
     if (!updatedMap.containsKey('content') && updatedMap.containsKey('text')) {
@@ -403,7 +446,13 @@ class Step with StepMappable {
     if (activeToolName != null) {
       // Normalize file paths
       String? canonicalPath;
-      const pathKeys = ['path', 'file_path', 'TargetFile', 'directory_path'];
+      const pathKeys = [
+        'path',
+        'file_path',
+        'TargetFile',
+        'directory_path',
+        'output_path'
+      ];
       for (final pathKey in pathKeys) {
         final snakePathKey = _toSnakeCase(pathKey);
         final keyToCheck = activeToolArgs.containsKey(pathKey)
@@ -432,6 +481,51 @@ class Step with StepMappable {
         if (activeServerName != null && activeServerName.isNotEmpty)
           'server_name': activeServerName,
       });
+    } else if (updatedMap['tool_calls'] is List ||
+        updatedMap['toolCalls'] is List) {
+      final rawCalls =
+          (updatedMap['tool_calls'] ?? updatedMap['toolCalls']) as List;
+      for (final rawCall in rawCalls) {
+        if (rawCall is Map) {
+          final callMap = Map<String, dynamic>.from(rawCall);
+          var args = <String, dynamic>{};
+          if (callMap['arguments_json'] is String) {
+            try {
+              args = Map<String, dynamic>.from(
+                jsonDecode(callMap['arguments_json'] as String) as Map,
+              );
+            } catch (_) {}
+          } else if (callMap['arguments'] is Map) {
+            args = Map<String, dynamic>.from(callMap['arguments'] as Map);
+          } else if (callMap['arguments_json'] is Map) {
+            args = Map<String, dynamic>.from(callMap['arguments_json'] as Map);
+          }
+
+          String? canonicalPath = callMap['canonical_path']?.toString();
+          const pathKeys = [
+            'path',
+            'file_path',
+            'TargetFile',
+            'directory_path',
+            'output_path'
+          ];
+          for (final pathKey in pathKeys) {
+            final snakePathKey = _toSnakeCase(pathKey);
+            final keyToCheck = args.containsKey(pathKey)
+                ? pathKey
+                : (args.containsKey(snakePathKey) ? snakePathKey : null);
+            if (keyToCheck != null && args[keyToCheck] is String) {
+              final normalized = _normalizeWirePath(args[keyToCheck] as String);
+              args[keyToCheck] = normalized;
+              canonicalPath ??= normalized;
+            }
+          }
+          callMap['arguments'] = args;
+          callMap['arguments_json'] = args;
+          callMap['canonical_path'] = canonicalPath;
+          toolCalls.add(callMap);
+        }
+      }
     }
 
     if (toolCalls.isNotEmpty) {

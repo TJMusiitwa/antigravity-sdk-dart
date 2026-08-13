@@ -80,6 +80,7 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
       SessionContinuationModeMapper.ensureInitialized();
       DebugConfigMapper.ensureInitialized();
       RetryConfigMapper.ensureInitialized();
+      BudgetConfigMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -188,6 +189,9 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
     _$retryConfig,
     opt: true,
   );
+  static BudgetConfig? _$budgetConfig(BaseLocalAgentConfig v) => v.budgetConfig;
+  static const Field<BaseLocalAgentConfig, BudgetConfig> _f$budgetConfig =
+      Field('budgetConfig', _$budgetConfig, opt: true);
 
   @override
   final MappableFields<BaseLocalAgentConfig> fields = const {
@@ -208,6 +212,7 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
     #skillsPaths: _f$skillsPaths,
     #debugConfig: _f$debugConfig,
     #retryConfig: _f$retryConfig,
+    #budgetConfig: _f$budgetConfig,
   };
 
   static BaseLocalAgentConfig _instantiate(DecodingData data) {
@@ -262,6 +267,8 @@ abstract class BaseLocalAgentConfigCopyWith<
   @override
   RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig;
   @override
+  BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig;
+  @override
   $R call({
     dynamic systemInstructions,
     CapabilitiesConfig? capabilities,
@@ -280,6 +287,7 @@ abstract class BaseLocalAgentConfigCopyWith<
     List<String>? skillsPaths,
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
+    BudgetConfig? budgetConfig,
   });
   BaseLocalAgentConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -307,6 +315,7 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
       SessionContinuationModeMapper.ensureInitialized();
       DebugConfigMapper.ensureInitialized();
       RetryConfigMapper.ensureInitialized();
+      BudgetConfigMapper.ensureInitialized();
       ModelTargetMapper.ensureInitialized();
     }
     return _instance!;
@@ -417,6 +426,12 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
     _$retryConfig,
     opt: true,
   );
+  static BudgetConfig? _$budgetConfig(LocalAgentConfig v) => v.budgetConfig;
+  static const Field<LocalAgentConfig, BudgetConfig> _f$budgetConfig = Field(
+    'budgetConfig',
+    _$budgetConfig,
+    opt: true,
+  );
   static dynamic _$model(LocalAgentConfig v) => v.model;
   static const Field<LocalAgentConfig, dynamic> _f$model = Field(
     'model',
@@ -479,6 +494,7 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
     #skillsPaths: _f$skillsPaths,
     #debugConfig: _f$debugConfig,
     #retryConfig: _f$retryConfig,
+    #budgetConfig: _f$budgetConfig,
     #model: _f$model,
     #models: _f$models,
     #apiKey: _f$apiKey,
@@ -507,6 +523,7 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
       skillsPaths: data.dec(_f$skillsPaths),
       debugConfig: data.dec(_f$debugConfig),
       retryConfig: data.dec(_f$retryConfig),
+      budgetConfig: data.dec(_f$budgetConfig),
       model: data.dec(_f$model),
       models: data.dec(_f$models),
       apiKey: data.dec(_f$apiKey),
@@ -612,6 +629,8 @@ abstract class LocalAgentConfigCopyWith<$R, $In extends LocalAgentConfig, $Out>
   DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig;
   @override
   RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig;
+  @override
+  BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig;
   ListCopyWith<$R, ModelTarget,
       ModelTargetCopyWith<$R, ModelTarget, ModelTarget>>? get models;
   @override
@@ -633,6 +652,7 @@ abstract class LocalAgentConfigCopyWith<$R, $In extends LocalAgentConfig, $Out>
     List<String>? skillsPaths,
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
+    BudgetConfig? budgetConfig,
     dynamic model,
     List<ModelTarget>? models,
     String? apiKey,
@@ -729,6 +749,9 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
   RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig =>
       $value.retryConfig?.copyWith.$chain((v) => call(retryConfig: v));
   @override
+  BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig =>
+      $value.budgetConfig?.copyWith.$chain((v) => call(budgetConfig: v));
+  @override
   ListCopyWith<$R, ModelTarget,
           ModelTargetCopyWith<$R, ModelTarget, ModelTarget>>?
       get models => $value.models != null
@@ -757,6 +780,7 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
     Object? skillsPaths = $none,
     Object? debugConfig = $none,
     Object? retryConfig = $none,
+    Object? budgetConfig = $none,
     Object? model = $none,
     Object? models = $none,
     Object? apiKey = $none,
@@ -786,6 +810,7 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
           if (skillsPaths != $none) #skillsPaths: skillsPaths,
           if (debugConfig != $none) #debugConfig: debugConfig,
           if (retryConfig != $none) #retryConfig: retryConfig,
+          if (budgetConfig != $none) #budgetConfig: budgetConfig,
           if (model != $none) #model: model,
           if (models != $none) #models: models,
           if (apiKey != $none) #apiKey: apiKey,
@@ -820,6 +845,7 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
         skillsPaths: data.get(#skillsPaths, or: $value.skillsPaths),
         debugConfig: data.get(#debugConfig, or: $value.debugConfig),
         retryConfig: data.get(#retryConfig, or: $value.retryConfig),
+        budgetConfig: data.get(#budgetConfig, or: $value.budgetConfig),
         model: data.get(#model, or: $value.model),
         models: data.get(#models, or: $value.models),
         apiKey: data.get(#apiKey, or: $value.apiKey),
@@ -852,6 +878,7 @@ class LocalOpenAIAgentConfigMapper
       SessionContinuationModeMapper.ensureInitialized();
       DebugConfigMapper.ensureInitialized();
       RetryConfigMapper.ensureInitialized();
+      BudgetConfigMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -960,6 +987,10 @@ class LocalOpenAIAgentConfigMapper
   static RetryConfig? _$retryConfig(LocalOpenAIAgentConfig v) => v.retryConfig;
   static const Field<LocalOpenAIAgentConfig, RetryConfig> _f$retryConfig =
       Field('retryConfig', _$retryConfig, opt: true);
+  static BudgetConfig? _$budgetConfig(LocalOpenAIAgentConfig v) =>
+      v.budgetConfig;
+  static const Field<LocalOpenAIAgentConfig, BudgetConfig> _f$budgetConfig =
+      Field('budgetConfig', _$budgetConfig, opt: true);
 
   @override
   final MappableFields<LocalOpenAIAgentConfig> fields = const {
@@ -982,6 +1013,7 @@ class LocalOpenAIAgentConfigMapper
     #skillsPaths: _f$skillsPaths,
     #debugConfig: _f$debugConfig,
     #retryConfig: _f$retryConfig,
+    #budgetConfig: _f$budgetConfig,
   };
 
   static LocalOpenAIAgentConfig _instantiate(DecodingData data) {
@@ -1005,6 +1037,7 @@ class LocalOpenAIAgentConfigMapper
       skillsPaths: data.dec(_f$skillsPaths),
       debugConfig: data.dec(_f$debugConfig),
       retryConfig: data.dec(_f$retryConfig),
+      budgetConfig: data.dec(_f$budgetConfig),
     );
   }
 
@@ -1106,6 +1139,8 @@ abstract class LocalOpenAIAgentConfigCopyWith<
   @override
   RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig;
   @override
+  BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig;
+  @override
   $R call({
     dynamic model,
     String? baseUrl,
@@ -1126,6 +1161,7 @@ abstract class LocalOpenAIAgentConfigCopyWith<
     List<String>? skillsPaths,
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
+    BudgetConfig? budgetConfig,
   });
   LocalOpenAIAgentConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -1216,6 +1252,9 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
   RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig =>
       $value.retryConfig?.copyWith.$chain((v) => call(retryConfig: v));
   @override
+  BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig =>
+      $value.budgetConfig?.copyWith.$chain((v) => call(budgetConfig: v));
+  @override
   $R call({
     Object? model = $none,
     Object? baseUrl = $none,
@@ -1236,6 +1275,7 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
     Object? skillsPaths = $none,
     Object? debugConfig = $none,
     Object? retryConfig = $none,
+    Object? budgetConfig = $none,
   }) =>
       $apply(
         FieldCopyWithData({
@@ -1260,6 +1300,7 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
           if (skillsPaths != $none) #skillsPaths: skillsPaths,
           if (debugConfig != $none) #debugConfig: debugConfig,
           if (retryConfig != $none) #retryConfig: retryConfig,
+          if (budgetConfig != $none) #budgetConfig: budgetConfig,
         }),
       );
   @override
@@ -1289,6 +1330,7 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
         skillsPaths: data.get(#skillsPaths, or: $value.skillsPaths),
         debugConfig: data.get(#debugConfig, or: $value.debugConfig),
         retryConfig: data.get(#retryConfig, or: $value.retryConfig),
+        budgetConfig: data.get(#budgetConfig, or: $value.budgetConfig),
       );
 
   @override
@@ -1313,6 +1355,7 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
       SessionContinuationModeMapper.ensureInitialized();
       DebugConfigMapper.ensureInitialized();
       RetryConfigMapper.ensureInitialized();
+      BudgetConfigMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -1482,6 +1525,12 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
     _$retryConfig,
     opt: true,
   );
+  static BudgetConfig? _$budgetConfig(LiteRTAgentConfig v) => v.budgetConfig;
+  static const Field<LiteRTAgentConfig, BudgetConfig> _f$budgetConfig = Field(
+    'budgetConfig',
+    _$budgetConfig,
+    opt: true,
+  );
 
   @override
   final MappableFields<LiteRTAgentConfig> fields = const {
@@ -1511,6 +1560,7 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
     #skillsPaths: _f$skillsPaths,
     #debugConfig: _f$debugConfig,
     #retryConfig: _f$retryConfig,
+    #budgetConfig: _f$budgetConfig,
   };
 
   static LiteRTAgentConfig _instantiate(DecodingData data) {
@@ -1541,6 +1591,7 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
       skillsPaths: data.dec(_f$skillsPaths),
       debugConfig: data.dec(_f$debugConfig),
       retryConfig: data.dec(_f$retryConfig),
+      budgetConfig: data.dec(_f$budgetConfig),
     );
   }
 
@@ -1642,6 +1693,8 @@ abstract class LiteRTAgentConfigCopyWith<$R, $In extends LiteRTAgentConfig,
   @override
   RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig;
   @override
+  BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig;
+  @override
   $R call({
     String? modelPath,
     LiteRTBackend? backend,
@@ -1669,6 +1722,7 @@ abstract class LiteRTAgentConfigCopyWith<$R, $In extends LiteRTAgentConfig,
     List<String>? skillsPaths,
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
+    BudgetConfig? budgetConfig,
   });
   LiteRTAgentConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -1758,6 +1812,9 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
   RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig =>
       $value.retryConfig?.copyWith.$chain((v) => call(retryConfig: v));
   @override
+  BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig =>
+      $value.budgetConfig?.copyWith.$chain((v) => call(budgetConfig: v));
+  @override
   $R call({
     String? modelPath,
     LiteRTBackend? backend,
@@ -1785,6 +1842,7 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
     Object? skillsPaths = $none,
     Object? debugConfig = $none,
     Object? retryConfig = $none,
+    Object? budgetConfig = $none,
   }) =>
       $apply(
         FieldCopyWithData({
@@ -1817,6 +1875,7 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
           if (skillsPaths != $none) #skillsPaths: skillsPaths,
           if (debugConfig != $none) #debugConfig: debugConfig,
           if (retryConfig != $none) #retryConfig: retryConfig,
+          if (budgetConfig != $none) #budgetConfig: budgetConfig,
         }),
       );
   @override
@@ -1860,6 +1919,7 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
         skillsPaths: data.get(#skillsPaths, or: $value.skillsPaths),
         debugConfig: data.get(#debugConfig, or: $value.debugConfig),
         retryConfig: data.get(#retryConfig, or: $value.retryConfig),
+        budgetConfig: data.get(#budgetConfig, or: $value.budgetConfig),
       );
 
   @override

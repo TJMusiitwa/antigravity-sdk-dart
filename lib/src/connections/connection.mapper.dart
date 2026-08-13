@@ -28,6 +28,7 @@ class AgentConfigMapper extends ClassMapperBase<AgentConfig> {
       SessionContinuationModeMapper.ensureInitialized();
       DebugConfigMapper.ensureInitialized();
       RetryConfigMapper.ensureInitialized();
+      BudgetConfigMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -141,6 +142,12 @@ class AgentConfigMapper extends ClassMapperBase<AgentConfig> {
     _$retryConfig,
     opt: true,
   );
+  static BudgetConfig? _$budgetConfig(AgentConfig v) => v.budgetConfig;
+  static const Field<AgentConfig, BudgetConfig> _f$budgetConfig = Field(
+    'budgetConfig',
+    _$budgetConfig,
+    opt: true,
+  );
 
   @override
   final MappableFields<AgentConfig> fields = const {
@@ -161,6 +168,7 @@ class AgentConfigMapper extends ClassMapperBase<AgentConfig> {
     #skillsPaths: _f$skillsPaths,
     #debugConfig: _f$debugConfig,
     #retryConfig: _f$retryConfig,
+    #budgetConfig: _f$budgetConfig,
   };
 
   static AgentConfig _instantiate(DecodingData data) {
@@ -208,6 +216,7 @@ abstract class AgentConfigCopyWith<$R, $In extends AgentConfig, $Out>
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get skillsPaths;
   DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig;
   RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig;
+  BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig;
   $R call({
     dynamic systemInstructions,
     CapabilitiesConfig? capabilities,
@@ -226,6 +235,7 @@ abstract class AgentConfigCopyWith<$R, $In extends AgentConfig, $Out>
     List<String>? skillsPaths,
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
+    BudgetConfig? budgetConfig,
   });
   AgentConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
 }

@@ -529,6 +529,21 @@ class StepMapper extends ClassMapperBase<Step> {
     opt: true,
     def: '',
   );
+  static String _$parentTrajectoryId(Step v) => v.parentTrajectoryId;
+  static const Field<Step, String> _f$parentTrajectoryId = Field(
+    'parentTrajectoryId',
+    _$parentTrajectoryId,
+    key: r'parent_trajectory_id',
+    opt: true,
+    def: '',
+  );
+  static int _$depth(Step v) => v.depth;
+  static const Field<Step, int> _f$depth = Field(
+    'depth',
+    _$depth,
+    opt: true,
+    def: 0,
+  );
   static StepType _$type(Step v) => v.type;
   static const Field<Step, StepType> _f$type = Field(
     'type',
@@ -630,6 +645,8 @@ class StepMapper extends ClassMapperBase<Step> {
     #stepIndex: _f$stepIndex,
     #cascadeId: _f$cascadeId,
     #trajectoryId: _f$trajectoryId,
+    #parentTrajectoryId: _f$parentTrajectoryId,
+    #depth: _f$depth,
     #type: _f$type,
     #source: _f$source,
     #target: _f$target,
@@ -653,6 +670,8 @@ class StepMapper extends ClassMapperBase<Step> {
       stepIndex: data.dec(_f$stepIndex),
       cascadeId: data.dec(_f$cascadeId),
       trajectoryId: data.dec(_f$trajectoryId),
+      parentTrajectoryId: data.dec(_f$parentTrajectoryId),
+      depth: data.dec(_f$depth),
       type: data.dec(_f$type),
       source: data.dec(_f$source),
       target: data.dec(_f$target),
@@ -726,6 +745,8 @@ abstract class StepCopyWith<$R, $In extends Step, $Out>
     int? stepIndex,
     String? cascadeId,
     String? trajectoryId,
+    String? parentTrajectoryId,
+    int? depth,
     StepType? type,
     StepSource? source,
     StepTarget? target,
@@ -766,6 +787,8 @@ class _StepCopyWithImpl<$R, $Out> extends ClassCopyWithBase<$R, Step, $Out>
     int? stepIndex,
     String? cascadeId,
     String? trajectoryId,
+    String? parentTrajectoryId,
+    int? depth,
     StepType? type,
     StepSource? source,
     StepTarget? target,
@@ -786,6 +809,9 @@ class _StepCopyWithImpl<$R, $Out> extends ClassCopyWithBase<$R, Step, $Out>
           if (stepIndex != null) #stepIndex: stepIndex,
           if (cascadeId != null) #cascadeId: cascadeId,
           if (trajectoryId != null) #trajectoryId: trajectoryId,
+          if (parentTrajectoryId != null)
+            #parentTrajectoryId: parentTrajectoryId,
+          if (depth != null) #depth: depth,
           if (type != null) #type: type,
           if (source != null) #source: source,
           if (target != null) #target: target,
@@ -808,6 +834,11 @@ class _StepCopyWithImpl<$R, $Out> extends ClassCopyWithBase<$R, Step, $Out>
         stepIndex: data.get(#stepIndex, or: $value.stepIndex),
         cascadeId: data.get(#cascadeId, or: $value.cascadeId),
         trajectoryId: data.get(#trajectoryId, or: $value.trajectoryId),
+        parentTrajectoryId: data.get(
+          #parentTrajectoryId,
+          or: $value.parentTrajectoryId,
+        ),
+        depth: data.get(#depth, or: $value.depth),
         type: data.get(#type, or: $value.type),
         source: data.get(#source, or: $value.source),
         target: data.get(#target, or: $value.target),

@@ -153,10 +153,16 @@ dynamic deny(
 /// Creates an ASK_USER policy.
 ///
 /// [tool] can be either a [String] tool name, or an [McpServerConfig] to ask confirmation for tools on that MCP server.
+///
+/// The optional [handler] callback is invoked client-side to prompt the user or evaluate
+/// dynamic approval asynchronously before tool execution. If [handler] is omitted (`null`),
+/// confirmation is delegated to the host platform environment (e.g. IDE UI / Flutter dialog);
+/// note that if client-side [enforce] is called with an [askUser] policy without a [handler],
+/// an [ArgumentError] is thrown to prevent unhandled confirmation gates.
 dynamic askUser(
   dynamic tool, {
   List<String>? mcpTools,
-  required FutureOr<bool> Function(ToolCall toolCall) handler,
+  FutureOr<bool> Function(ToolCall toolCall)? handler,
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
 }) {

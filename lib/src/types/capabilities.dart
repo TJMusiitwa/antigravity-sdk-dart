@@ -76,58 +76,125 @@ enum BuiltinTools {
   }
 }
 
-/// Operational execution mode for an agent or subagent.
-@MappableEnum(defaultValue: AgentMode.autonomous)
-enum AgentMode {
+/// Operational execution behavior for an agent or subagent.
+@MappableEnum(defaultValue: AgentBehavior.autonomous)
+enum AgentBehavior {
   autonomous('autonomous'),
   interactive('interactive');
 
   final String value;
-  const AgentMode(this.value);
+  const AgentBehavior(this.value);
 
   /// Returns the corresponding Protobuf enum string value.
-  String get protoValue => 'AGENT_MODE_${value.toUpperCase()}';
+  String get protoValue => 'AGENT_BEHAVIOR_${value.toUpperCase()}';
 
-  static AgentMode fromString(String val) {
+  static AgentBehavior fromString(String val) {
     try {
-      return AgentModeMapper.fromValue(val);
+      return AgentBehaviorMapper.fromValue(val);
     } catch (_) {
-      return AgentMode.autonomous;
+      return AgentBehavior.autonomous;
     }
   }
 }
 
+/// Helper to resolve [AgentBehavior] from new/legacy parameters and log a warning if interactive tools are enabled without interactive mode.
+AgentBehavior resolveAgentBehaviorAndWarn({
+  AgentBehavior? agentBehavior,
+  AgentBehavior? agentMode,
+  List<BuiltinTools>? enabledTools,
+  required String targetName,
+  required Logger logger,
+}) {
+  final behavior = agentBehavior ?? agentMode ?? AgentBehavior.autonomous;
+  if (enabledTools != null &&
+      enabledTools.contains(BuiltinTools.askQuestion) &&
+      behavior != AgentBehavior.interactive) {
+    logger.warning(
+      'BuiltinTools.askQuestion is enabled on $targetName, but agentBehavior is not '
+      'INTERACTIVE. Set $targetName(agentBehavior: AgentBehavior.interactive) '
+      'if interactive question-and-answer behavior is desired.',
+    );
+  }
+  return behavior;
+}
+
+/// Backward compatibility alias for [AgentBehavior].
+typedef AgentMode = AgentBehavior;
+
 /// General agent capability configuration.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class CapabilitiesConfig with CapabilitiesConfigMappable {
+  /// Whether subagent spawning is enabled for this agent.
   final bool enableSubagents;
-  final AgentMode agentMode;
+
+  /// The execution behavior of the agent (e.g. autonomous or interactive).
+  final AgentBehavior agentBehavior;
+
+  /// Optional explicit list of builtin tools to enable.
   final List<BuiltinTools>? enabledTools;
+
+  /// Optional explicit list of builtin tools to disable.
   final List<BuiltinTools>? disabledTools;
+
+  /// Maximum message compaction threshold before historical turns are summarized.
   final int? compactionThreshold;
+
+  /// Custom finish tool JSON schema definition.
   String? finishToolSchemaJson;
+
+  /// Maximum allowed nesting depth for subagent invocations (must be >= 1).
+  final int? maxSubagentDepth;
+
+  /// Whitelist of allowed static subagent names that this agent is permitted to invoke.
+  final List<String>? allowedSubagents;
+
+  /// Backward compatibility alias for [agentBehavior].
+  AgentBehavior get agentMode => agentBehavior;
 
   CapabilitiesConfig({
     this.enableSubagents = true,
-    this.agentMode = AgentMode.autonomous,
+    AgentBehavior? agentBehavior,
+    AgentBehavior? agentMode,
     this.enabledTools,
     this.disabledTools,
     this.compactionThreshold,
     this.finishToolSchemaJson,
-  }) {
+    this.maxSubagentDepth,
+    this.allowedSubagents,
+  }) : agentBehavior = resolveAgentBehaviorAndWarn(
+          agentBehavior: agentBehavior,
+          agentMode: agentMode,
+          enabledTools: enabledTools,
+          targetName: 'CapabilitiesConfig',
+          logger: _logger,
+        ) {
     if (enabledTools != null && disabledTools != null) {
       throw AntigravityValidationException(
         'enabledTools and disabledTools are mutually exclusive.',
       );
     }
-    if (enabledTools != null &&
-        enabledTools!.contains(BuiltinTools.askQuestion) &&
-        agentMode != AgentMode.interactive) {
-      _logger.warning(
-        'BuiltinTools.askQuestion is enabled on agent, but agentMode is not '
-        'INTERACTIVE. Set CapabilitiesConfig(agentMode: AgentMode.interactive) '
-        'if interactive question-and-answer behavior is desired.',
+    if (maxSubagentDepth != null && maxSubagentDepth! < 1) {
+      throw AntigravityValidationException(
+        'maxSubagentDepth must be greater than or equal to 1, got $maxSubagentDepth',
       );
+    }
+    final subagentDisabled = !enableSubagents ||
+        (disabledTools != null &&
+            disabledTools!.contains(BuiltinTools.startSubagent)) ||
+        (enabledTools != null &&
+            !enabledTools!.contains(BuiltinTools.startSubagent));
+    if (subagentDisabled) {
+      if (maxSubagentDepth != null) {
+        throw AntigravityValidationException(
+          'maxSubagentDepth cannot be configured when subagents are disabled '
+          '(enableSubagents=false or startSubagent not enabled).',
+        );
+      }
+      if (allowedSubagents != null) {
+        throw AntigravityValidationException(
+          'allowedSubagents cannot be specified when subagents are disabled.',
+        );
+      }
     }
   }
 

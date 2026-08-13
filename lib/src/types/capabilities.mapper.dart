@@ -104,40 +104,40 @@ extension BuiltinToolsMapperExtension on BuiltinTools {
 
 /// @nodoc
 
-class AgentModeMapper extends EnumMapper<AgentMode> {
-  AgentModeMapper._();
+class AgentBehaviorMapper extends EnumMapper<AgentBehavior> {
+  AgentBehaviorMapper._();
 
-  static AgentModeMapper? _instance;
-  static AgentModeMapper ensureInitialized() {
+  static AgentBehaviorMapper? _instance;
+  static AgentBehaviorMapper ensureInitialized() {
     if (_instance == null) {
-      MapperContainer.globals.use(_instance = AgentModeMapper._());
+      MapperContainer.globals.use(_instance = AgentBehaviorMapper._());
     }
     return _instance!;
   }
 
-  static AgentMode fromValue(dynamic value) {
+  static AgentBehavior fromValue(dynamic value) {
     ensureInitialized();
     return MapperContainer.globals.fromValue(value);
   }
 
   @override
-  AgentMode decode(dynamic value) {
+  AgentBehavior decode(dynamic value) {
     switch (value) {
       case r'autonomous':
-        return AgentMode.autonomous;
+        return AgentBehavior.autonomous;
       case r'interactive':
-        return AgentMode.interactive;
+        return AgentBehavior.interactive;
       default:
-        return AgentMode.values[0];
+        return AgentBehavior.values[0];
     }
   }
 
   @override
-  dynamic encode(AgentMode self) {
+  dynamic encode(AgentBehavior self) {
     switch (self) {
-      case AgentMode.autonomous:
+      case AgentBehavior.autonomous:
         return r'autonomous';
-      case AgentMode.interactive:
+      case AgentBehavior.interactive:
         return r'interactive';
     }
   }
@@ -145,10 +145,10 @@ class AgentModeMapper extends EnumMapper<AgentMode> {
 
 /// @nodoc
 
-extension AgentModeMapperExtension on AgentMode {
+extension AgentBehaviorMapperExtension on AgentBehavior {
   String toValue() {
-    AgentModeMapper.ensureInitialized();
-    return MapperContainer.globals.toValue<AgentMode>(this) as String;
+    AgentBehaviorMapper.ensureInitialized();
+    return MapperContainer.globals.toValue<AgentBehavior>(this) as String;
   }
 }
 
@@ -160,7 +160,7 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
   static CapabilitiesConfigMapper ensureInitialized() {
     if (_instance == null) {
       MapperContainer.globals.use(_instance = CapabilitiesConfigMapper._());
-      AgentModeMapper.ensureInitialized();
+      AgentBehaviorMapper.ensureInitialized();
       BuiltinToolsMapper.ensureInitialized();
     }
     return _instance!;
@@ -177,13 +177,20 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
     opt: true,
     def: true,
   );
-  static AgentMode _$agentMode(CapabilitiesConfig v) => v.agentMode;
-  static const Field<CapabilitiesConfig, AgentMode> _f$agentMode = Field(
+  static AgentBehavior _$agentBehavior(CapabilitiesConfig v) => v.agentBehavior;
+  static const Field<CapabilitiesConfig, AgentBehavior> _f$agentBehavior =
+      Field(
+    'agentBehavior',
+    _$agentBehavior,
+    key: r'agent_behavior',
+    opt: true,
+  );
+  static AgentBehavior _$agentMode(CapabilitiesConfig v) => v.agentMode;
+  static const Field<CapabilitiesConfig, AgentBehavior> _f$agentMode = Field(
     'agentMode',
     _$agentMode,
     key: r'agent_mode',
     opt: true,
-    def: AgentMode.autonomous,
   );
   static List<BuiltinTools>? _$enabledTools(CapabilitiesConfig v) =>
       v.enabledTools;
@@ -215,15 +222,34 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
     key: r'finish_tool_schema_json',
     opt: true,
   );
+  static int? _$maxSubagentDepth(CapabilitiesConfig v) => v.maxSubagentDepth;
+  static const Field<CapabilitiesConfig, int> _f$maxSubagentDepth = Field(
+    'maxSubagentDepth',
+    _$maxSubagentDepth,
+    key: r'max_subagent_depth',
+    opt: true,
+  );
+  static List<String>? _$allowedSubagents(CapabilitiesConfig v) =>
+      v.allowedSubagents;
+  static const Field<CapabilitiesConfig, List<String>> _f$allowedSubagents =
+      Field(
+    'allowedSubagents',
+    _$allowedSubagents,
+    key: r'allowed_subagents',
+    opt: true,
+  );
 
   @override
   final MappableFields<CapabilitiesConfig> fields = const {
     #enableSubagents: _f$enableSubagents,
+    #agentBehavior: _f$agentBehavior,
     #agentMode: _f$agentMode,
     #enabledTools: _f$enabledTools,
     #disabledTools: _f$disabledTools,
     #compactionThreshold: _f$compactionThreshold,
     #finishToolSchemaJson: _f$finishToolSchemaJson,
+    #maxSubagentDepth: _f$maxSubagentDepth,
+    #allowedSubagents: _f$allowedSubagents,
   };
   @override
   final bool ignoreNull = true;
@@ -231,11 +257,14 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
   static CapabilitiesConfig _instantiate(DecodingData data) {
     return CapabilitiesConfig(
       enableSubagents: data.dec(_f$enableSubagents),
+      agentBehavior: data.dec(_f$agentBehavior),
       agentMode: data.dec(_f$agentMode),
       enabledTools: data.dec(_f$enabledTools),
       disabledTools: data.dec(_f$disabledTools),
       compactionThreshold: data.dec(_f$compactionThreshold),
       finishToolSchemaJson: data.dec(_f$finishToolSchemaJson),
+      maxSubagentDepth: data.dec(_f$maxSubagentDepth),
+      allowedSubagents: data.dec(_f$allowedSubagents),
     );
   }
 
@@ -309,13 +338,18 @@ abstract class CapabilitiesConfigCopyWith<$R, $In extends CapabilitiesConfig,
       ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get enabledTools;
   ListCopyWith<$R, BuiltinTools,
       ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get disabledTools;
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
+      get allowedSubagents;
   $R call({
     bool? enableSubagents,
-    AgentMode? agentMode,
+    AgentBehavior? agentBehavior,
+    AgentBehavior? agentMode,
     List<BuiltinTools>? enabledTools,
     List<BuiltinTools>? disabledTools,
     int? compactionThreshold,
     String? finishToolSchemaJson,
+    int? maxSubagentDepth,
+    List<String>? allowedSubagents,
   });
   CapabilitiesConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -352,29 +386,45 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
             )
           : null;
   @override
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
+      get allowedSubagents => $value.allowedSubagents != null
+          ? ListCopyWith(
+              $value.allowedSubagents!,
+              (v, t) => ObjectCopyWith(v, $identity, t),
+              (v) => call(allowedSubagents: v),
+            )
+          : null;
+  @override
   $R call({
     bool? enableSubagents,
-    AgentMode? agentMode,
+    Object? agentBehavior = $none,
+    Object? agentMode = $none,
     Object? enabledTools = $none,
     Object? disabledTools = $none,
     Object? compactionThreshold = $none,
     Object? finishToolSchemaJson = $none,
+    Object? maxSubagentDepth = $none,
+    Object? allowedSubagents = $none,
   }) =>
       $apply(
         FieldCopyWithData({
           if (enableSubagents != null) #enableSubagents: enableSubagents,
-          if (agentMode != null) #agentMode: agentMode,
+          if (agentBehavior != $none) #agentBehavior: agentBehavior,
+          if (agentMode != $none) #agentMode: agentMode,
           if (enabledTools != $none) #enabledTools: enabledTools,
           if (disabledTools != $none) #disabledTools: disabledTools,
           if (compactionThreshold != $none)
             #compactionThreshold: compactionThreshold,
           if (finishToolSchemaJson != $none)
             #finishToolSchemaJson: finishToolSchemaJson,
+          if (maxSubagentDepth != $none) #maxSubagentDepth: maxSubagentDepth,
+          if (allowedSubagents != $none) #allowedSubagents: allowedSubagents,
         }),
       );
   @override
   CapabilitiesConfig $make(CopyWithData data) => CapabilitiesConfig(
         enableSubagents: data.get(#enableSubagents, or: $value.enableSubagents),
+        agentBehavior: data.get(#agentBehavior, or: $value.agentBehavior),
         agentMode: data.get(#agentMode, or: $value.agentMode),
         enabledTools: data.get(#enabledTools, or: $value.enabledTools),
         disabledTools: data.get(#disabledTools, or: $value.disabledTools),
@@ -386,6 +436,10 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
           #finishToolSchemaJson,
           or: $value.finishToolSchemaJson,
         ),
+        maxSubagentDepth:
+            data.get(#maxSubagentDepth, or: $value.maxSubagentDepth),
+        allowedSubagents:
+            data.get(#allowedSubagents, or: $value.allowedSubagents),
       );
 
   @override

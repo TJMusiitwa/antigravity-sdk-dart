@@ -11,6 +11,7 @@ import '../../hooks/hooks.dart';
 import '../../tools/tool_runner.dart';
 import '../../types.dart';
 import '../../utils/binary_discovery.dart';
+import '../../version.dart';
 import '../connection.dart';
 import 'hook_router.dart';
 import 'litert_server_python.dart';
@@ -37,6 +38,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   final List<SubagentConfig> _subagents;
   final DebugConfig? _debugConfig;
   final RetryConfig? _retryConfig;
+  final BudgetConfig? _budgetConfig;
 
   Process? _process;
   WebSocket? _ws;
@@ -63,6 +65,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     List<SubagentConfig>? subagents,
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
+    BudgetConfig? budgetConfig,
   })  : _configuredBinaryPath = binaryPath,
         _toolRunner = toolRunner,
         _hookRunner = hookRunner,
@@ -78,7 +81,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         _mcpServers = mcpServers ?? const [],
         _subagents = subagents ?? const [],
         _debugConfig = debugConfig,
-        _retryConfig = retryConfig;
+        _retryConfig = retryConfig,
+        _budgetConfig = budgetConfig;
 
   @override
   DebugConfig? get debugConfig => _debugConfig;
@@ -128,7 +132,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     final inputConfigBytes = LocalHarnessProto.encodeInputConfig(
       storageDirectory: _saveDir ?? '',
       clientLanguage: 'dart',
-      clientVersion: '0.6.0',
+      clientVersion: packageVersion,
       clientLanguageVersion: Platform.version,
     );
     final packedMessage = LocalHarnessProto.packMessage(inputConfigBytes);
@@ -371,6 +375,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
               if (ep.httpHeaders != null) 'http_headers': ep.httpHeaders,
               if (ep.project != null) 'project': ep.project,
               if (ep.location != null) 'location': ep.location,
+              if (ep.apiKey != null && ep.apiKey!.isNotEmpty)
+                'api_key': ep.apiKey,
               if (opts != null) 'options': opts,
             };
           }
@@ -404,7 +410,13 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         cfg.enableSubagents && activeTools.contains(BuiltinTools.startSubagent);
 
     final harnessSideTools = {
-      'subagents': {'enabled': subagentsEnabled},
+      'subagents': {
+        'enabled': subagentsEnabled,
+        if (cfg.maxSubagentDepth != null)
+          'max_nesting_depth': cfg.maxSubagentDepth,
+        if (cfg.allowedSubagents != null && cfg.allowedSubagents!.isNotEmpty)
+          'allowed_subagents': cfg.allowedSubagents,
+      },
       'find': {'enabled': activeTools.contains(BuiltinTools.findFile)},
       'user_questions': {
         'enabled': activeTools.contains(BuiltinTools.askQuestion),
@@ -473,8 +485,11 @@ class LocalConnectionStrategy implements ConnectionStrategy {
 
     final customAgentsProtos = <Map<String, dynamic>>[];
     for (final subagent in _subagents) {
-      final activeSubTools = subagent.capabilities?.enabledTools?.toSet() ??
+      final subagentCapabilities = subagent.capabilities;
+      final activeSubTools = subagentCapabilities?.enabledTools?.toSet() ??
           BuiltinTools.readOnly().toSet();
+      final subagentCanSpawn =
+          activeSubTools.contains(BuiltinTools.startSubagent);
 
       final resolvedSubagentTools = <Map<String, dynamic>>[];
       for (final toolName in subagent.tools) {
@@ -534,7 +549,12 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         if (subagentSystemInstructionsProto.isNotEmpty)
           'system_instructions': subagentSystemInstructionsProto,
         'harness_side_tools': {
-          'subagents': {'enabled': false},
+          'subagents': {
+            'enabled': subagentCanSpawn,
+            if (subagentCapabilities?.allowedSubagents != null &&
+                subagentCapabilities!.allowedSubagents!.isNotEmpty)
+              'allowed_subagents': subagentCapabilities.allowedSubagents,
+          },
           'find': {'enabled': activeSubTools.contains(BuiltinTools.findFile)},
           'run_command': {
             'enabled': activeSubTools.contains(BuiltinTools.runCommand),
@@ -560,10 +580,14 @@ class LocalConnectionStrategy implements ConnectionStrategy {
           'search_web': {
             'enabled': activeSubTools.contains(BuiltinTools.searchWeb),
           },
+          'read_url_content': {
+            'enabled': activeSubTools.contains(BuiltinTools.readUrlContent),
+          },
         },
         'tools': resolvedSubagentTools,
-        'agent_mode': (subagent.capabilities?.agentMode ?? AgentMode.autonomous)
-            .protoValue,
+        'agent_behavior':
+            (subagentCapabilities?.agentBehavior ?? AgentBehavior.autonomous)
+                .protoValue,
       });
     }
 
@@ -580,7 +604,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     return {
       'cascade_id': _conversationId ?? '',
       'session_continuation_mode': sessionContinuationModeProto,
-      'agent_mode': cfg.agentMode.protoValue,
+      'agent_behavior': cfg.agentBehavior.protoValue,
       'tools': toolsProtos,
       'system_instructions': systemInstructionsProto,
       'models': modelsProtos,
@@ -591,6 +615,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       'finish_tool_schema_json': cfg.finishToolSchemaJson ?? '',
       'app_data_dir': _appDataDir ?? '',
       'mcp_servers': mcpServersProto,
+      if (_budgetConfig != null) 'budget_config': _budgetConfig!.toMap(),
       if (enabledHooks.isNotEmpty) 'enabled_hooks': enabledHooks,
       if (customAgentsProtos.isNotEmpty) 'custom_subagents': customAgentsProtos,
       if (retryConfigMap != null && retryConfigMap.isNotEmpty)
@@ -688,6 +713,7 @@ class LocalConnection implements Connection {
   final List<Step> _initialHistory = [];
   UsageMetadata _cumulativeUsage = UsageMetadata();
   final Map<String, UsageMetadata> _trajectoryUsages = {};
+  StopReason _turnStopReason = StopReason.unspecified;
 
   @override
   bool get isIdle => _idleState;
@@ -704,6 +730,9 @@ class LocalConnection implements Connection {
   @override
   Map<String, UsageMetadata> get trajectoryUsages =>
       Map.unmodifiable(_trajectoryUsages);
+
+  @override
+  StopReason get lastTurnStopReason => _turnStopReason;
 
   /// Creates a new [LocalConnection] session.
   ///
@@ -919,6 +948,13 @@ class LocalConnection implements Connection {
         _convId = trajectoryId;
       }
       final isSubagent = trajectoryId.isNotEmpty && trajectoryId != _convId;
+
+      if (update.containsKey('stop_reason') &&
+          update['stop_reason'] != null &&
+          update['stop_reason'].toString().isNotEmpty) {
+        _turnStopReason =
+            StopReason.fromString(update['stop_reason'].toString());
+      }
 
       if (isSubagent) {
         if (update.containsKey('error') &&
@@ -1170,10 +1206,10 @@ class LocalConnection implements Connection {
     }
 
     final inputEvent = {
-      'complex_user_input': {'parts': parts},
+      'user_input': {'parts': parts},
     };
 
-    _logger.finest('>>> Sending complex_user_input over WebSocket');
+    _logger.finest('>>> Sending user_input over WebSocket');
     _ws.add(jsonEncode(inputEvent));
   }
 
@@ -1442,6 +1478,7 @@ class LocalOpenAIConnectionStrategy extends LocalConnectionStrategy {
     super.subagents,
     super.debugConfig,
     super.retryConfig,
+    super.budgetConfig,
   });
 
   @override
@@ -1508,6 +1545,7 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
     super.subagents,
     super.debugConfig,
     super.retryConfig,
+    super.budgetConfig,
   }) : super(
           baseUrl: '',
           modelName: p.basename(modelPath),

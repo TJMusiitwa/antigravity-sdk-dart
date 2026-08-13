@@ -11,7 +11,7 @@ part 'models.mapper.dart';
 // =============================================================================
 
 /// Default generative text model used when no model target is explicitly specified.
-const String defaultModel = 'gemini-3.6-flash';
+const String defaultModel = 'gemini-3.7-flash';
 
 /// Default image generation model used by built-in image creation tools.
 const String defaultImageGenerationModel = 'gemini-3.1-flash-lite-image';
@@ -148,27 +148,50 @@ class GeminiAPIEndpoint extends ModelEndpoint with GeminiAPIEndpointMappable {
 class VertexEndpoint extends ModelEndpoint with VertexEndpointMappable {
   final String? project;
   final String? location;
+  final String? apiKey;
   final GeminiModelOptions? options;
 
   /// Creates a new [VertexEndpoint] targeting Google Vertex AI.
   ///
-  /// If [project] or [location] are omitted, they will be loaded from the
-  /// `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` environment variables, respectively.
+  /// Supports two authentication modes:
+  /// 1. Express Mode: Pass [apiKey] directly to authenticate with Vertex AI Express Mode.
+  /// 2. Standard Mode: Pass [project] and [location] (or load from `GOOGLE_CLOUD_PROJECT`
+  ///    and `GOOGLE_CLOUD_LOCATION` environment variables).
   VertexEndpoint({
     super.baseUrl,
     super.httpHeaders,
     String? project,
     String? location,
+    this.apiKey,
     this.options,
-  })  : project = project ?? Platform.environment['GOOGLE_CLOUD_PROJECT'],
-        location = location ?? Platform.environment['GOOGLE_CLOUD_LOCATION'];
+  })  : project = (apiKey == null || apiKey.isEmpty)
+            ? (project ?? Platform.environment['GOOGLE_CLOUD_PROJECT'])
+            : project,
+        location = (apiKey == null || apiKey.isEmpty)
+            ? (location ?? Platform.environment['GOOGLE_CLOUD_LOCATION'])
+            : location;
 
   @override
   void validateEndpoint() {
-    if (project == null || location == null) {
+    if (baseUrl != null) {
+      return; // External API, validation is done by the external API.
+    }
+
+    final hasRegionalAuth = (project != null && project!.isNotEmpty) &&
+        (location != null && location!.isNotEmpty);
+    final hasAnyRegionalArg = (project != null && project!.isNotEmpty) ||
+        (location != null && location!.isNotEmpty);
+    final hasExpressAuth = apiKey != null && apiKey!.isNotEmpty;
+
+    if (hasAnyRegionalArg && hasExpressAuth) {
       throw AntigravityValidationException(
-        'For Vertex AI, a GCP project and location, or an API key (Express '
-        'Mode), must be set.',
+        'Cannot specify both apiKey (Express Mode) and project/location (Standard Mode) on VertexEndpoint.',
+      );
+    }
+
+    if (!(hasRegionalAuth || hasExpressAuth)) {
+      throw AntigravityValidationException(
+        'For Vertex AI, either (project and location) or apiKey must be set.',
       );
     }
   }

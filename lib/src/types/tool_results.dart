@@ -39,9 +39,14 @@ class GenerateImageResult {
   /// Empty string if no aspect ratio was specified.
   final String aspectRatio;
 
+  /// Platform-native local filesystem path where the generated output
+  /// image artifact was saved on disk. Empty if generation failed or no file output was written.
+  final String outputPath;
+
   const GenerateImageResult({
     this.imageName = '',
     this.aspectRatio = '',
+    this.outputPath = '',
   });
 
   /// Creates a [GenerateImageResult] from a raw harness response map.
@@ -49,11 +54,12 @@ class GenerateImageResult {
     return GenerateImageResult(
       imageName: (map['image_name'] ?? map['imageName'] ?? '').toString(),
       aspectRatio: (map['aspect_ratio'] ?? map['aspectRatio'] ?? '').toString(),
+      outputPath: (map['output_path'] ?? map['outputPath'] ?? '').toString(),
     );
   }
 
   @override
-  String toString() => imageName;
+  String toString() => outputPath.isNotEmpty ? outputPath : imageName;
 }
 
 /// Structured result from a `search_web` tool execution.
