@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:antigravity/antigravity.dart';
@@ -916,8 +917,8 @@ void main() {
   });
 
   group('v0.6.0 updates', () {
-    test('defaultModel is updated to gemini-3.6-flash', () {
-      expect(defaultModel, equals('gemini-3.6-flash'));
+    test('defaultModel is a valid model string', () {
+      expect(defaultModel, isNotEmpty);
     });
 
     test('ToolExecutionException stores message, toolName, and serverName', () {
@@ -1179,9 +1180,10 @@ void main() {
     test('AgentMode enum values, protoValue, and capabilities defaults', () {
       expect(AgentMode.autonomous.value, equals('autonomous'));
       expect(AgentMode.interactive.value, equals('interactive'));
-      expect(AgentMode.autonomous.protoValue, equals('AGENT_MODE_AUTONOMOUS'));
       expect(
-          AgentMode.interactive.protoValue, equals('AGENT_MODE_INTERACTIVE'));
+          AgentMode.autonomous.protoValue, equals('AGENT_BEHAVIOR_AUTONOMOUS'));
+      expect(AgentMode.interactive.protoValue,
+          equals('AGENT_BEHAVIOR_INTERACTIVE'));
 
       final caps = CapabilitiesConfig();
       expect(caps.agentMode, equals(AgentMode.autonomous));
@@ -1246,6 +1248,378 @@ void main() {
       );
       expect(ex.callId, equals('call_123'));
       expect(ex.toString(), contains('callId: call_123'));
+    });
+  });
+
+  group('v0.9.0 updates', () {
+    test('defaultModel is updated to gemini-3.7-flash', () {
+      expect(defaultModel, equals('gemini-3.7-flash'));
+    });
+
+    test('AgentBehavior enum values and protoValue mapping', () {
+      expect(AgentBehavior.autonomous.value, equals('autonomous'));
+      expect(AgentBehavior.interactive.value, equals('interactive'));
+      expect(AgentBehavior.autonomous.protoValue,
+          equals('AGENT_BEHAVIOR_AUTONOMOUS'));
+      expect(AgentBehavior.interactive.protoValue,
+          equals('AGENT_BEHAVIOR_INTERACTIVE'));
+      expect(AgentBehavior.fromString('interactive'),
+          equals(AgentBehavior.interactive));
+      expect(AgentBehavior.fromString('unknown'),
+          equals(AgentBehavior.autonomous));
+
+      // Typedef backward compatibility
+      final AgentMode mode = AgentBehavior.interactive;
+      expect(mode, equals(AgentBehavior.interactive));
+    });
+
+    test(
+        'CapabilitiesConfig supports agentBehavior, maxSubagentDepth, and allowedSubagents',
+        () {
+      final caps = CapabilitiesConfig(
+        agentBehavior: AgentBehavior.interactive,
+        maxSubagentDepth: 3,
+        allowedSubagents: ['helper', 'reviewer'],
+      );
+      expect(caps.agentBehavior, equals(AgentBehavior.interactive));
+      expect(caps.agentMode, equals(AgentBehavior.interactive));
+      expect(caps.maxSubagentDepth, equals(3));
+      expect(caps.allowedSubagents, equals(['helper', 'reviewer']));
+
+      // Legacy agentMode parameter constructor support
+      final legacyCaps = CapabilitiesConfig(
+        agentMode: AgentBehavior.interactive,
+      );
+      expect(legacyCaps.agentBehavior, equals(AgentBehavior.interactive));
+      expect(legacyCaps.agentMode, equals(AgentBehavior.interactive));
+    });
+
+    test(
+        'CapabilitiesConfig validation for maxSubagentDepth and disabled subagents',
+        () {
+      expect(
+        () => CapabilitiesConfig(maxSubagentDepth: 0),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      // Subagents disabled via enableSubagents=false
+      expect(
+        () => CapabilitiesConfig(
+          enableSubagents: false,
+          maxSubagentDepth: 2,
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => CapabilitiesConfig(
+          enableSubagents: false,
+          allowedSubagents: ['worker'],
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      // Subagents disabled via disabledTools containing startSubagent
+      expect(
+        () => CapabilitiesConfig(
+          disabledTools: [BuiltinTools.startSubagent],
+          maxSubagentDepth: 2,
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      // Subagents disabled via enabledTools excluding startSubagent
+      expect(
+        () => CapabilitiesConfig(
+          enabledTools: [BuiltinTools.viewFile],
+          maxSubagentDepth: 2,
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+    });
+
+    test('SubagentCapabilities supports agentBehavior and allowedSubagents',
+        () {
+      final subCaps = SubagentCapabilities(
+        agentBehavior: AgentBehavior.interactive,
+        allowedSubagents: ['nested_worker'],
+      );
+      expect(subCaps.agentBehavior, equals(AgentBehavior.interactive));
+      expect(subCaps.agentMode, equals(AgentBehavior.interactive));
+      expect(subCaps.allowedSubagents, equals(['nested_worker']));
+
+      // Legacy agentMode parameter support
+      final legacySubCaps = SubagentCapabilities(
+        agentMode: AgentBehavior.interactive,
+      );
+      expect(legacySubCaps.agentBehavior, equals(AgentBehavior.interactive));
+      expect(legacySubCaps.agentMode, equals(AgentBehavior.interactive));
+    });
+
+    test(
+        'BaseLocalAgentConfig validates allowedSubagents against declared subagents',
+        () {
+      final worker =
+          SubagentConfig(name: 'worker', description: 'Worker agent');
+      final reviewer = SubagentConfig(
+        name: 'reviewer',
+        description: 'Reviewer agent',
+        capabilities: SubagentCapabilities(
+          allowedSubagents: ['worker'],
+        ),
+      );
+
+      // Valid configuration
+      final validConfig = LocalAgentConfig(
+        subagents: [worker, reviewer],
+        capabilities: CapabilitiesConfig(
+          allowedSubagents: ['reviewer'],
+        ),
+      );
+      expect(validConfig.subagents.length, equals(2));
+
+      // Invalid root allowedSubagents
+      expect(
+        () => LocalAgentConfig(
+          subagents: [worker],
+          capabilities: CapabilitiesConfig(
+            allowedSubagents: ['non_existent'],
+          ),
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      // Invalid subagent-level allowedSubagents
+      final invalidReviewer = SubagentConfig(
+        name: 'reviewer',
+        description: 'Reviewer agent',
+        capabilities: SubagentCapabilities(
+          allowedSubagents: ['unknown_child'],
+        ),
+      );
+      expect(
+        () => LocalAgentConfig(
+          subagents: [worker, invalidReviewer],
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+    });
+
+    test('BudgetConfig fields, validation, and JSON serialization', () {
+      final budget = BudgetConfig(
+        maxModelCalls: 5,
+        maxToolCalls: 10,
+        maxInputTokens: 1000,
+        maxOutputTokens: 2000,
+        maxTotalTokens: 3000,
+      );
+      expect(budget.maxModelCalls, equals(5));
+      expect(budget.maxToolCalls, equals(10));
+      expect(budget.maxInputTokens, equals(1000));
+      expect(budget.maxOutputTokens, equals(2000));
+      expect(budget.maxTotalTokens, equals(3000));
+
+      final map = budget.toMap();
+      expect(map['max_model_calls'], equals(5));
+      expect(map['max_tool_calls'], equals(10));
+      expect(map['max_input_tokens'], equals(1000));
+      expect(map['max_output_tokens'], equals(2000));
+      expect(map['max_total_tokens'], equals(3000));
+
+      // Validation errors
+      expect(() => BudgetConfig(maxModelCalls: 0),
+          throwsA(isA<AntigravityValidationException>()));
+      expect(() => BudgetConfig(maxModelCalls: 2147483648),
+          throwsA(isA<AntigravityValidationException>()));
+      expect(() => BudgetConfig(maxToolCalls: 0),
+          throwsA(isA<AntigravityValidationException>()));
+      expect(() => BudgetConfig(maxToolCalls: 2147483648),
+          throwsA(isA<AntigravityValidationException>()));
+      expect(() => BudgetConfig(maxInputTokens: 0),
+          throwsA(isA<AntigravityValidationException>()));
+      expect(() => BudgetConfig(maxOutputTokens: 0),
+          throwsA(isA<AntigravityValidationException>()));
+      expect(() => BudgetConfig(maxTotalTokens: 0),
+          throwsA(isA<AntigravityValidationException>()));
+    });
+
+    test('StopReason enum values and wire string parsing with proto prefixes',
+        () {
+      expect(StopReason.unspecified.value, equals('UNSPECIFIED'));
+      expect(StopReason.maxModelCallsExceeded.value,
+          equals('MAX_MODEL_CALLS_EXCEEDED'));
+      expect(StopReason.maxToolCallsExceeded.value,
+          equals('MAX_TOOL_CALLS_EXCEEDED'));
+      expect(StopReason.maxInputTokensExceeded.value,
+          equals('MAX_INPUT_TOKENS_EXCEEDED'));
+      expect(StopReason.maxOutputTokensExceeded.value,
+          equals('MAX_OUTPUT_TOKENS_EXCEEDED'));
+      expect(StopReason.maxTotalTokensExceeded.value,
+          equals('MAX_TOTAL_TOKENS_EXCEEDED'));
+      expect(StopReason.quotaExhausted.value, equals('QUOTA_EXHAUSTED'));
+
+      // Proto-prefixed wire strings from localharness
+      expect(StopReason.fromString('STOP_REASON_MAX_MODEL_CALLS_EXCEEDED'),
+          equals(StopReason.maxModelCallsExceeded));
+      expect(StopReason.fromString('STOP_REASON_MAX_TOOL_CALLS_EXCEEDED'),
+          equals(StopReason.maxToolCallsExceeded));
+      expect(StopReason.fromString('STOP_REASON_MAX_INPUT_TOKENS_EXCEEDED'),
+          equals(StopReason.maxInputTokensExceeded));
+      expect(StopReason.fromString('STOP_REASON_MAX_OUTPUT_TOKENS_EXCEEDED'),
+          equals(StopReason.maxOutputTokensExceeded));
+      expect(StopReason.fromString('STOP_REASON_MAX_TOTAL_TOKENS_EXCEEDED'),
+          equals(StopReason.maxTotalTokensExceeded));
+      expect(StopReason.fromString('STOP_REASON_QUOTA_EXHAUSTED'),
+          equals(StopReason.quotaExhausted));
+      expect(StopReason.fromString('STOP_REASON_UNSPECIFIED'),
+          equals(StopReason.unspecified));
+
+      // Unprefixed strings
+      expect(StopReason.fromString('MAX_MODEL_CALLS_EXCEEDED'),
+          equals(StopReason.maxModelCallsExceeded));
+      expect(StopReason.fromString('MAX_TOOL_CALLS_EXCEEDED'),
+          equals(StopReason.maxToolCallsExceeded));
+      expect(StopReason.fromString('MAX_INPUT_TOKENS_EXCEEDED'),
+          equals(StopReason.maxInputTokensExceeded));
+      expect(StopReason.fromString('MAX_OUTPUT_TOKENS_EXCEEDED'),
+          equals(StopReason.maxOutputTokensExceeded));
+      expect(StopReason.fromString('MAX_TOTAL_TOKENS_EXCEEDED'),
+          equals(StopReason.maxTotalTokensExceeded));
+      expect(StopReason.fromString('QUOTA_EXHAUSTED'),
+          equals(StopReason.quotaExhausted));
+      expect(
+          StopReason.fromString('UNKNOWN_VAL'), equals(StopReason.unspecified));
+    });
+
+    test(
+        'SubagentCapabilities throws when allowedSubagents is set with startSubagent disabled',
+        () {
+      expect(
+        () => SubagentCapabilities(
+          enabledTools: [BuiltinTools.viewFile], // startSubagent not enabled
+          allowedSubagents: ['child_worker'],
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      expect(
+        () => SubagentCapabilities(
+          disabledTools: [BuiltinTools.startSubagent],
+          allowedSubagents: ['child_worker'],
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      // Allowed when startSubagent is included
+      final valid = SubagentCapabilities(
+        enabledTools: [BuiltinTools.startSubagent, BuiltinTools.viewFile],
+        allowedSubagents: ['child_worker'],
+      );
+      expect(valid.allowedSubagents, equals(['child_worker']));
+    });
+
+    test('VertexEndpoint Express Mode and Standard Mode exclusivity validation',
+        () {
+      // Valid Express Mode
+      final expressEndpoint = VertexEndpoint(apiKey: 'express_key_123');
+      expect(expressEndpoint.apiKey, equals('express_key_123'));
+      expect(expressEndpoint.project, isNull);
+      expect(expressEndpoint.location, isNull);
+      expressEndpoint.validateEndpoint(); // Should not throw
+
+      // Valid Standard Mode
+      final standardEndpoint = VertexEndpoint(
+        project: 'my-project',
+        location: 'us-central1',
+      );
+      expect(standardEndpoint.project, equals('my-project'));
+      expect(standardEndpoint.location, equals('us-central1'));
+      expect(standardEndpoint.apiKey, isNull);
+      standardEndpoint.validateEndpoint(); // Should not throw
+
+      // Mutual exclusivity error
+      final conflictEndpoint = VertexEndpoint(
+        apiKey: 'express_key',
+        project: 'my-project',
+        location: 'us-central1',
+      );
+      expect(
+        () => conflictEndpoint.validateEndpoint(),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      // Missing credentials error (when env vars empty)
+      final emptyEndpoint =
+          VertexEndpoint(project: null, location: null, apiKey: null);
+      if (Platform.environment['GOOGLE_CLOUD_PROJECT'] == null) {
+        expect(
+          () => emptyEndpoint.validateEndpoint(),
+          throwsA(isA<AntigravityValidationException>()),
+        );
+      }
+    });
+
+    test('GenerateImageResult outputPath and toString behavior', () {
+      final withOutput = GenerateImageResult(
+        imageName: 'my_chart',
+        aspectRatio: '16:9',
+        outputPath: '/tmp/generated/my_chart.png',
+      );
+      expect(withOutput.outputPath, equals('/tmp/generated/my_chart.png'));
+      expect(withOutput.toString(), equals('/tmp/generated/my_chart.png'));
+
+      final fallback = GenerateImageResult(imageName: 'my_chart');
+      expect(fallback.outputPath, isEmpty);
+      expect(fallback.toString(), equals('my_chart'));
+
+      final fromMap = GenerateImageResult.fromMap({
+        'image_name': 'sunset',
+        'aspect_ratio': '1:1',
+        'output_path': '/images/sunset.png',
+      });
+      expect(fromMap.imageName, equals('sunset'));
+      expect(fromMap.aspectRatio, equals('1:1'));
+      expect(fromMap.outputPath, equals('/images/sunset.png'));
+    });
+
+    test('Step carries parentTrajectoryId and depth, parsed via Step.fromMap',
+        () {
+      final step = Step(
+        id: 'step_1',
+        parentTrajectoryId: 'parent_traj_999',
+        depth: 2,
+      );
+      expect(step.parentTrajectoryId, equals('parent_traj_999'));
+      expect(step.depth, equals(2));
+
+      final parsed = Step.fromMap({
+        'id': 'step_2',
+        'parent_trajectory_id': 'traj_root',
+        'depth': 3,
+      });
+      expect(parsed.parentTrajectoryId, equals('traj_root'));
+      expect(parsed.depth, equals(3));
+    });
+
+    test('Step.fromMap normalizes output_path in tool calls', () {
+      final parsed = Step.fromMap({
+        'id': 'step_img',
+        'tool_calls': [
+          {
+            'name': 'generate_image',
+            'arguments_json': jsonEncode({
+              'prompt': 'A beautiful sunrise',
+              'output_path': 'file:///tmp/generated/image.png',
+            }),
+          }
+        ],
+      });
+      expect(parsed.toolCalls.length, equals(1));
+      expect(parsed.toolCalls.first.canonicalPath,
+          equals('/tmp/generated/image.png'));
+      expect(
+        parsed.toolCalls.first.args['output_path'],
+        equals('/tmp/generated/image.png'),
+      );
     });
   });
 }

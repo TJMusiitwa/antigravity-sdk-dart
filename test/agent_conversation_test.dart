@@ -326,6 +326,9 @@ class FakeConnection implements Connection {
   Map<String, UsageMetadata> get trajectoryUsages => const {};
 
   @override
+  StopReason get lastTurnStopReason => StopReason.unspecified;
+
+  @override
   bool get isIdle => _idle;
 
   @override
