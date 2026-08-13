@@ -11,7 +11,7 @@ Guidelines for configuring priority-bucketed declarative safety policies to safe
 
 1. **Top-Down Evaluation**: The SDK evaluates safety rules sequentially across a 9-level priority framework. The first matching rule dictates the decision (`allow`, `deny`, or `askUser`).
 2. **Default-Deny Fallback**: Always place an explicit catch-all fallback rule denying unmatched tools (`deny("*")`) at the end of the rule list.
-3. **Agent Mode Interaction**: In `AgentMode.interactive`, tool execution policies trigger user confirmation prompts (`askUser`), whereas `AgentMode.autonomous` processes policies silently according to matching rules.
+3. **Agent Behavior Interaction**: In `AgentBehavior.interactive`, tool execution policies trigger user confirmation prompts (`askUser`), whereas `AgentBehavior.autonomous` processes policies silently according to matching rules.
 
 ```dart
 final policies = [

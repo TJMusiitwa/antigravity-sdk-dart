@@ -161,9 +161,9 @@ dart run example/getting_started/hello_world.dart
   dart run example/getting_started/persona_config.dart
   ```
 
-### 17. Subagents (`subagents.dart`)
-* **Focus**: Spawning child subagents for task delegation.
-* **Details**: Shows how to configure and spawn subagents within the agent configuration, showing how they execute tasks and logs output for tracking progression.
+### 17. Subagents & Hierarchies (`subagents.dart`)
+* **Focus**: Dynamic self-delegation, static subagents, and nested subagent hierarchies.
+* **Details**: Shows how to dynamically clone the agent (`self`), configure static subagents with scoped tools (`code_reviewer`), and establish multi-tier hierarchical delegation chains with `maxSubagentDepth` and `allowedSubagents` allowlists.
 * **Run Command**:
   ```bash
   dart run example/getting_started/subagents.dart
@@ -183,4 +183,12 @@ dart run example/getting_started/hello_world.dart
 * **Run Command**:
   ```bash
   dart run example/getting_started/web_tools.dart
+  ```
+
+### 20. Budget Limits (`budget_limits.dart`)
+* **Focus**: Session budget caps and stop reason inspection.
+* **Details**: Demonstrates configuring session-level caps using `BudgetConfig` across 5 operational limits (`maxModelCalls`, `maxToolCalls`, `maxInputTokens`, `maxOutputTokens`, `maxTotalTokens`) and inspecting `response.stopReason`.
+* **Run Command**:
+  ```bash
+  dart run example/getting_started/budget_limits.dart
   ```
