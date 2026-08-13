@@ -76,7 +76,8 @@ jobs:
         if: steps.check_updates.outputs.has_changes == 'true'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          AGENT_MODEL: "gemini-3.5-flash"
+          AGENT_MODEL: "gemini-3.7-flash"
+          AGENT_THINKING_LEVEL: "extra_high"
         run: |
           # Run the script that spawns the Local Agent
           python dart-sdk/scripts/sync_sdk_agent.py

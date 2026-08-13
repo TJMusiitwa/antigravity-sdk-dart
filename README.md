@@ -187,8 +187,9 @@ The [`example/`](example/) directory contains high-fidelity ports of every scrip
 | `example/getting_started/app_data_dir_override.dart` | Overrides the local application data directory |
 | `example/getting_started/error_handler.dart`     | Catches and resolves tool/agent errors using hooks |
 | `example/getting_started/persona_config.dart`    | Configures Custom and Templated system instructions |
-| `example/getting_started/subagents.dart`         | Spawns child subagents for task delegation |
+| `example/getting_started/subagents.dart`         | Dynamic self-delegation, static subagents, and nested subagent hierarchies |
 | `example/getting_started/cancellation.dart`      | Cancels an in-flight turn and catches cancellation errors |
+| `example/getting_started/budget_limits.dart`     | Enforces session budget caps and inspects turn stop reasons |
 
 ### Deep Dives
 | File | Focus Concept |

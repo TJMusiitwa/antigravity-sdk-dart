@@ -45,24 +45,119 @@ jobs:
           prompt: |
             Synchronize updates from the Python SDK repository (https://github.com/google-antigravity/antigravity-sdk-python) to this Dart SDK repository.
 
+            GROUND RULES (apply throughout):
+            - Never type a commit SHA, version string, or file list from memory. Every such value must come from
+              command output you have just run in this session, and must be written to disk by redirecting that output.
+            - The upstream source under `google/antigravity/` is the only authority. If GitHub release notes,
+              discussions, or changelogs disagree with the code, the code wins. Note the discrepancy in your summary;
+              do not implement the notes.
+            - No scope creep. Do not add fields, wire keys, tool entries, or fallback logic that the upstream diff does
+              not contain. If you believe something extra is needed, propose it in the summary instead of shipping it.
+            - Do not claim work you did not verify. Every line of your final summary must correspond to something you
+              re-read or re-ran after making the change.
+
             Follow these step-by-step instructions:
-            1. Read the commit hash stored in `.last_synced_python_commit` in the root of the repository (create the file if it doesn't exist).
-            2. Clone the Python SDK repository: `https://github.com/google-antigravity/antigravity-sdk-python`.
-            3. Read the current Dart SDK package version number from `pubspec.yaml` (under version).
-            4. Increment the minor version number of the Dart SDK package (e.g., `0.1.3` -> `0.2.0`).
-            5. Synchronize this new version number to the Dart SDK package:
-               - Update the version field in `pubspec.yaml` to the new version.
-               - Update the hardcoded version in `lib/src/mcp/mcp_bridge.dart` (specifically in the Implementation instantiation) to the new version.
-               - Prepend a new release entry in `CHANGELOG.md` with the new version if it is not already documented. The entry must focus on changes and enhancements relevant to the Dart package (e.g., newly translated APIs, Dart-specific improvements, or testing changes) rather than raw Python SDK commit messages or Python-specific updates.
-               - Update any version badges (e.g., the pub package badge) in `README.md` to reflect the new version.
-            6. Identify all files under `google/antigravity` (source code and test files) that have been modified, added, or deleted between the commit recorded in `.last_synced_python_commit` and the current `HEAD` of the Python SDK repository.
-            7. For each modified/new Python source file:
-               - Map the module name to the corresponding Dart file in `lib/src/` (e.g., `google/antigravity/agent.py` -> `lib/src/agent.dart`, `google/antigravity/conversation/conversation.py` -> `lib/src/conversation/conversation.dart`).
-               - Translate the Python changes or the new Python file to Dart, maintaining consistency with existing Dart code, typing conventions, imports, and package structures.
-               - Use the `dart_mappable` package for model generation/serialization where applicable (look at existing classes in `lib/src/types` and `lib/src/types.dart` for patterns).
-            8. For each modified/new Python test file:
-               - Map it to a corresponding Dart test file under `test/` (e.g., `google/antigravity/agent_test.py` -> `test/agent_test.dart`).
-               - Translate the python tests (pytest or unittest style) to the native Dart `test` framework.
+
+            1. ESTABLISH THE SYNC RANGE (mechanically — do not transcribe hashes by hand):
+               - Clone the Python SDK: `git clone https://github.com/google-antigravity/antigravity-sdk-python /tmp/python-sdk`
+               - `OLD=$(cat .last_synced_python_commit)` (if the file is missing, stop and report — do not guess a start point).
+               - `git -C /tmp/python-sdk cat-file -e "$OLD^{commit}"` — this MUST succeed. If it fails, the recorded SHA is
+                 corrupt or does not exist upstream: stop and report it rather than picking a nearby commit.
+               - `NEW=$(git -C /tmp/python-sdk rev-parse HEAD)` — always the full 40-character SHA, never abbreviated.
+               - If syncing to a tag, resolve it with `git rev-parse "v0.1.11^{commit}"`. A bare `git rev-parse v0.1.11`
+                 on an annotated tag yields the TAG OBJECT, not the commit, and will record a hash that does not exist.
+               - `git -C /tmp/python-sdk log --oneline "$OLD".."$NEW"` and
+                 `git -C /tmp/python-sdk diff --stat "$OLD".."$NEW" -- google/antigravity/`
+               - If the range is empty, stop and report the SDKs are already in sync.
+
+            2. READ THE REPO'S OWN SYNC PROCEDURE:
+               - Read `skills/google-antigravity-sdk-dart-sync/SKILL.md` before editing anything. It is the documented
+                 procedure and takes precedence over this prompt where they conflict. You are also responsible for
+                 keeping it accurate — see step 6.
+
+            3. VERSION CASCADE:
+               Read the current version from `pubspec.yaml` and increment the minor version (e.g. `0.8.0` -> `0.9.0`).
+               Apply the new version to EVERY location below:
+               - `pubspec.yaml` — the `version:` field.
+               - `lib/src/mcp/mcp_bridge.dart` — the hardcoded version in the `Implementation` instantiation.
+               - `lib/src/connections/local/local_connection.dart` — `clientVersion`.
+               - `README.md` — pub.dev version badge(s).
+               - `CHANGELOG.md` — prepend a new release entry. Focus on changes relevant to the Dart package
+                 (newly translated APIs, Dart-specific improvements, testing changes), not raw Python commit messages.
+               Separately, `lib/src/utils/harness_downloader.dart` -> `defaultVersion` tracks the UPSTREAM harness/Python
+               release (e.g. `0.1.11`), not the Dart package version. Update it from the upstream tag, and update the
+               matching fixtures in `test/binary_discovery_test.dart`.
+               Prove nothing was missed: `grep -rn "<old-version>" lib bin README.md pubspec.yaml` must return zero hits.
+
+            4. TRANSLATE CHANGES:
+               - Map each modified/new Python source file to its Dart equivalent under `lib/src/`
+                 (e.g. `google/antigravity/agent.py` -> `lib/src/agent.dart`,
+                 `google/antigravity/conversation/conversation.py` -> `lib/src/conversation/conversation.dart`).
+               - Translate idiomatically, maintaining existing Dart typing conventions, imports, and package structure.
+                 Use `dart_mappable` for model generation/serialization where applicable (see `lib/src/types/` for patterns).
+               - Map each modified/new Python test file to a Dart test under `test/` and translate pytest/unittest style
+                 to the native Dart `test` framework.
+
+            5. PARITY CHECKLIST. This is a list of BUG CLASSES, not a list of known bugs. Each item names a category of
+               divergence that survives `dart analyze` and `dart test` and only fails at runtime against a real harness.
+               The parenthesised examples come from past syncs and are ILLUSTRATIVE ONLY — never treat an example as the
+               scope of its item. Apply every item to every symbol the current diff touches, and state the result per item
+               in your summary, including "not applicable this sync" where that is the honest answer.
+
+               CONTRACT PARITY — anything crossing the process boundary between the SDK and the harness:
+               a. WIRE FIELD NAMES. Diff every map key your serializer emits, and every key your parser reads, against the
+                  Python proto/dict keys character for character (snake_case on the wire, camelCase in Dart). Emit exactly
+                  one key per field — never a new key AND a legacy alias, and never a legacy key carrying new values.
+               b. ENUM WIRE VALUES. For every new or changed enum, compare the Dart serialized form and parser against the
+                  exact strings Python emits and accepts, including any prefix convention the upstream proto uses
+                  (e.g. `STOP_REASON_*`, `AGENT_BEHAVIOR_*`). Follow the existing repo idiom of accepting both prefixed and
+                  bare forms. A parser whose every input falls through to the default/unspecified case is dead code that
+                  unit tests will happily pass — see item (m).
+               c. SHARED KEY / CONSTANT LISTS. When upstream adds a value to a module-level collection (e.g. a list of
+                  argument keys to normalize, a set of tool names, a default allowlist), find every Dart counterpart and
+                  update it. Grep upstream for the new literal to find every collection it joined, not just the first.
+               d. MESSAGE & EVENT SHAPES. Compare the full structure of each request/response/event: nesting depth, whether
+                  a payload is inlined or wrapped, and whether upstream collapsed or split two variants into one. A rename
+                  at the envelope level is as breaking as a rename at the field level.
+
+               SEMANTIC PARITY — same signature, different behavior:
+               e. DEFAULTS. Compare default values field by field, including defaults that live in a factory or validator
+                  rather than the field declaration.
+               f. VALIDATION BOUNDS. Match Pydantic `ge`/`le`/`gt`/`lt`/`min_length`/`max_length` exactly, including upper
+                  bounds that are easy to skip. Pull such limits into named Dart constants, not bare literals.
+               g. VALIDATION GUARDS & ERRORS. If upstream raises for an invalid combination, port that raise — with a
+                  comparable message — and check whether the guard applies to EVERY class carrying the field, not just the
+                  first one you edited.
+               h. NULLABILITY, OPTIONALITY & ORDERING. Required-vs-optional, null-means-X semantics, and any order upstream
+                  guarantees (event emission, list ordering, validation sequence) must survive translation.
+
+               SURFACE PARITY — what a Dart consumer sees:
+               i. PUBLIC API & EXPORTS. Any new public type must be exported from `lib/antigravity.dart`, or consumers
+                  cannot reach it. Do not change existing public signatures unless upstream changed theirs.
+               j. DEPRECATION & ALIASES. When renaming a public symbol, add a typedef/legacy parameter for source
+                  compatibility — but the WIRE FORMAT and the DOCUMENTATION must use the new name only.
+               k. DOC COMMENTS. If a parameter changes required->optional, gains null-means-X behavior, or changes units or
+                  bounds, update its doc comment in the same edit.
+
+               COVERAGE:
+               l. REMOVALS & DELETIONS. Upstream deletions are part of the diff. Port removed fields, files, and behaviors
+                  rather than silently keeping the Dart side ahead of upstream.
+               m. WIRE-LEVEL TEST COVERAGE. For each new feature, at least one test must exercise the UPSTREAM WIRE
+                  REPRESENTATION — a literal payload/string as the harness would send it — not just the Dart constructor.
+                  Constructor-only tests cannot detect items (a) through (d).
+
+               n. ANYTHING ELSE THAT CROSSES THE BOUNDARY. This checklist is meant to grow. If you find a divergence class
+                  not covered above, fix it AND append it as a new item to the parity checklist in
+                  `skills/google-antigravity-sdk-dart-sync/SKILL.md`, so the next sync inherits what this one learned.
+
+            6. UPDATE THE REPO'S OWN DOCUMENTATION:
+               The files under `skills/` document the preferred API and the sync baseline, and go stale on exactly the
+               changes this task makes. Grep for and update stale references:
+               `grep -rn "<old-upstream-version>\|<old-default-model>\|<renamed-symbol>" skills/ README.md example/`
+               - `skills/google-antigravity-sdk-dart-sync/SKILL.md` — bump the upstream version it pins, and add any newly
+                 discovered version location to its cascade table.
+               - Any other skill referencing a default model, enum name, or API spelling you changed.
+               - `README.md` and `example/README.md` — default model, new features, examples table.
 
             Measurable Validation Targets:
             - Run `dart pub get` to install dependencies.
@@ -70,10 +165,31 @@ jobs:
             - Run `dart format --output=none --set-exit-if-changed .` to check code formatting.
             - Run `dart analyze --fatal-infos` to ensure zero compilation warnings, info messages, or errors remain.
             - Run `dart test` to verify all unit tests pass with a 100% success rate.
+            - Run `dart analyze` over every file in `example/getting_started/`.
+            - Green tests are necessary, not sufficient: for each new feature, confirm at least one test exercises the
+              UPSTREAM WIRE REPRESENTATION, not just the Dart constructor.
 
             Execution Rules & Constraints:
             - If static analysis or tests fail, analyze the compiler/test output, apply the necessary code corrections, and re-run all validation checks.
             - Keep all changes focused strictly on the translation of Python updates. Do not modify unrelated Dart files.
             - Do not alter public API signatures of existing Dart classes unless the corresponding Python class's public interface was changed.
             - Format the code with `dart format .` as the final step before completion.
-            - Once and only once all validation targets pass successfully, update the contents of `.last_synced_python_commit` to the current `HEAD` commit hash of the Python SDK repository.
+
+            SELF-AUDIT before reporting — re-read `git -C /tmp/python-sdk diff "$OLD".."$NEW" -- google/antigravity/`
+            against your changes and answer explicitly in the summary:
+            - Which upstream hunks did I NOT port, and why?
+            - Which of my changes have NO corresponding upstream hunk? (Justify or revert.)
+            - Which parity-checklist items did I verify by reading code, versus assume?
+
+            FINALIZE THE SYNC MARKER (mechanically). Once and only once all validation targets pass:
+            - `git -C /tmp/python-sdk rev-parse HEAD > .last_synced_python_commit`
+              (write it with this command — never by typing the hash)
+            - Prove it round-trips, and paste both outputs into your summary:
+              `NEW=$(cat .last_synced_python_commit)`
+              `git -C /tmp/python-sdk cat-file -e "$NEW^{commit}" && echo "OK: $NEW"`
+              `git -C /tmp/python-sdk describe --tags --exact-match "$NEW" || echo "note: not an exact tag"`
+            - If `cat-file -e` fails, the file is wrong — fix it before reporting.
+
+            Final summary must state: the new Dart version; the old and new upstream SHAs (both full, as printed by git);
+            files translated; documentation/skills updated; verification output; the self-audit answers; and any upstream
+            behavior deliberately not ported, stated plainly rather than omitted.

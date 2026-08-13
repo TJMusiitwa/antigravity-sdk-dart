@@ -1,3 +1,33 @@
+# 0.9.0
+
+* **Sync with Python SDK v0.1.11**:
+  - **Default Model Upgrade to Gemini 3.7 Flash**: Updated default generative text model in `lib/src/models.dart` to `gemini-3.7-flash`.
+  - **Session Budget Enforcement (`BudgetConfig`) & Stop Reasons (`StopReason`)**:
+    - Introduced `BudgetConfig` to configure session-level caps: `maxModelCalls`, `maxToolCalls`, `maxInputTokens`, `maxOutputTokens`, `maxTotalTokens`.
+    - Added `StopReason` enum (`unspecified`, `maxModelCallsExceeded`, `maxToolCallsExceeded`, `maxInputTokensExceeded`, `maxOutputTokensExceeded`, `maxTotalTokensExceeded`, `quotaExhausted`).
+    - Exposed `ChatResponse.stopReason`, `ChatResponse.usage`, and `Conversation.lastTurnStopReason`.
+  - **Vertex AI Express Mode (`apiKey`)**:
+    - Added `apiKey` support to `VertexEndpoint` for Vertex AI Express Mode authentication.
+    - Implemented mutual exclusivity validation: rejects configurations passing both `apiKey` (Express Mode) and `project`/`location` (Standard Mode).
+  - **Agent Behavior Standard (`AgentBehavior`)**:
+    - Renamed `AgentMode` enum to `AgentBehavior` (`autonomous`, `interactive`), mapping to `AGENT_BEHAVIOR_AUTONOMOUS` and `AGENT_BEHAVIOR_INTERACTIVE` protobuf values.
+    - Provided `typedef AgentMode = AgentBehavior` and constructor/getter aliases for backward compatibility.
+  - **Hierarchical & Nested Subagent Controls**:
+    - Added `maxSubagentDepth` and `allowedSubagents` allowlist configuration on `CapabilitiesConfig` and `SubagentCapabilities`.
+    - Enabled `BuiltinTools.startSubagent` on custom subagents when configured in their capability toolsets.
+    - Validated that `maxSubagentDepth` and `allowedSubagents` cannot be set when subagents are disabled.
+    - Added subagent allowlist validation on `BaseLocalAgentConfig` ensuring all referenced subagent names exist in the configured `subagents` list.
+  - **Step Metadata & Image Artifact Paths**:
+    - Added `parentTrajectoryId` and `depth` fields to `Step` and updated `Step.fromMap` parser.
+    - Added `outputPath` to `GenerateImageResult` and updated `toString()` to return `outputPath` when non-empty.
+  - **Policy Enhancements**:
+    - Made `handler` optional in `askUser` policy builder for host platform delegation compatibility.
+  - **New Example & Documentation**:
+    - Added `example/getting_started/budget_limits.dart` demonstrating all 5 budget limits and stop reason inspection.
+    - Updated `example/getting_started/subagents.dart` showcasing dynamic self-delegation, static subagents, and nested subagent hierarchies.
+  - **SDK Version Bump & Dependency Synchronization**:
+    - Updated package version to `0.9.0` and MCP implementation version to `0.9.0`.
+
 # 0.8.0
 
 * **Sync with Python SDK v0.1.10 & Dart-Idiomatic Enhancements**:
