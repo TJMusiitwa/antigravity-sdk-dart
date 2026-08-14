@@ -194,8 +194,7 @@ class HookRouter {
                 }
               } catch (_) {}
             }
-          } else if (pta.containsKey('arguments') &&
-              pta['arguments'] is Map) {
+          } else if (pta.containsKey('arguments') && pta['arguments'] is Map) {
             args = Map<String, dynamic>.from(pta['arguments'] as Map);
           }
 
@@ -228,8 +227,7 @@ class HookRouter {
           canonicalPath: canonicalPath,
         );
 
-        final turnCtx =
-            _currentTurnContext ?? _hookRunner.createTurnContext();
+        final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
         final res = await _hookRunner.dispatchPreToolCall(turnCtx, tc);
 
         final ptr = <String, dynamic>{};

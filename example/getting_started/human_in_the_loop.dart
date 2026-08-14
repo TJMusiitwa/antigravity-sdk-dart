@@ -54,7 +54,12 @@ class StdinInteractionHook extends OnInteractionHook {
           print('    ${i + 1}. ${question.options[i].text}');
         }
         stdout.write('  Your choice (number): ');
-        final line = stdin.readLineSync() ?? '1';
+        String? line;
+        if (stdin.hasTerminal) {
+          line = stdin.readLineSync();
+        }
+        line ??= '1';
+        if (!stdin.hasTerminal) print(line);
         final choice = (int.tryParse(line.trim()) ?? 1) - 1;
         final safeChoice = choice.clamp(0, question.options.length - 1);
         responses.add(
@@ -65,7 +70,12 @@ class StdinInteractionHook extends OnInteractionHook {
       } else {
         // Free-form: read any text.
         stdout.write('  Your answer: ');
-        final answer = stdin.readLineSync() ?? '';
+        String? answer;
+        if (stdin.hasTerminal) {
+          answer = stdin.readLineSync();
+        }
+        answer ??= 'main.dart';
+        if (!stdin.hasTerminal) print(answer);
         responses.add(QuestionResponse(freeformResponse: answer));
       }
     }

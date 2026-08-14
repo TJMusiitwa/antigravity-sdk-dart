@@ -559,13 +559,13 @@ class LocalConnectionStrategy implements ConnectionStrategy {
           'run_command': {
             'enabled': activeSubTools.contains(BuiltinTools.runCommand),
           },
-          'edit_file': {
+          'file_edit': {
             'enabled': activeSubTools.contains(BuiltinTools.editFile),
           },
           'view_file': {
             'enabled': activeSubTools.contains(BuiltinTools.viewFile),
           },
-          'create_file': {
+          'write_to_file': {
             'enabled': activeSubTools.contains(BuiltinTools.createFile),
           },
           'grep_search': {

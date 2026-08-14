@@ -13,4 +13,4 @@
 // limitations under the License.
 
 /// The current version of the Google Antigravity Dart SDK.
-const String packageVersion = '0.9.1';
+const String packageVersion = '0.9.2';

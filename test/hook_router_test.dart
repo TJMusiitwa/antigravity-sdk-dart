@@ -258,10 +258,13 @@ void main() {
       expect(preTool.receivedToolCall!.name, equals('view_file'));
       expect(preTool.receivedToolCall!.serverName, equals('filesystem'));
       expect(preTool.receivedToolCall!.effectiveCallId, equals('call-123'));
-      expect(preTool.receivedToolCall!.canonicalPath, equals('/workspace/example.txt'));
+      expect(preTool.receivedToolCall!.canonicalPath,
+          equals('/workspace/example.txt'));
 
-      expect(sentEvents.last['call_hook_response']['request_id'], equals('req-8'));
-      final preToolResult = sentEvents.last['call_hook_response']['pre_tool_result'];
+      expect(
+          sentEvents.last['call_hook_response']['request_id'], equals('req-8'));
+      final preToolResult =
+          sentEvents.last['call_hook_response']['pre_tool_result'];
       expect(preToolResult['decision'], equals('ALLOW'));
     });
 
@@ -287,8 +290,10 @@ void main() {
 
       expect(preTool.receivedToolCall, isNotNull);
       expect(preTool.receivedToolCall!.name, equals('run_command'));
-      expect(sentEvents.last['call_hook_response']['request_id'], equals('req-9'));
-      final preToolResult = sentEvents.last['call_hook_response']['pre_tool_result'];
+      expect(
+          sentEvents.last['call_hook_response']['request_id'], equals('req-9'));
+      final preToolResult =
+          sentEvents.last['call_hook_response']['pre_tool_result'];
       expect(preToolResult['decision'], equals('DENY'));
       expect(preToolResult['reason'], equals('Policy denied execution'));
     });

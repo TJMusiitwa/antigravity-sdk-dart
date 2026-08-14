@@ -1,3 +1,13 @@
+# 0.9.2
+ 
+* **Fix `RetryConfig` Serialization**:
+  - `ModelAPIRetryConfig.toMap()`/`toJson()` (and any `RetryConfig` containing one) threw `MapperException: Unknown type Duration` and emitted a spurious `initial_sleep_duration` key that `localharness` rejects. The `initialSleepDuration` `Duration` is a convenience argument, not a wire field, but was being generated as one.
+  - Added `ModelAPIRetryConfig.raw()` as the `@MappableConstructor()`, so only the integer `initialSleepDurationMs` is serialized. The unnamed constructor still accepts either `initialSleepDurationMs` or `initialSleepDuration`.
+* **Fix Subagent Tool Protobuf Naming**:
+  - Corrected `harness_side_tools` field names for subagents in `LocalConnectionStrategy` (`"file_edit"` and `"write_to_file"`, matching `localharness.proto`), resolving `unknown field "edit_file"` errors when launching static subagents.
+* **CI & Example Automation**:
+  - Added non-interactive terminal fallback (`stdin.hasTerminal`) to `example/getting_started/human_in_the_loop.dart` to prevent test runs from blocking on headless standard input.
+
 # 0.9.1
  
 * **Critical Bug Fixes for Local Harness Execution**:

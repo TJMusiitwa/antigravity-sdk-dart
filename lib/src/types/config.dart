@@ -246,22 +246,45 @@ class ModelAPIRetryConfig with ModelAPIRetryConfigMappable {
   /// Creates a new [ModelAPIRetryConfig] instance.
   ///
   /// Can take either an integer [initialSleepDurationMs] or a Dart [Duration] [initialSleepDuration].
-  ModelAPIRetryConfig({
-    this.maxRetries,
+  factory ModelAPIRetryConfig({
+    int? maxRetries,
     int? initialSleepDurationMs,
     Duration? initialSleepDuration,
+    double? exponentialMultiplier,
+    double? jitterRange,
+  }) {
+    final effectiveMs =
+        initialSleepDurationMs ?? initialSleepDuration?.inMilliseconds;
+    return ModelAPIRetryConfig.raw(
+      maxRetries: maxRetries,
+      initialSleepDurationMs: effectiveMs,
+      exponentialMultiplier: exponentialMultiplier,
+      jitterRange: jitterRange,
+    );
+  }
+
+  /// Canonical constructor, taking only the fields that exist on the wire.
+  ///
+  /// This is the mappable constructor so `dart_mappable` only ever sees the
+  /// integer [initialSleepDurationMs]. The unnamed factory's [Duration]
+  /// convenience parameter is not a real field: generating a mapper for it made
+  /// `toMap()`/`toJson()` throw on an unmappable `Duration` and emitted a
+  /// spurious `initial_sleep_duration` key that `localharness` rejects. It must
+  /// be public — the generator skips private constructors.
+  @MappableConstructor()
+  ModelAPIRetryConfig.raw({
+    this.maxRetries,
+    this.initialSleepDurationMs,
     this.exponentialMultiplier,
     this.jitterRange,
-  }) : initialSleepDurationMs =
-            initialSleepDurationMs ?? initialSleepDuration?.inMilliseconds {
+  }) {
     if (maxRetries != null && (maxRetries! < 0 || maxRetries! > _maxUint32)) {
       throw AntigravityValidationException(
         'maxRetries must be between 0 and $_maxUint32 inclusive.',
       );
     }
-    if (this.initialSleepDurationMs != null &&
-        (this.initialSleepDurationMs! < 0 ||
-            this.initialSleepDurationMs! > _maxUint32)) {
+    if (initialSleepDurationMs != null &&
+        (initialSleepDurationMs! < 0 || initialSleepDurationMs! > _maxUint32)) {
       throw AntigravityValidationException(
         'initialSleepDurationMs must be between 0 and $_maxUint32 inclusive.',
       );
