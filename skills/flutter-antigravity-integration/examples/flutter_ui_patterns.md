@@ -1,4 +1,4 @@
-# Flutter UI & State Management Patterns for Antigravity SDK
+# Flutter UI & State Management Patterns for Google Antigravity SDK
 
 Disclosed example reference containing patterns for Riverpod agent session management and reactive streaming widgets in Flutter.
 
@@ -13,7 +13,7 @@ part 'agent_provider.g.dart';
 @riverpod
 Future<Agent> activeAgent(Ref ref) async {
   final config = LocalAgentConfig(
-    systemInstructions: "You are a helpful UI assistant.",
+    systemInstructions: "You are an intelligent customer support assistant helping users manage their account details and subscriptions.",
   );
   
   final agent = Agent(config);
@@ -34,9 +34,9 @@ Future<Agent> activeAgent(Ref ref) async {
 Widget buildAgentResponse(ChatResponse response) {
   return Column(
     children: [
-      // Thought process block
+      // Thought process block (internal reasoning)
       StreamBuilder<String>(
-        stream: response.thoughtStream,
+        stream: response.thoughts,
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const SizedBox.shrink();
           return Container(

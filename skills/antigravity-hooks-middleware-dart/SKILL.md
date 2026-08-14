@@ -13,7 +13,7 @@ Guidelines for registering harness and client-side lifecycle hooks using `HookRo
 2. **Turn & Tool Interception**:
    - `PreTurnHook`: Pre-validate prompts or reject turns before harness dispatch.
    - `PostTurnHook`: Inspect output tokens, state, or trajectory results.
-   - `PostToolHook`: Transform or sanitize tool outputs post-execution.
+   - `PostToolCallHook`: Inspect or log tool outputs post-execution.
    - `OnToolErrorHook`: Catch tool execution failures (`ToolExecutionException`) and provide fallback responses.
    - `OnCompactionHook`: Intercept context window compaction events.
 3. **Stateless Factories**: Use `.stateless()` constructors (`FunctionInspectHook.stateless`, `FunctionDecideHook.stateless`, `FunctionTransformHook.stateless`) when context tracking is unneeded.
@@ -29,6 +29,6 @@ For code patterns, consult [`references/hooks_patterns.md`](file://references/ho
 
 ## Completion Criteria
 
-- [ ] Lifecycle hooks wrap handlers using `HookRouter` or `.stateless()` factories.
-- [ ] `PreTurnHook` decisions return `HookDecision.allow()` or `HookDecision.deny()`.
+- [ ] Lifecycle hooks wrap handlers using `HookRunner` or `.stateless()` factories.
+- [ ] `PreTurnHook` decisions return `HookResult(allow: true)` or `HookResult(allow: false, message: '...')`.
 - [ ] `OnToolErrorHook` catches `ToolExecutionException` without crashing the session loop.

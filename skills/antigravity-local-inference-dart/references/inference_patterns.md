@@ -36,7 +36,7 @@ final retryConfig = RetryConfig(
     initialSleepDuration: const Duration(seconds: 1),
     jitterRange: 0.2, // 20% randomized jitter
   ),
-  outputRetry: ModelOutputRetryConfig(
+  modelOutputRetry: ModelOutputRetryConfig(
     maxRetries: 3,
   ),
 );

@@ -5,7 +5,7 @@ description: "Define stateless/stateful custom tools, validate JSON parameter sc
 
 # Dart Custom Tools & MCP Integration
 
-Development workflow for exposing custom tools to an Antigravity agent and bridging Model Context Protocol (MCP) servers.
+Development workflow for exposing custom tools to a Google Antigravity SDK agent and bridging Model Context Protocol (MCP) servers.
 
 ## 1. Custom Tool Execution Steps
 

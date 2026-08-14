@@ -1,44 +1,59 @@
 # Lifecycle Hooks & Middleware Code Patterns
 
-Disclosed reference file containing implementations for `HookRouter` lifecycle hooks and middleware in Dart.
+Disclosed reference file containing implementations for lifecycle hooks and middleware in the Google Antigravity SDK for Dart.
 
-## 1. Stateless Pre-Turn Validation & Post-Tool Error Handling
+## 1. Custom Pre-Turn Validation & Post-Tool Error Handling Hooks
 
 ```dart
 import 'package:antigravity/antigravity.dart';
 
-final hooks = [
-  // Validate incoming user prompts before harness dispatch
-  PreTurnHook.stateless((prompt) async {
-    if (prompt.contains("forbidden_keyword")) {
-      return HookDecision.deny(reason: "Prompt violates security constraints.");
+// Validate incoming user prompts before execution
+class SecurityPreTurnHook extends PreTurnHook {
+  @override
+  Future<HookResult> run(HookContext context, ContentPrimitive data) async {
+    final text = data.toString();
+    if (text.contains("forbidden_keyword")) {
+      return HookResult(
+        allow: false,
+        message: "Prompt violates configured security constraints.",
+      );
     }
-    return HookDecision.allow();
-  }),
+    return HookResult(allow: true);
+  }
+}
 
-  // Catch tool execution failures gracefully
-  OnToolErrorHook.stateless((error) async {
-    print("Tool ${error.toolName} failed on callId: ${error.callId}");
-    return ToolErrorRecovery(
-      fallbackResult: "Tool temporary failure: ${error.message}",
-    );
-  }),
+// Catch tool execution failures and supply a recovery message
+class ResilientToolErrorHook extends OnToolErrorHook {
+  @override
+  Future<dynamic> run(HookContext context, Exception data) async {
+    print("[Hook] Intercepted tool error: $data");
+    // Return fallback recovery text to the model
+    return "The requested tool encountered a temporary error. Please try an alternative approach.";
+  }
+}
 
-  // Intercept context compaction events
-  OnCompactionHook.stateless((compaction) async {
-    print("Context compacted from ${compaction.oldTokenCount} to ${compaction.newTokenCount} tokens.");
-  }),
-];
+// Intercept context window compaction events
+class CompactionTelemetryHook extends OnCompactionHook {
+  @override
+  Future<void> run(HookContext context, CompactionUpdate data) async {
+    print("[Hook] Context compaction event: oldTokens=${data.oldTokenCount}, newTokens=${data.newTokenCount}");
+  }
+}
 ```
 
 ## 2. Stateful Lifecycle Middleware with HookContext
 
 ```dart
-final statefulHook = PostToolHook((context, toolResult) async {
-  // Store custom metrics in thread-safe context state
-  context.state.set('last_tool_call_id', toolResult.callId);
-  context.state.set('last_tool_name', toolResult.name);
-  
-  return toolResult;
-});
+import 'package:antigravity/antigravity.dart';
+
+class MetricsPostToolCallHook extends PostToolCallHook {
+  @override
+  Future<void> run(HookContext context, ToolResult data) async {
+    // Store custom metrics in thread-safe context state
+    context.set('last_tool_call_id', data.callId ?? data.id);
+    context.set('last_tool_name', data.name);
+    
+    print("[Hook] Completed tool: ${data.name}, result: ${data.result ?? data.error}");
+  }
+}
 ```

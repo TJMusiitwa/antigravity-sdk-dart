@@ -55,25 +55,31 @@ handler: (args, _) async {
 ## 3. Custom Tool Returning Supplemental Media Assets
 
 ```dart
+import 'dart:io';
+import 'package:antigravity/antigravity.dart';
+
 final generateChartTool = Tool(
   name: 'generate_chart',
   description: 'Generates a PNG chart and returns it as supplemental media.',
   schema: {
     'type': 'object',
     'properties': {
-      'title': {'type': 'string'}
+      'title': {'type': 'string', 'description': 'The title of the chart.'}
     },
     'required': ['title']
   },
   handler: (args, context) async {
     final imageFile = File('output/chart.png');
-    final media = MediaContent.fromFile(imageFile, mimeType: 'image/png');
+    final media = MediaContent.fromFile(
+      imageFile,
+      description: 'Rendered bar chart for ${args['title']}',
+    );
     
     // Return structured media output alongside text confirmation
-    return ToolResult(
-      output: 'Generated chart successfully.',
-      media: [media],
-    );
+    return [
+      'Generated chart successfully for: ${args['title']}',
+      media,
+    ];
   },
 );
 ```

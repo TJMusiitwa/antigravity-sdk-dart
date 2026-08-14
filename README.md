@@ -1,4 +1,4 @@
-# Antigravity SDK for Dart 🌌
+# Google Antigravity SDK for Dart 🌌
 
 ![Pub Version](https://img.shields.io/pub/v/antigravity?logo=dart&color=blue&link=https%3A%2F%2Fpub.dev%2Fpackages%2Fantigravity)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
@@ -39,9 +39,9 @@ The SDK is organized into a clean, decoupled three-layer architecture:
 
 | Layer | Purpose | Key Classes / Files |
 | :--- | :--- | :--- |
-| **Layer 1 — Simplified** | High-level, batteries-included async agent session | `Agent` |
-| **Layer 2 — Session & Runs** | Stateful session management, history accumulation, tool/trigger runners | `Conversation`, `ChatResponse`, `Step`, `ToolCall`, `HookRunner`, `TriggerRunner` |
-| **Layer 3 — Adapter & Transport** | Low-level binary communication and transport serialization | `Connection`, `LocalConnection`, `LocalAgentConfig`, `BinaryDiscovery` |
+| **Layer 1 — Simplified** | High-level, batteries-included async agent session | [`Agent`](lib/src/agent.dart) |
+| **Layer 2 — Session & Runs** | Stateful session management, history accumulation, tool/trigger runners | [`Conversation`](lib/src/conversation/conversation.dart), [`ChatResponse`](lib/src/types/chat_response.dart), [`Step`](lib/src/types/step.dart), [`ToolCall`](lib/src/types/tool_call.dart), [`HookRunner`](lib/src/hooks/hooks.dart), [`TriggerRunner`](lib/src/triggers/trigger_runner.dart) |
+| **Layer 3 — Adapter & Transport** | Low-level binary communication and transport serialization | [`Connection`](lib/src/connections/connection.dart), [`LocalConnection`](lib/src/connections/local/local_connection.dart), [`LocalAgentConfig`](lib/src/connections/local/local_connection_config.dart), [`BinaryDiscovery`](lib/src/utils/binary_discovery.dart) |
 
 ---
 
@@ -82,7 +82,7 @@ await for (final token in response.textStream) {
 }
 
 // Or stream reasoning thoughts (internal model thinking process)
-await for (final thought in response.thoughtStream) {
+await for (final thought in response.thoughts) {
   print("Thinking bubble delta: $thought");
 }
 ```

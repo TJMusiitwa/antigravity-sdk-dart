@@ -20,9 +20,9 @@ await store.withLock(() async {
 
 ```dart
 final config = LocalAgentConfig(
-  sessionId: "persistent-session-uuid-1234",
-  continuationMode: SessionContinuationMode.CREATE_OR_RESUME,
-  systemInstructions: "You are a stateful assistant.",
+  conversationId: "persistent-session-uuid-1234",
+  sessionContinuationMode: SessionContinuationMode.createOrResume,
+  systemInstructions: "You are an expert software developer managing stateful application workflows.",
 );
 ```
 
@@ -30,27 +30,32 @@ final config = LocalAgentConfig(
 
 ```dart
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:antigravity/antigravity.dart';
 
-// Create MediaContent from file
+// Create MediaContent from file (MIME type is automatically inferred)
 final imageFile = File('example/resources/example_image.png');
-final media = MediaContent.fromFile(imageFile, mimeType: 'image/png');
+final media = MediaContent.fromFile(imageFile, description: 'Workspace architecture diagram');
 
-// Access binary payload or URI
+// Access binary payload or MIME details
 final Uint8List bytes = media.bytes;
-final Uri? sourceUri = media.uri;
+final String mimeType = media.mimeType;
 ```
 
 ## 4. Live Token Usage Streaming & Arithmetic
 
 ```dart
-// Compute trajectory token diff
-final UsageMetadata initialUsage = conversation.lastTurnUsage ?? UsageMetadata.zero();
+// Record starting usage baseline
+final UsageMetadata initialUsage = agent.conversation.usage;
 
-// Stream response and accumulate
-final response = agent.chat("Generate docstring...");
-final UsageMetadata finalUsage = await response.usageFuture;
+// Send prompt and await full response
+final response = await agent.chat("Generate docstring...");
+await response.text();
 
+// Compute turn usage difference using the subtraction operator
+final UsageMetadata finalUsage = agent.conversation.usage;
 final UsageMetadata turnUsage = finalUsage - initialUsage;
-print("Turn spent ${turnUsage.totalTokens} tokens.");
+
+print("Turn spent ${turnUsage.totalTokenCount ?? 0} total tokens.");
+print("Prompt tokens: ${turnUsage.promptTokenCount ?? 0}, Output tokens: ${turnUsage.candidatesTokenCount ?? 0}");
 ```
