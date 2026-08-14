@@ -44,6 +44,18 @@ class MockPostToolCallHook extends PostToolCallHook {
   }
 }
 
+class MockPreToolCallDecideHook extends PreToolCallDecideHook {
+  final HookResult result;
+  ToolCall? receivedToolCall;
+  MockPreToolCallDecideHook(this.result);
+
+  @override
+  Future<HookResult> run(HookContext context, ToolCall data) async {
+    receivedToolCall = data;
+    return result;
+  }
+}
+
 class MockOnToolErrorHook extends OnToolErrorHook {
   Exception? receivedError;
   dynamic returnValue;
@@ -221,6 +233,64 @@ void main() {
       expect(
           sentEvents.last['call_hook_response']['request_id'], equals('req-7'));
       expect(sentEvents.last['call_hook_response']['empty_result'], isNotNull);
+    });
+
+    test('handles pre tool call hook allowing tool', () async {
+      final preTool = MockPreToolCallDecideHook(HookResult(allow: true));
+      final runner = HookRunner(preToolCallDecideHooks: [preTool]);
+      final sentEvents = <Map<String, dynamic>>[];
+      final router = HookRouter(runner, (evt) async {
+        sentEvents.add(evt);
+      });
+
+      await router.handle({
+        'request_id': 'req-8',
+        'type': 'LIFECYCLE_HOOK_PRE_TOOL',
+        'pre_tool_args': {
+          'tool_name': 'view_file',
+          'arguments_json': '{"path": "file:///workspace/example.txt"}',
+          'server_name': 'filesystem',
+          'call_id': 'call-123',
+        },
+      });
+
+      expect(preTool.receivedToolCall, isNotNull);
+      expect(preTool.receivedToolCall!.name, equals('view_file'));
+      expect(preTool.receivedToolCall!.serverName, equals('filesystem'));
+      expect(preTool.receivedToolCall!.effectiveCallId, equals('call-123'));
+      expect(preTool.receivedToolCall!.canonicalPath, equals('/workspace/example.txt'));
+
+      expect(sentEvents.last['call_hook_response']['request_id'], equals('req-8'));
+      final preToolResult = sentEvents.last['call_hook_response']['pre_tool_result'];
+      expect(preToolResult['decision'], equals('ALLOW'));
+    });
+
+    test('handles pre tool call hook denying tool', () async {
+      final preTool = MockPreToolCallDecideHook(
+        HookResult(allow: false, message: 'Policy denied execution'),
+      );
+      final runner = HookRunner(preToolCallDecideHooks: [preTool]);
+      final sentEvents = <Map<String, dynamic>>[];
+      final router = HookRouter(runner, (evt) async {
+        sentEvents.add(evt);
+      });
+
+      await router.handle({
+        'request_id': 'req-9',
+        'type': 'LIFECYCLE_HOOK_PRE_TOOL',
+        'pre_tool_args': {
+          'tool_name': 'run_command',
+          'arguments_json': '{"command": "rm -rf /"}',
+          'call_id': 'call-456',
+        },
+      });
+
+      expect(preTool.receivedToolCall, isNotNull);
+      expect(preTool.receivedToolCall!.name, equals('run_command'));
+      expect(sentEvents.last['call_hook_response']['request_id'], equals('req-9'));
+      final preToolResult = sentEvents.last['call_hook_response']['pre_tool_result'];
+      expect(preToolResult['decision'], equals('DENY'));
+      expect(preToolResult['reason'], equals('Policy denied execution'));
     });
   });
 }

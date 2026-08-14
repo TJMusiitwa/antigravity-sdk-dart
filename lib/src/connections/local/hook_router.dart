@@ -21,6 +21,36 @@ const _protoFieldToSdkName = {
   'finish': 'finish',
 };
 
+const _wirePathArgumentKeys = {
+  'path',
+  'file_path',
+  'directory_path',
+  'TargetFile',
+  'output_path',
+};
+
+String normalizeWirePath(String path) {
+  final uri = Uri.tryParse(path);
+  if (uri != null && uri.hasScheme) {
+    if (uri.scheme == 'file') {
+      return uri.toFilePath();
+    }
+    if (uri.scheme == 'cns') {
+      return '/cns/${uri.host}${uri.path}';
+    }
+  }
+  return path;
+}
+
+void _normalizePathArgs(Map<String, dynamic> args) {
+  for (final key in _wirePathArgumentKeys) {
+    final val = args[key];
+    if (val is String && val.isNotEmpty) {
+      args[key] = normalizeWirePath(val);
+    }
+  }
+}
+
 class HookRouter {
   final HookRunner _hookRunner;
   final Future<void> Function(Map<String, dynamic> event) _send;
@@ -140,6 +170,76 @@ class HookRouter {
         await _hookRunner.dispatchPostTurn(turnCtx, responseText);
         _currentTurnContext = null;
         response['empty_result'] = {};
+      } else if (hookTypeStr == 'LIFECYCLE_HOOK_PRE_TOOL' ||
+          hookTypeStr == 'PRE_TOOL') {
+        var toolName = '';
+        var args = <String, dynamic>{};
+        String? serverName;
+        String? callId;
+
+        if (req.containsKey('pre_tool_args') && req['pre_tool_args'] is Map) {
+          final pta = req['pre_tool_args'] as Map;
+          final rawToolName =
+              (pta['tool_name'] ?? pta['toolName'] ?? '').toString();
+          toolName = _protoFieldToSdkName[rawToolName] ?? rawToolName;
+
+          if (pta.containsKey('arguments_json') &&
+              pta['arguments_json'] != null) {
+            final argsJson = pta['arguments_json'].toString();
+            if (argsJson.isNotEmpty) {
+              try {
+                final decoded = jsonDecode(argsJson);
+                if (decoded is Map) {
+                  args = Map<String, dynamic>.from(decoded);
+                }
+              } catch (_) {}
+            }
+          } else if (pta.containsKey('arguments') &&
+              pta['arguments'] is Map) {
+            args = Map<String, dynamic>.from(pta['arguments'] as Map);
+          }
+
+          if (pta.containsKey('server_name') && pta['server_name'] != null) {
+            serverName = pta['server_name'].toString();
+          } else if (pta.containsKey('serverName') &&
+              pta['serverName'] != null) {
+            serverName = pta['serverName'].toString();
+          }
+
+          callId = _extractCallId(pta);
+          _normalizePathArgs(args);
+        }
+
+        String? canonicalPath;
+        for (final key in _wirePathArgumentKeys) {
+          final val = args[key];
+          if (val is String && val.isNotEmpty) {
+            canonicalPath = val;
+            break;
+          }
+        }
+
+        final tc = ToolCall(
+          name: toolName,
+          args: args,
+          id: callId,
+          callId: callId,
+          serverName: serverName,
+          canonicalPath: canonicalPath,
+        );
+
+        final turnCtx =
+            _currentTurnContext ?? _hookRunner.createTurnContext();
+        final res = await _hookRunner.dispatchPreToolCall(turnCtx, tc);
+
+        final ptr = <String, dynamic>{};
+        if (res.allow) {
+          ptr['decision'] = 'ALLOW';
+        } else {
+          ptr['decision'] = 'DENY';
+          ptr['reason'] = res.message;
+        }
+        response['pre_tool_result'] = ptr;
       } else if (hookTypeStr == 'LIFECYCLE_HOOK_POST_TOOL' ||
           hookTypeStr == 'POST_TOOL') {
         var toolName = '';
