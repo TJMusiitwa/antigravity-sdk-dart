@@ -1,3 +1,10 @@
+# 0.9.1
+ 
+* **Critical Bug Fixes for Local Harness Execution**:
+  - **Trajectory Idle State Recognition**: Added support for `STATE_FULLY_IDLE` (and `FULLY_IDLE`) in `LocalConnection` trajectory state updates, properly emitting the `idle_sentinel` step and preventing `agent.chat()` / `response.text()` from hanging at turn completion.
+  - **Tool Authorization Handshake**: Added handler for `LIFECYCLE_HOOK_PRE_TOOL` / `PRE_TOOL` in `HookRouter`, returning valid `pre_tool_result` decisions (`ALLOW` / `DENY`) to the harness and resolving tool execution deadlocks.
+  - **Wire Path Normalization**: Added wire-format URI normalization (`file:///`, `cns://`) for tool call arguments in `HookRouter` to support path-based safety policies and canonical workspace containment.
+
 # 0.9.0
 
 * **Sync with Python SDK v0.1.11**:

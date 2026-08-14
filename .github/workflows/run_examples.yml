@@ -9,9 +9,11 @@ on:
 jobs:
   run-examples:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

@@ -967,7 +967,10 @@ class LocalConnection implements Connection {
 
       if (state == 'STATE_RUNNING' || state == 'RUNNING') {
         _idleState = false;
-      } else if (state == 'STATE_IDLE' || state == 'IDLE') {
+      } else if (state == 'STATE_FULLY_IDLE' ||
+          state == 'FULLY_IDLE' ||
+          state == 'STATE_IDLE' ||
+          state == 'IDLE') {
         if (update.containsKey('error') &&
             update['error'].toString().isNotEmpty) {
           final errMsg = update['error'].toString();
