@@ -1092,6 +1092,23 @@ void main() {
       );
     });
 
+    test('DebugConfig serializes and deserializes correctly with LevelMapper', () {
+      final debug = DebugConfig(level: Level.INFO, enableServerSideTracing: true);
+      final map = debug.toMap();
+      expect(map['enable_server_side_tracing'], isTrue);
+      expect(map['logging_level'], equals('INFO'));
+      expect(map['level'], equals('INFO'));
+
+      final fromMap = DebugConfig.fromMap(map);
+      expect(fromMap.enableServerSideTracing, isTrue);
+      expect(fromMap.loggingLevel, equals('INFO'));
+      expect(fromMap.level, equals(Level.INFO));
+
+      final jsonStr = debug.toJson();
+      final fromJson = DebugConfig.fromJson(jsonStr);
+      expect(fromJson.level, equals(Level.INFO));
+    });
+
     test(
         'Conversation.validatePrompt throws AntigravityValidationException on empty or null prompts',
         () {

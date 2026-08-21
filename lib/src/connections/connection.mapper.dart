@@ -21,6 +21,7 @@ class AgentConfigMapper extends ClassMapperBase<AgentConfig> {
         PolicyMapper(),
         HookMapper(),
         TriggerMapper(),
+        LevelMapper(),
       ]);
       CapabilitiesConfigMapper.ensureInitialized();
       McpServerConfigMapper.ensureInitialized();
@@ -70,10 +71,9 @@ class AgentConfigMapper extends ClassMapperBase<AgentConfig> {
   );
   static List<FutureOr<void> Function(TriggerContext)> _$triggers(
     AgentConfig v,
-  ) =>
-      v.triggers;
+  ) => v.triggers;
   static const Field<AgentConfig, List<FutureOr<void> Function(TriggerContext)>>
-      _f$triggers = Field('triggers', _$triggers, opt: true);
+  _f$triggers = Field('triggers', _$triggers, opt: true);
   static List<McpServerConfig> _$mcpServers(AgentConfig v) => v.mcpServers;
   static const Field<AgentConfig, List<McpServerConfig>> _f$mcpServers = Field(
     'mcpServers',
@@ -101,7 +101,7 @@ class AgentConfigMapper extends ClassMapperBase<AgentConfig> {
   static SessionContinuationMode? _$sessionContinuationMode(AgentConfig v) =>
       v.sessionContinuationMode;
   static const Field<AgentConfig, SessionContinuationMode>
-      _f$sessionContinuationMode = Field(
+  _f$sessionContinuationMode = Field(
     'sessionContinuationMode',
     _$sessionContinuationMode,
     opt: true,
@@ -198,20 +198,32 @@ mixin AgentConfigMappable {
 abstract class AgentConfigCopyWith<$R, $In extends AgentConfig, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   CapabilitiesConfigCopyWith<$R, CapabilitiesConfig, CapabilitiesConfig>
-      get capabilities;
+  get capabilities;
   ListCopyWith<$R, Tool, ObjectCopyWith<$R, Tool, Tool>> get tools;
   ListCopyWith<$R, dynamic, ObjectCopyWith<$R, dynamic, dynamic>?> get policies;
   ListCopyWith<$R, Hook, ObjectCopyWith<$R, Hook, Hook>> get hooks;
   ListCopyWith<
+    $R,
+    FutureOr<void> Function(TriggerContext),
+    ObjectCopyWith<
       $R,
       FutureOr<void> Function(TriggerContext),
-      ObjectCopyWith<$R, FutureOr<void> Function(TriggerContext),
-          FutureOr<void> Function(TriggerContext)>> get triggers;
-  ListCopyWith<$R, McpServerConfig,
-          McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>>
-      get mcpServers;
-  ListCopyWith<$R, SubagentConfig,
-      SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>> get subagents;
+      FutureOr<void> Function(TriggerContext)
+    >
+  >
+  get triggers;
+  ListCopyWith<
+    $R,
+    McpServerConfig,
+    McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>
+  >
+  get mcpServers;
+  ListCopyWith<
+    $R,
+    SubagentConfig,
+    SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>
+  >
+  get subagents;
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get workspaces;
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get skillsPaths;
   DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig;
@@ -248,6 +260,7 @@ class DebugConfigMapper extends ClassMapperBase<DebugConfig> {
   static DebugConfigMapper ensureInitialized() {
     if (_instance == null) {
       MapperContainer.globals.use(_instance = DebugConfigMapper._());
+      MapperContainer.globals.useAll([LevelMapper()]);
     }
     return _instance!;
   }
@@ -379,28 +392,27 @@ class _DebugConfigCopyWithImpl<$R, $Out>
     bool? enableServerSideTracing,
     Object? loggingLevel = $none,
     Object? level = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (enableServerSideTracing != null)
-            #enableServerSideTracing: enableServerSideTracing,
-          if (loggingLevel != $none) #loggingLevel: loggingLevel,
-          if (level != $none) #level: level,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (enableServerSideTracing != null)
+        #enableServerSideTracing: enableServerSideTracing,
+      if (loggingLevel != $none) #loggingLevel: loggingLevel,
+      if (level != $none) #level: level,
+    }),
+  );
   @override
   DebugConfig $make(CopyWithData data) => DebugConfig(
-        enableServerSideTracing: data.get(
-          #enableServerSideTracing,
-          or: $value.enableServerSideTracing,
-        ),
-        loggingLevel: data.get(#loggingLevel, or: $value.loggingLevel),
-        level: data.get(#level, or: $value.level),
-      );
+    enableServerSideTracing: data.get(
+      #enableServerSideTracing,
+      or: $value.enableServerSideTracing,
+    ),
+    loggingLevel: data.get(#loggingLevel, or: $value.loggingLevel),
+    level: data.get(#level, or: $value.level),
+  );
 
   @override
   DebugConfigCopyWith<$R2, DebugConfig, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _DebugConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _DebugConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
+

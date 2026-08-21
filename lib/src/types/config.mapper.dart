@@ -161,11 +161,11 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
       v.agentBehavior;
   static const Field<SubagentCapabilities, AgentBehavior> _f$agentBehavior =
       Field(
-    'agentBehavior',
-    _$agentBehavior,
-    key: r'agent_behavior',
-    opt: true,
-  );
+        'agentBehavior',
+        _$agentBehavior,
+        key: r'agent_behavior',
+        opt: true,
+      );
   static AgentBehavior _$agentMode(SubagentCapabilities v) => v.agentMode;
   static const Field<SubagentCapabilities, AgentBehavior> _f$agentMode = Field(
     'agentMode',
@@ -180,7 +180,7 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
   static List<BuiltinTools>? _$disabledTools(SubagentCapabilities v) =>
       v.disabledTools;
   static const Field<SubagentCapabilities, List<BuiltinTools>>
-      _f$disabledTools = Field(
+  _f$disabledTools = Field(
     'disabledTools',
     _$disabledTools,
     key: r'disabled_tools',
@@ -190,15 +190,15 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
       v.allowedSubagents;
   static const Field<SubagentCapabilities, List<String>> _f$allowedSubagents =
       Field(
-    'allowedSubagents',
-    _$allowedSubagents,
-    key: r'allowed_subagents',
-    opt: true,
-  );
+        'allowedSubagents',
+        _$allowedSubagents,
+        key: r'allowed_subagents',
+        opt: true,
+      );
   static RunCommandConfig? _$runCommandConfig(SubagentCapabilities v) =>
       v.runCommandConfig;
   static const Field<SubagentCapabilities, RunCommandConfig>
-      _f$runCommandConfig = Field(
+  _f$runCommandConfig = Field(
     'runCommandConfig',
     _$runCommandConfig,
     key: r'run_command_config',
@@ -252,10 +252,16 @@ mixin SubagentCapabilitiesMappable {
         .encodeMap<SubagentCapabilities>(this as SubagentCapabilities);
   }
 
-  SubagentCapabilitiesCopyWith<SubagentCapabilities, SubagentCapabilities,
-      SubagentCapabilities> get copyWith => _SubagentCapabilitiesCopyWithImpl<
-          SubagentCapabilities, SubagentCapabilities>(
-      this as SubagentCapabilities, $identity, $identity);
+  SubagentCapabilitiesCopyWith<
+    SubagentCapabilities,
+    SubagentCapabilities,
+    SubagentCapabilities
+  >
+  get copyWith =>
+      _SubagentCapabilitiesCopyWithImpl<
+        SubagentCapabilities,
+        SubagentCapabilities
+      >(this as SubagentCapabilities, $identity, $identity);
   @override
   String toString() {
     return SubagentCapabilitiesMapper.ensureInitialized().stringifyValue(
@@ -283,24 +289,34 @@ mixin SubagentCapabilitiesMappable {
 extension SubagentCapabilitiesValueCopy<$R, $Out>
     on ObjectCopyWith<$R, SubagentCapabilities, $Out> {
   SubagentCapabilitiesCopyWith<$R, SubagentCapabilities, $Out>
-      get $asSubagentCapabilities => $base.as(
-            (v, t, t2) => _SubagentCapabilitiesCopyWithImpl<$R, $Out>(v, t, t2),
-          );
+  get $asSubagentCapabilities => $base.as(
+    (v, t, t2) => _SubagentCapabilitiesCopyWithImpl<$R, $Out>(v, t, t2),
+  );
 }
 
 /// @nodoc
 abstract class SubagentCapabilitiesCopyWith<
+  $R,
+  $In extends SubagentCapabilities,
+  $Out
+>
+    implements ClassCopyWith<$R, $In, $Out> {
+  ListCopyWith<
     $R,
-    $In extends SubagentCapabilities,
-    $Out> implements ClassCopyWith<$R, $In, $Out> {
-  ListCopyWith<$R, BuiltinTools,
-      ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get enabledTools;
-  ListCopyWith<$R, BuiltinTools,
-      ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get disabledTools;
+    BuiltinTools,
+    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
+  >?
+  get enabledTools;
+  ListCopyWith<
+    $R,
+    BuiltinTools,
+    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
+  >?
+  get disabledTools;
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-      get allowedSubagents;
+  get allowedSubagents;
   RunCommandConfigCopyWith<$R, RunCommandConfig, RunCommandConfig>?
-      get runCommandConfig;
+  get runCommandConfig;
   $R call({
     AgentBehavior? agentBehavior,
     AgentBehavior? agentMode,
@@ -324,39 +340,45 @@ class _SubagentCapabilitiesCopyWithImpl<$R, $Out>
   late final ClassMapperBase<SubagentCapabilities> $mapper =
       SubagentCapabilitiesMapper.ensureInitialized();
   @override
-  ListCopyWith<$R, BuiltinTools,
-          ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>?
-      get enabledTools => $value.enabledTools != null
-          ? ListCopyWith(
-              $value.enabledTools!,
-              (v, t) => ObjectCopyWith(v, $identity, t),
-              (v) => call(enabledTools: v),
-            )
-          : null;
+  ListCopyWith<
+    $R,
+    BuiltinTools,
+    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
+  >?
+  get enabledTools => $value.enabledTools != null
+      ? ListCopyWith(
+          $value.enabledTools!,
+          (v, t) => ObjectCopyWith(v, $identity, t),
+          (v) => call(enabledTools: v),
+        )
+      : null;
   @override
-  ListCopyWith<$R, BuiltinTools,
-          ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>?
-      get disabledTools => $value.disabledTools != null
-          ? ListCopyWith(
-              $value.disabledTools!,
-              (v, t) => ObjectCopyWith(v, $identity, t),
-              (v) => call(disabledTools: v),
-            )
-          : null;
+  ListCopyWith<
+    $R,
+    BuiltinTools,
+    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
+  >?
+  get disabledTools => $value.disabledTools != null
+      ? ListCopyWith(
+          $value.disabledTools!,
+          (v, t) => ObjectCopyWith(v, $identity, t),
+          (v) => call(disabledTools: v),
+        )
+      : null;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-      get allowedSubagents => $value.allowedSubagents != null
-          ? ListCopyWith(
-              $value.allowedSubagents!,
-              (v, t) => ObjectCopyWith(v, $identity, t),
-              (v) => call(allowedSubagents: v),
-            )
-          : null;
+  get allowedSubagents => $value.allowedSubagents != null
+      ? ListCopyWith(
+          $value.allowedSubagents!,
+          (v, t) => ObjectCopyWith(v, $identity, t),
+          (v) => call(allowedSubagents: v),
+        )
+      : null;
   @override
   RunCommandConfigCopyWith<$R, RunCommandConfig, RunCommandConfig>?
-      get runCommandConfig => $value.runCommandConfig?.copyWith.$chain(
-            (v) => call(runCommandConfig: v),
-          );
+  get runCommandConfig => $value.runCommandConfig?.copyWith.$chain(
+    (v) => call(runCommandConfig: v),
+  );
   @override
   $R call({
     Object? agentBehavior = $none,
@@ -365,33 +387,30 @@ class _SubagentCapabilitiesCopyWithImpl<$R, $Out>
     Object? disabledTools = $none,
     Object? allowedSubagents = $none,
     Object? runCommandConfig = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (agentBehavior != $none) #agentBehavior: agentBehavior,
-          if (agentMode != $none) #agentMode: agentMode,
-          if (enabledTools != $none) #enabledTools: enabledTools,
-          if (disabledTools != $none) #disabledTools: disabledTools,
-          if (allowedSubagents != $none) #allowedSubagents: allowedSubagents,
-          if (runCommandConfig != $none) #runCommandConfig: runCommandConfig,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (agentBehavior != $none) #agentBehavior: agentBehavior,
+      if (agentMode != $none) #agentMode: agentMode,
+      if (enabledTools != $none) #enabledTools: enabledTools,
+      if (disabledTools != $none) #disabledTools: disabledTools,
+      if (allowedSubagents != $none) #allowedSubagents: allowedSubagents,
+      if (runCommandConfig != $none) #runCommandConfig: runCommandConfig,
+    }),
+  );
   @override
   SubagentCapabilities $make(CopyWithData data) => SubagentCapabilities(
-        agentBehavior: data.get(#agentBehavior, or: $value.agentBehavior),
-        agentMode: data.get(#agentMode, or: $value.agentMode),
-        enabledTools: data.get(#enabledTools, or: $value.enabledTools),
-        disabledTools: data.get(#disabledTools, or: $value.disabledTools),
-        allowedSubagents:
-            data.get(#allowedSubagents, or: $value.allowedSubagents),
-        runCommandConfig:
-            data.get(#runCommandConfig, or: $value.runCommandConfig),
-      );
+    agentBehavior: data.get(#agentBehavior, or: $value.agentBehavior),
+    agentMode: data.get(#agentMode, or: $value.agentMode),
+    enabledTools: data.get(#enabledTools, or: $value.enabledTools),
+    disabledTools: data.get(#disabledTools, or: $value.disabledTools),
+    allowedSubagents: data.get(#allowedSubagents, or: $value.allowedSubagents),
+    runCommandConfig: data.get(#runCommandConfig, or: $value.runCommandConfig),
+  );
 
   @override
   SubagentCapabilitiesCopyWith<$R2, SubagentCapabilities, $Out2>
-      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
-          _SubagentCapabilitiesCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+      _SubagentCapabilitiesCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -557,30 +576,28 @@ class _BudgetConfigCopyWithImpl<$R, $Out>
     Object? maxInputTokens = $none,
     Object? maxOutputTokens = $none,
     Object? maxTotalTokens = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (maxModelCalls != $none) #maxModelCalls: maxModelCalls,
-          if (maxToolCalls != $none) #maxToolCalls: maxToolCalls,
-          if (maxInputTokens != $none) #maxInputTokens: maxInputTokens,
-          if (maxOutputTokens != $none) #maxOutputTokens: maxOutputTokens,
-          if (maxTotalTokens != $none) #maxTotalTokens: maxTotalTokens,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (maxModelCalls != $none) #maxModelCalls: maxModelCalls,
+      if (maxToolCalls != $none) #maxToolCalls: maxToolCalls,
+      if (maxInputTokens != $none) #maxInputTokens: maxInputTokens,
+      if (maxOutputTokens != $none) #maxOutputTokens: maxOutputTokens,
+      if (maxTotalTokens != $none) #maxTotalTokens: maxTotalTokens,
+    }),
+  );
   @override
   BudgetConfig $make(CopyWithData data) => BudgetConfig(
-        maxModelCalls: data.get(#maxModelCalls, or: $value.maxModelCalls),
-        maxToolCalls: data.get(#maxToolCalls, or: $value.maxToolCalls),
-        maxInputTokens: data.get(#maxInputTokens, or: $value.maxInputTokens),
-        maxOutputTokens: data.get(#maxOutputTokens, or: $value.maxOutputTokens),
-        maxTotalTokens: data.get(#maxTotalTokens, or: $value.maxTotalTokens),
-      );
+    maxModelCalls: data.get(#maxModelCalls, or: $value.maxModelCalls),
+    maxToolCalls: data.get(#maxToolCalls, or: $value.maxToolCalls),
+    maxInputTokens: data.get(#maxInputTokens, or: $value.maxInputTokens),
+    maxOutputTokens: data.get(#maxOutputTokens, or: $value.maxOutputTokens),
+    maxTotalTokens: data.get(#maxTotalTokens, or: $value.maxTotalTokens),
+  );
 
   @override
   BudgetConfigCopyWith<$R2, BudgetConfig, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _BudgetConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _BudgetConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -672,12 +689,11 @@ mixin SubagentConfigMappable {
   }
 
   SubagentConfigCopyWith<SubagentConfig, SubagentConfig, SubagentConfig>
-      get copyWith =>
-          _SubagentConfigCopyWithImpl<SubagentConfig, SubagentConfig>(
-            this as SubagentConfig,
-            $identity,
-            $identity,
-          );
+  get copyWith => _SubagentConfigCopyWithImpl<SubagentConfig, SubagentConfig>(
+    this as SubagentConfig,
+    $identity,
+    $identity,
+  );
   @override
   String toString() {
     return SubagentConfigMapper.ensureInitialized().stringifyValue(
@@ -712,7 +728,7 @@ extension SubagentConfigValueCopy<$R, $Out>
 abstract class SubagentConfigCopyWith<$R, $In extends SubagentConfig, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   SubagentCapabilitiesCopyWith<$R, SubagentCapabilities, SubagentCapabilities>?
-      get capabilities;
+  get capabilities;
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get tools;
   $R call({
     String? name,
@@ -737,8 +753,8 @@ class _SubagentConfigCopyWithImpl<$R, $Out>
       SubagentConfigMapper.ensureInitialized();
   @override
   SubagentCapabilitiesCopyWith<$R, SubagentCapabilities, SubagentCapabilities>?
-      get capabilities =>
-          $value.capabilities?.copyWith.$chain((v) => call(capabilities: v));
+  get capabilities =>
+      $value.capabilities?.copyWith.$chain((v) => call(capabilities: v));
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get tools =>
       ListCopyWith(
@@ -753,34 +769,31 @@ class _SubagentConfigCopyWithImpl<$R, $Out>
     Object? systemInstructions = $none,
     Object? capabilities = $none,
     Object? tools = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (name != null) #name: name,
-          if (description != null) #description: description,
-          if (systemInstructions != $none)
-            #systemInstructions: systemInstructions,
-          if (capabilities != $none) #capabilities: capabilities,
-          if (tools != $none) #tools: tools,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (name != null) #name: name,
+      if (description != null) #description: description,
+      if (systemInstructions != $none) #systemInstructions: systemInstructions,
+      if (capabilities != $none) #capabilities: capabilities,
+      if (tools != $none) #tools: tools,
+    }),
+  );
   @override
   SubagentConfig $make(CopyWithData data) => SubagentConfig(
-        name: data.get(#name, or: $value.name),
-        description: data.get(#description, or: $value.description),
-        systemInstructions: data.get(
-          #systemInstructions,
-          or: $value.systemInstructions,
-        ),
-        capabilities: data.get(#capabilities, or: $value.capabilities),
-        tools: data.get(#tools, or: $value.tools),
-      );
+    name: data.get(#name, or: $value.name),
+    description: data.get(#description, or: $value.description),
+    systemInstructions: data.get(
+      #systemInstructions,
+      or: $value.systemInstructions,
+    ),
+    capabilities: data.get(#capabilities, or: $value.capabilities),
+    tools: data.get(#tools, or: $value.tools),
+  );
 
   @override
   SubagentConfigCopyWith<$R2, SubagentConfig, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _SubagentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _SubagentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -809,20 +822,20 @@ class ModelAPIRetryConfigMapper extends ClassMapperBase<ModelAPIRetryConfig> {
       v.initialSleepDurationMs;
   static const Field<ModelAPIRetryConfig, int> _f$initialSleepDurationMs =
       Field(
-    'initialSleepDurationMs',
-    _$initialSleepDurationMs,
-    key: r'initial_sleep_duration_ms',
-    opt: true,
-  );
+        'initialSleepDurationMs',
+        _$initialSleepDurationMs,
+        key: r'initial_sleep_duration_ms',
+        opt: true,
+      );
   static double? _$exponentialMultiplier(ModelAPIRetryConfig v) =>
       v.exponentialMultiplier;
   static const Field<ModelAPIRetryConfig, double> _f$exponentialMultiplier =
       Field(
-    'exponentialMultiplier',
-    _$exponentialMultiplier,
-    key: r'exponential_multiplier',
-    opt: true,
-  );
+        'exponentialMultiplier',
+        _$exponentialMultiplier,
+        key: r'exponential_multiplier',
+        opt: true,
+      );
   static double? _$jitterRange(ModelAPIRetryConfig v) => v.jitterRange;
   static const Field<ModelAPIRetryConfig, double> _f$jitterRange = Field(
     'jitterRange',
@@ -874,10 +887,16 @@ mixin ModelAPIRetryConfigMappable {
         .encodeMap<ModelAPIRetryConfig>(this as ModelAPIRetryConfig);
   }
 
-  ModelAPIRetryConfigCopyWith<ModelAPIRetryConfig, ModelAPIRetryConfig,
-      ModelAPIRetryConfig> get copyWith => _ModelAPIRetryConfigCopyWithImpl<
-          ModelAPIRetryConfig, ModelAPIRetryConfig>(
-      this as ModelAPIRetryConfig, $identity, $identity);
+  ModelAPIRetryConfigCopyWith<
+    ModelAPIRetryConfig,
+    ModelAPIRetryConfig,
+    ModelAPIRetryConfig
+  >
+  get copyWith =>
+      _ModelAPIRetryConfigCopyWithImpl<
+        ModelAPIRetryConfig,
+        ModelAPIRetryConfig
+      >(this as ModelAPIRetryConfig, $identity, $identity);
   @override
   String toString() {
     return ModelAPIRetryConfigMapper.ensureInitialized().stringifyValue(
@@ -905,14 +924,18 @@ mixin ModelAPIRetryConfigMappable {
 extension ModelAPIRetryConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, ModelAPIRetryConfig, $Out> {
   ModelAPIRetryConfigCopyWith<$R, ModelAPIRetryConfig, $Out>
-      get $asModelAPIRetryConfig => $base.as(
-            (v, t, t2) => _ModelAPIRetryConfigCopyWithImpl<$R, $Out>(v, t, t2),
-          );
+  get $asModelAPIRetryConfig => $base.as(
+    (v, t, t2) => _ModelAPIRetryConfigCopyWithImpl<$R, $Out>(v, t, t2),
+  );
 }
 
 /// @nodoc
-abstract class ModelAPIRetryConfigCopyWith<$R, $In extends ModelAPIRetryConfig,
-    $Out> implements ClassCopyWith<$R, $In, $Out> {
+abstract class ModelAPIRetryConfigCopyWith<
+  $R,
+  $In extends ModelAPIRetryConfig,
+  $Out
+>
+    implements ClassCopyWith<$R, $In, $Out> {
   $R call({
     int? maxRetries,
     int? initialSleepDurationMs,
@@ -939,35 +962,34 @@ class _ModelAPIRetryConfigCopyWithImpl<$R, $Out>
     Object? initialSleepDurationMs = $none,
     Object? exponentialMultiplier = $none,
     Object? jitterRange = $none,
-  }) =>
-      $apply(
-        FieldCopyWithData({
-          if (maxRetries != $none) #maxRetries: maxRetries,
-          if (initialSleepDurationMs != $none)
-            #initialSleepDurationMs: initialSleepDurationMs,
-          if (exponentialMultiplier != $none)
-            #exponentialMultiplier: exponentialMultiplier,
-          if (jitterRange != $none) #jitterRange: jitterRange,
-        }),
-      );
+  }) => $apply(
+    FieldCopyWithData({
+      if (maxRetries != $none) #maxRetries: maxRetries,
+      if (initialSleepDurationMs != $none)
+        #initialSleepDurationMs: initialSleepDurationMs,
+      if (exponentialMultiplier != $none)
+        #exponentialMultiplier: exponentialMultiplier,
+      if (jitterRange != $none) #jitterRange: jitterRange,
+    }),
+  );
   @override
   ModelAPIRetryConfig $make(CopyWithData data) => ModelAPIRetryConfig.raw(
-        maxRetries: data.get(#maxRetries, or: $value.maxRetries),
-        initialSleepDurationMs: data.get(
-          #initialSleepDurationMs,
-          or: $value.initialSleepDurationMs,
-        ),
-        exponentialMultiplier: data.get(
-          #exponentialMultiplier,
-          or: $value.exponentialMultiplier,
-        ),
-        jitterRange: data.get(#jitterRange, or: $value.jitterRange),
-      );
+    maxRetries: data.get(#maxRetries, or: $value.maxRetries),
+    initialSleepDurationMs: data.get(
+      #initialSleepDurationMs,
+      or: $value.initialSleepDurationMs,
+    ),
+    exponentialMultiplier: data.get(
+      #exponentialMultiplier,
+      or: $value.exponentialMultiplier,
+    ),
+    jitterRange: data.get(#jitterRange, or: $value.jitterRange),
+  );
 
   @override
   ModelAPIRetryConfigCopyWith<$R2, ModelAPIRetryConfig, $Out2>
-      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
-          _ModelAPIRetryConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+      _ModelAPIRetryConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -1029,11 +1051,16 @@ mixin ModelOutputRetryConfigMappable {
         .encodeMap<ModelOutputRetryConfig>(this as ModelOutputRetryConfig);
   }
 
-  ModelOutputRetryConfigCopyWith<ModelOutputRetryConfig, ModelOutputRetryConfig,
-          ModelOutputRetryConfig>
-      get copyWith => _ModelOutputRetryConfigCopyWithImpl<
-              ModelOutputRetryConfig, ModelOutputRetryConfig>(
-          this as ModelOutputRetryConfig, $identity, $identity);
+  ModelOutputRetryConfigCopyWith<
+    ModelOutputRetryConfig,
+    ModelOutputRetryConfig,
+    ModelOutputRetryConfig
+  >
+  get copyWith =>
+      _ModelOutputRetryConfigCopyWithImpl<
+        ModelOutputRetryConfig,
+        ModelOutputRetryConfig
+      >(this as ModelOutputRetryConfig, $identity, $identity);
   @override
   String toString() {
     return ModelOutputRetryConfigMapper.ensureInitialized().stringifyValue(
@@ -1061,17 +1088,18 @@ mixin ModelOutputRetryConfigMappable {
 extension ModelOutputRetryConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, ModelOutputRetryConfig, $Out> {
   ModelOutputRetryConfigCopyWith<$R, ModelOutputRetryConfig, $Out>
-      get $asModelOutputRetryConfig => $base.as(
-            (v, t, t2) =>
-                _ModelOutputRetryConfigCopyWithImpl<$R, $Out>(v, t, t2),
-          );
+  get $asModelOutputRetryConfig => $base.as(
+    (v, t, t2) => _ModelOutputRetryConfigCopyWithImpl<$R, $Out>(v, t, t2),
+  );
 }
 
 /// @nodoc
 abstract class ModelOutputRetryConfigCopyWith<
-    $R,
-    $In extends ModelOutputRetryConfig,
-    $Out> implements ClassCopyWith<$R, $In, $Out> {
+  $R,
+  $In extends ModelOutputRetryConfig,
+  $Out
+>
+    implements ClassCopyWith<$R, $In, $Out> {
   $R call({int? maxRetries});
   ModelOutputRetryConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -1090,17 +1118,17 @@ class _ModelOutputRetryConfigCopyWithImpl<$R, $Out>
       ModelOutputRetryConfigMapper.ensureInitialized();
   @override
   $R call({Object? maxRetries = $none}) => $apply(
-        FieldCopyWithData({if (maxRetries != $none) #maxRetries: maxRetries}),
-      );
+    FieldCopyWithData({if (maxRetries != $none) #maxRetries: maxRetries}),
+  );
   @override
   ModelOutputRetryConfig $make(CopyWithData data) => ModelOutputRetryConfig(
-        maxRetries: data.get(#maxRetries, or: $value.maxRetries),
-      );
+    maxRetries: data.get(#maxRetries, or: $value.maxRetries),
+  );
 
   @override
   ModelOutputRetryConfigCopyWith<$R2, ModelOutputRetryConfig, $Out2>
-      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
-          _ModelOutputRetryConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+      _ModelOutputRetryConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -1131,11 +1159,11 @@ class RetryConfigMapper extends ClassMapperBase<RetryConfig> {
       v.modelOutputRetry;
   static const Field<RetryConfig, ModelOutputRetryConfig> _f$modelOutputRetry =
       Field(
-    'modelOutputRetry',
-    _$modelOutputRetry,
-    key: r'model_output_retry',
-    opt: true,
-  );
+        'modelOutputRetry',
+        _$modelOutputRetry,
+        key: r'model_output_retry',
+        opt: true,
+      );
 
   @override
   final MappableFields<RetryConfig> fields = const {
@@ -1216,9 +1244,13 @@ extension RetryConfigValueCopy<$R, $Out>
 abstract class RetryConfigCopyWith<$R, $In extends RetryConfig, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   ModelAPIRetryConfigCopyWith<$R, ModelAPIRetryConfig, ModelAPIRetryConfig>?
-      get apiRetry;
-  ModelOutputRetryConfigCopyWith<$R, ModelOutputRetryConfig,
-      ModelOutputRetryConfig>? get modelOutputRetry;
+  get apiRetry;
+  ModelOutputRetryConfigCopyWith<
+    $R,
+    ModelOutputRetryConfig,
+    ModelOutputRetryConfig
+  >?
+  get modelOutputRetry;
   $R call({
     ModelAPIRetryConfig? apiRetry,
     ModelOutputRetryConfig? modelOutputRetry,
@@ -1237,14 +1269,16 @@ class _RetryConfigCopyWithImpl<$R, $Out>
       RetryConfigMapper.ensureInitialized();
   @override
   ModelAPIRetryConfigCopyWith<$R, ModelAPIRetryConfig, ModelAPIRetryConfig>?
-      get apiRetry =>
-          $value.apiRetry?.copyWith.$chain((v) => call(apiRetry: v));
+  get apiRetry => $value.apiRetry?.copyWith.$chain((v) => call(apiRetry: v));
   @override
-  ModelOutputRetryConfigCopyWith<$R, ModelOutputRetryConfig,
-          ModelOutputRetryConfig>?
-      get modelOutputRetry => $value.modelOutputRetry?.copyWith.$chain(
-            (v) => call(modelOutputRetry: v),
-          );
+  ModelOutputRetryConfigCopyWith<
+    $R,
+    ModelOutputRetryConfig,
+    ModelOutputRetryConfig
+  >?
+  get modelOutputRetry => $value.modelOutputRetry?.copyWith.$chain(
+    (v) => call(modelOutputRetry: v),
+  );
   @override
   $R call({Object? apiRetry = $none, Object? modelOutputRetry = $none}) =>
       $apply(
@@ -1255,14 +1289,13 @@ class _RetryConfigCopyWithImpl<$R, $Out>
       );
   @override
   RetryConfig $make(CopyWithData data) => RetryConfig(
-        apiRetry: data.get(#apiRetry, or: $value.apiRetry),
-        modelOutputRetry:
-            data.get(#modelOutputRetry, or: $value.modelOutputRetry),
-      );
+    apiRetry: data.get(#apiRetry, or: $value.apiRetry),
+    modelOutputRetry: data.get(#modelOutputRetry, or: $value.modelOutputRetry),
+  );
 
   @override
   RetryConfigCopyWith<$R2, RetryConfig, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _RetryConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _RetryConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
+

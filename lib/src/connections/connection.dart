@@ -22,6 +22,7 @@ part 'connection.mapper.dart';
     PolicyMapper(),
     HookMapper(),
     TriggerMapper(),
+    LevelMapper(),
   ],
 )
 abstract class AgentConfig with AgentConfigMappable {
@@ -247,8 +248,33 @@ class TriggerMapper extends SimpleMapper<Trigger> {
   dynamic encode(Trigger value) => throw UnimplementedError();
 }
 
+/// Mapper helper to map [Level] objects for serialization.
+class LevelMapper extends SimpleMapper<Level> {
+  /// Creates a new [LevelMapper] instance.
+  const LevelMapper();
+  @override
+  Level decode(dynamic value) {
+    if (value is Level) return value;
+    if (value is String) {
+      final upper = value.toUpperCase();
+      return Level.LEVELS.firstWhere(
+        (l) => l.name == upper,
+        orElse: () => Level(value, 0),
+      );
+    }
+    return Level.INFO;
+  }
+
+  @override
+  dynamic encode(Level value) => value.name;
+}
+
 /// Configuration for client-side and server-side debugging and observability.
-@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+@MappableClass(
+  caseStyle: CaseStyle.snakeCase,
+  ignoreNull: true,
+  includeCustomMappers: [LevelMapper()],
+)
 class DebugConfig with DebugConfigMappable {
   /// Whether to enable server-side distributed tracing in the backend.
   final bool enableServerSideTracing;
