@@ -141,4 +141,93 @@ void main() {
       expect(responseJson['result'], equals(['Here is the photo.']));
     });
   });
+
+  group('LocalConnection trajectory state tracking', () {
+    late StreamController<dynamic> messageStream;
+    late LocalConnection connection;
+    late HttpServer server;
+    late WebSocket clientWs;
+
+    setUp(() async {
+      messageStream = StreamController<dynamic>.broadcast();
+      server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        await WebSocketTransformer.upgrade(request);
+      });
+      clientWs = await WebSocket.connect('ws://127.0.0.1:${server.port}');
+      connection = LocalConnection(
+        process: FakeProcess(),
+        ws: clientWs,
+        messageStream: messageStream.stream,
+        toolRunner: ToolRunner(),
+        hookRunner: HookRunner(),
+        conversationId: 'cascade-123',
+      );
+      connection.startReaderLoop();
+    });
+
+    tearDown(() async {
+      await connection.disconnect();
+      await clientWs.close();
+      await server.close(force: true);
+      await messageStream.close();
+    });
+
+    test('step_update sets mainTrajectoryId and preserves conversationId', () async {
+      final steps = connection.receiveSteps();
+      messageStream.add(jsonEncode({
+        'step_update': {
+          'trajectory_id': 'traj-main',
+          'cascade_id': 'cascade-123',
+          'step_index': 0,
+          'type': 'MODEL',
+          'source': 'SOURCE_MODEL',
+          'target': 'TARGET_USER',
+          'status': 'ACTIVE',
+          'content_delta': 'hello',
+        }
+      }));
+
+      final step = await steps.first;
+      expect(step.contentDelta, equals('hello'));
+      expect(connection.mainTrajectoryId, equals('traj-main'));
+      expect(connection.conversationId, equals('cascade-123'));
+    });
+
+    test('trajectory_state_update for main trajectory emits idle_sentinel', () async {
+      connection.mainTrajectoryId = 'traj-main';
+
+      final steps = connection.receiveSteps();
+      final stepFuture = steps.first;
+
+      messageStream.add(jsonEncode({
+        'trajectory_state_update': {
+          'trajectory_id': 'traj-main',
+          'state': 'STATE_FULLY_IDLE',
+        }
+      }));
+
+      final step = await stepFuture;
+      expect(step.id, equals('idle_sentinel'));
+      expect(connection.isIdle, isTrue);
+    });
+
+    test('subagent trajectory_state_update does not emit idle_sentinel', () async {
+      connection.mainTrajectoryId = 'traj-main';
+
+      final receivedSteps = <Step>[];
+      final sub = connection.receiveSteps().listen(receivedSteps.add);
+
+      messageStream.add(jsonEncode({
+        'trajectory_state_update': {
+          'trajectory_id': 'subagent-traj-999',
+          'state': 'STATE_FULLY_IDLE',
+        }
+      }));
+
+      await Future.delayed(const Duration(milliseconds: 50));
+      expect(receivedSteps, isEmpty);
+      await sub.cancel();
+    });
+  });
 }

@@ -144,7 +144,6 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     final outputConfig = await _readHandshakeOutputConfig(_process!);
     final ws = await _connectWebSocketWithRetry(outputConfig, _process!);
     _ws = ws;
-
     final sessionData = await _initializeHarnessSession(ws, _process!);
 
     _connection = LocalConnection(
@@ -154,6 +153,9 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       toolRunner: _toolRunner,
       hookRunner: _hookRunner,
       initialHistory: sessionData.initialHistory,
+      conversationId: sessionData.cascadeId,
+      cumulativeUsage: sessionData.cumulativeUsage,
+      trajectoryUsages: sessionData.trajectoryUsages,
     );
     _connection!._startStderrReader();
     _connection!._startReaderLoop();
@@ -214,11 +216,22 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     throw StateError('Unreachable');
   }
 
-  Future<({List<Step> initialHistory, Stream<dynamic> messageStream})> _initializeHarnessSession(
+  Future<({
+    List<Step> initialHistory,
+    Stream<dynamic> messageStream,
+    String? cascadeId,
+    UsageMetadata? cumulativeUsage,
+    Map<String, UsageMetadata>? trajectoryUsages,
+  })> _initializeHarnessSession(
     WebSocket ws,
     Process process,
   ) async {
-    final initCompleter = Completer<List<Step>>();
+    final initCompleter = Completer<({
+      List<Step> initialHistory,
+      String? cascadeId,
+      UsageMetadata? cumulativeUsage,
+      Map<String, UsageMetadata>? trajectoryUsages,
+    })>();
     final messageController = StreamController<dynamic>();
 
     ws.listen(
@@ -228,7 +241,14 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         messageController.addError(err);
       },
       onDone: () {
-        if (!initCompleter.isCompleted) initCompleter.complete([]);
+        if (!initCompleter.isCompleted) {
+          initCompleter.complete((
+            initialHistory: <Step>[],
+            cascadeId: null,
+            cumulativeUsage: null,
+            trajectoryUsages: null,
+          ));
+        }
         messageController.close();
       },
     );
@@ -237,8 +257,14 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     ws.add(jsonEncode({'config': harnessConfig}));
 
     try {
-      final initialHistory = await initCompleter.future;
-      return (initialHistory: initialHistory, messageStream: messageController.stream);
+      final sessionData = await initCompleter.future;
+      return (
+        initialHistory: sessionData.initialHistory,
+        messageStream: messageController.stream,
+        cascadeId: sessionData.cascadeId,
+        cumulativeUsage: sessionData.cumulativeUsage,
+        trajectoryUsages: sessionData.trajectoryUsages,
+      );
     } catch (e) {
       process.kill();
       final stderrText = await process.stderr.transform(utf8.decoder).join();
@@ -249,7 +275,12 @@ class LocalConnectionStrategy implements ConnectionStrategy {
 
   void _handleInitMessage(
     dynamic message,
-    Completer<List<Step>> initCompleter,
+    Completer<({
+      List<Step> initialHistory,
+      String? cascadeId,
+      UsageMetadata? cumulativeUsage,
+      Map<String, UsageMetadata>? trajectoryUsages,
+    })> initCompleter,
     StreamController<dynamic> messageController,
   ) {
     if (!initCompleter.isCompleted && message is String) {
@@ -260,8 +291,28 @@ class LocalConnectionStrategy implements ConnectionStrategy {
           if (normalized.containsKey('initialize_conversation_response')) {
             final initResp = Map<String, dynamic>.from(normalized['initialize_conversation_response'] as Map);
             final initialHistory = _parseInitialHistory(initResp);
-            _extractStartupUsage(initResp);
-            initCompleter.complete(initialHistory);
+            final cascadeId = initResp['cascade_id']?.toString();
+            final cum = initResp['cumulative_usage'];
+            final cumUsage = cum is Map ? UsageMetadata.fromMap(Map<String, dynamic>.from(cum)) : null;
+            final traj = initResp['trajectory_usage'];
+            final trajUsages = <String, UsageMetadata>{};
+            if (traj is List) {
+              for (final entry in traj) {
+                if (entry is Map) {
+                  final entryMap = Map<String, dynamic>.from(entry);
+                  final trajId = entryMap['trajectory_id']?.toString() ?? '';
+                  if (trajId.isNotEmpty && entryMap['usage'] is Map) {
+                    trajUsages[trajId] = UsageMetadata.fromMap(Map<String, dynamic>.from(entryMap['usage'] as Map));
+                  }
+                }
+              }
+            }
+            initCompleter.complete((
+              initialHistory: initialHistory,
+              cascadeId: cascadeId,
+              cumulativeUsage: cumUsage,
+              trajectoryUsages: trajUsages.isNotEmpty ? trajUsages : null,
+            ));
             return;
           }
         }
@@ -269,7 +320,12 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         initCompleter.completeError(e);
       }
       if (!initCompleter.isCompleted) {
-        initCompleter.complete([]);
+        initCompleter.complete((
+          initialHistory: <Step>[],
+          cascadeId: null,
+          cumulativeUsage: null,
+          trajectoryUsages: null,
+        ));
       }
     }
     messageController.add(message);
@@ -282,17 +338,6 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         .whereType<Map>()
         .map((s) => Step.fromMap(Map<String, dynamic>.from(s)))
         .toList();
-  }
-
-  void _extractStartupUsage(Map<String, dynamic> initResp) {
-    final cum = initResp['cumulative_usage'];
-    if (cum is Map) {
-      _connection?._cumulativeUsage = UsageMetadata.fromMap(Map<String, dynamic>.from(cum));
-    }
-    final traj = initResp['trajectory_usage'];
-    if (traj is List) {
-      _connection?._parseTrajectoryUsages(traj);
-    }
   }
 
   @override
@@ -687,6 +732,9 @@ class LocalConnection implements Connection {
   bool _disconnecting = false;
   bool _idleState = true;
   String _convId = '';
+
+  /// The root/main agent trajectory ID.
+  String? mainTrajectoryId;
   final List<Step> _initialHistory = [];
   UsageMetadata _cumulativeUsage = UsageMetadata();
   final Map<String, UsageMetadata> _trajectoryUsages = {};
@@ -723,13 +771,24 @@ class LocalConnection implements Connection {
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
     List<Step>? initialHistory,
+    String? conversationId,
+    this.mainTrajectoryId,
+    UsageMetadata? cumulativeUsage,
+    Map<String, UsageMetadata>? trajectoryUsages,
   })  : _process = process,
         _ws = ws,
         _messageStream = messageStream,
         _toolRunner = toolRunner,
-        _hookRunner = hookRunner {
+        _hookRunner = hookRunner,
+        _convId = conversationId ?? '' {
     if (initialHistory != null) {
       _initialHistory.addAll(initialHistory);
+    }
+    if (cumulativeUsage != null) {
+      _cumulativeUsage = cumulativeUsage;
+    }
+    if (trajectoryUsages != null) {
+      _trajectoryUsages.addAll(trajectoryUsages);
     }
     if (hookRunner.hasHooks) {
       _hookRouter = HookRouter(
@@ -766,6 +825,9 @@ class LocalConnection implements Connection {
       _logger.fine('[Harness Stderr] $line');
     }, cancelOnError: false);
   }
+
+  /// Starts the reader loop. Exposed for unit testing.
+  void startReaderLoop() => _startReaderLoop();
 
   void _startReaderLoop() {
     _messageStream.listen(
@@ -875,7 +937,12 @@ class LocalConnection implements Connection {
     final stepJson = Map<String, dynamic>.from(rawStepJson);
     final step = Step.fromMap(stepJson);
 
-    if (step.cascadeId.isNotEmpty) {
+    final stepTrajectoryId = stepJson['trajectory_id']?.toString() ?? step.trajectoryId;
+    if (mainTrajectoryId == null && stepTrajectoryId.isNotEmpty) {
+      mainTrajectoryId = stepTrajectoryId;
+    }
+
+    if (_convId.isEmpty && step.cascadeId.isNotEmpty) {
       _convId = step.cascadeId;
     }
 
@@ -938,10 +1005,12 @@ class LocalConnection implements Connection {
     final update = Map<String, dynamic>.from(rawUpdate);
     final state = update['state']?.toString();
     final trajectoryId = update['trajectory_id']?.toString() ?? '';
-    if (_convId.isEmpty && trajectoryId.isNotEmpty) {
-      _convId = trajectoryId;
+    if (mainTrajectoryId == null && trajectoryId.isNotEmpty) {
+      mainTrajectoryId = trajectoryId;
     }
-    final isSubagent = trajectoryId.isNotEmpty && trajectoryId != _convId;
+    final isSubagent = mainTrajectoryId != null &&
+        trajectoryId.isNotEmpty &&
+        trajectoryId != mainTrajectoryId;
 
     if (update['stop_reason'] != null && update['stop_reason'].toString().isNotEmpty) {
       _turnStopReason = StopReason.fromString(update['stop_reason'].toString());
@@ -963,14 +1032,15 @@ class LocalConnection implements Connection {
       _idleState = false;
       return;
     }
-    if (state == 'STATE_FULLY_IDLE' || state == 'FULLY_IDLE' || state == 'STATE_IDLE' || state == 'IDLE') {
+    if (state == 'STATE_FULLY_IDLE' ||
+        state == 'FULLY_IDLE' ||
+        state == 'STATE_IDLE' ||
+        state == 'IDLE') {
       if (error != null && error.isNotEmpty) {
         _safeAddError(AntigravityExecutionException(error));
       }
-      if (!_idleState) {
-        _idleState = true;
-        _safeAdd(_createIdleSentinelStep());
-      }
+      _idleState = true;
+      _safeAdd(_createIdleSentinelStep());
       return;
     }
     if (state == 'STATE_CANCELLED' || state == 'CANCELLED') {
