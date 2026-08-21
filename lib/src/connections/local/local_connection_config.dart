@@ -20,6 +20,26 @@ String get defaultAppDataDir {
   return '$home${Platform.pathSeparator}.gemini${Platform.pathSeparator}antigravity';
 }
 
+/// Creates a unique step identifier from trajectory ID and step index.
+///
+/// Returns `"<trajectoryId>:<stepIndex>"` when both parts are present, or
+/// whichever single part is available. Returns null when neither is usable.
+/// Mirrors `make_step_id` in the upstream Python SDK.
+String? makeStepId(Object? trajectoryId, Object? stepIndex) {
+  final traj = trajectoryId?.toString();
+  final idx = stepIndex?.toString();
+  if (traj != null && traj.isNotEmpty && idx != null && idx.isNotEmpty) {
+    return '$traj:$idx';
+  }
+  if (idx != null && idx.isNotEmpty) {
+    return idx;
+  }
+  if (traj != null && traj.isNotEmpty) {
+    return traj;
+  }
+  return null;
+}
+
 /// Base configuration class for local harness agent configurations.
 @MappableClass()
 abstract class BaseLocalAgentConfig extends AgentConfig

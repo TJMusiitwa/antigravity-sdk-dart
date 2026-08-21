@@ -295,13 +295,37 @@ class HookRunner {
     ToolCall toolCall,
   ) async {
     final opContext = OperationContext(turnContext);
+    var currentToolCall = toolCall;
+    var lastAllowResult = HookResult(allow: true);
+    var hadModifications = false;
+
     for (final hook in preToolCallDecideHooks) {
-      final res = await hook.run(opContext, toolCall);
+      final res = await hook.run(opContext, currentToolCall);
       if (!res.allow) {
         return res;
       }
+      lastAllowResult = res;
+      if (res.modifiedArgs != null) {
+        final mergedArgs = Map<String, dynamic>.from(currentToolCall.args);
+        mergedArgs.addAll(res.modifiedArgs!);
+        currentToolCall = ToolCall(
+          name: currentToolCall.name,
+          args: mergedArgs,
+          id: currentToolCall.id,
+          callId: currentToolCall.callId,
+          stepId: currentToolCall.stepId,
+          canonicalPath: currentToolCall.canonicalPath,
+          serverName: currentToolCall.serverName,
+        );
+        hadModifications = true;
+      }
     }
-    return HookResult(allow: true);
+    if (hadModifications) {
+      return lastAllowResult.copyWith(
+        modifiedArgs: Map<String, dynamic>.from(currentToolCall.args),
+      );
+    }
+    return lastAllowResult;
   }
 
   /// Dispatches post-tool call events after execution is successful.

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:logging/logging.dart';
 import '../../hooks/hooks.dart';
 import '../../types.dart';
+import 'local_connection_config.dart';
 
 final _logger = Logger('antigravity.connection.local.hook_router');
 
@@ -176,6 +177,7 @@ class HookRouter {
         var args = <String, dynamic>{};
         String? serverName;
         String? callId;
+        String? stepId;
 
         if (req.containsKey('pre_tool_args') && req['pre_tool_args'] is Map) {
           final pta = req['pre_tool_args'] as Map;
@@ -206,6 +208,7 @@ class HookRouter {
           }
 
           callId = _extractCallId(pta);
+          stepId = _extractStepId(pta);
           _normalizePathArgs(args);
         }
 
@@ -223,6 +226,7 @@ class HookRouter {
           args: args,
           id: callId,
           callId: callId,
+          stepId: stepId,
           serverName: serverName,
           canonicalPath: canonicalPath,
         );
@@ -233,6 +237,9 @@ class HookRouter {
         final ptr = <String, dynamic>{};
         if (res.allow) {
           ptr['decision'] = 'ALLOW';
+          if (res.modifiedArgs != null) {
+            ptr['modified_arguments_json'] = jsonEncode(res.modifiedArgs);
+          }
         } else {
           ptr['decision'] = 'DENY';
           ptr['reason'] = res.message;
@@ -244,6 +251,7 @@ class HookRouter {
         dynamic resultVal;
         var errorStr = '';
         String? callId;
+        String? stepId;
 
         if (req.containsKey('post_tool_args') && req['post_tool_args'] is Map) {
           final args = req['post_tool_args'] as Map;
@@ -251,6 +259,7 @@ class HookRouter {
               (args['tool_name'] ?? args['toolName'] ?? '').toString();
           toolName = _protoFieldToSdkName[rawToolName] ?? rawToolName;
           callId = _extractCallId(args);
+          stepId = _extractStepId(args);
 
           final hasError =
               args.containsKey('error') && args['error'].toString().isNotEmpty;
@@ -275,6 +284,7 @@ class HookRouter {
         final toolResult = ToolResult(
           name: toolName,
           callId: callId,
+          stepId: stepId,
           result: resultVal,
           error: errorStr.isNotEmpty ? errorStr : null,
         );
@@ -288,6 +298,7 @@ class HookRouter {
         var rawToolName = '';
         String? serverName;
         String? callId;
+        String? stepId;
         if (req.containsKey('on_tool_error_args') &&
             req['on_tool_error_args'] is Map) {
           final extracted = _extractToolErrorDetails(
@@ -297,6 +308,7 @@ class HookRouter {
           rawToolName = extracted.rawToolName;
           serverName = extracted.serverName;
           callId = extracted.callId;
+          stepId = extracted.stepId;
         } else if (req.containsKey('post_tool_args') &&
             req['post_tool_args'] is Map) {
           final extracted = _extractToolErrorDetails(
@@ -306,6 +318,7 @@ class HookRouter {
           rawToolName = extracted.rawToolName;
           serverName = extracted.serverName;
           callId = extracted.callId;
+          stepId = extracted.stepId;
         }
         final toolName = _protoFieldToSdkName[rawToolName] ?? rawToolName;
 
@@ -317,6 +330,7 @@ class HookRouter {
             toolName: toolName,
             serverName: serverName,
             callId: callId,
+            stepId: stepId,
           ),
         );
         response['empty_result'] = {};
@@ -339,9 +353,23 @@ String? _extractCallId(Map args) {
   return (args['call_id'] ?? args['callId'] ?? args['id'])?.toString();
 }
 
-/// Extracts error message, raw tool name, optional server name, and optional call ID from hook argument payloads.
-({String error, String rawToolName, String? serverName, String? callId})
-    _extractToolErrorDetails(Map args) {
+String? _extractStepId(Map args) {
+  final traj = args['trajectory_id'] ?? args['trajectoryId'];
+  final step = args['step_index'] ?? args['stepIndex'];
+  if (traj != null || step != null) {
+    return makeStepId(traj, step);
+  }
+  return (args['step_id'] ?? args['stepId'])?.toString();
+}
+
+/// Extracts error message, raw tool name, optional server name, optional call ID, and optional step ID from hook argument payloads.
+({
+  String error,
+  String rawToolName,
+  String? serverName,
+  String? callId,
+  String? stepId
+}) _extractToolErrorDetails(Map args) {
   final errorStr = (args['error'] ??
           args['error_message'] ??
           args['errorMessage'] ??
@@ -350,10 +378,12 @@ String? _extractCallId(Map args) {
   final rawToolName = (args['tool_name'] ?? args['toolName'] ?? '').toString();
   final serverName = (args['server_name'] ?? args['serverName'])?.toString();
   final callId = _extractCallId(args);
+  final stepId = _extractStepId(args);
   return (
     error: errorStr,
     rawToolName: rawToolName,
     serverName: serverName,
     callId: callId,
+    stepId: stepId,
   );
 }
