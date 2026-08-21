@@ -153,6 +153,152 @@ extension AgentBehaviorMapperExtension on AgentBehavior {
 }
 
 /// @nodoc
+class RunCommandConfigMapper extends ClassMapperBase<RunCommandConfig> {
+  RunCommandConfigMapper._();
+
+  static RunCommandConfigMapper? _instance;
+  static RunCommandConfigMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(_instance = RunCommandConfigMapper._());
+    }
+    return _instance!;
+  }
+
+  @override
+  final String id = 'RunCommandConfig';
+
+  static bool _$enableDaemons(RunCommandConfig v) => v.enableDaemons;
+  static const Field<RunCommandConfig, bool> _f$enableDaemons = Field(
+    'enableDaemons',
+    _$enableDaemons,
+    key: r'enable_daemons',
+    opt: true,
+    def: false,
+  );
+  static double? _$timeoutSeconds(RunCommandConfig v) => v.timeoutSeconds;
+  static const Field<RunCommandConfig, double> _f$timeoutSeconds = Field(
+    'timeoutSeconds',
+    _$timeoutSeconds,
+    key: r'timeout_seconds',
+    opt: true,
+  );
+
+  @override
+  final MappableFields<RunCommandConfig> fields = const {
+    #enableDaemons: _f$enableDaemons,
+    #timeoutSeconds: _f$timeoutSeconds,
+  };
+  @override
+  final bool ignoreNull = true;
+
+  static RunCommandConfig _instantiate(DecodingData data) {
+    return RunCommandConfig(
+      enableDaemons: data.dec(_f$enableDaemons),
+      timeoutSeconds: data.dec(_f$timeoutSeconds),
+    );
+  }
+
+  @override
+  final Function instantiate = _instantiate;
+
+  static RunCommandConfig fromMap(Map<String, dynamic> map) {
+    return ensureInitialized().decodeMap<RunCommandConfig>(map);
+  }
+
+  static RunCommandConfig fromJson(String json) {
+    return ensureInitialized().decodeJson<RunCommandConfig>(json);
+  }
+}
+
+/// @nodoc
+mixin RunCommandConfigMappable {
+  String toJson() {
+    return RunCommandConfigMapper.ensureInitialized()
+        .encodeJson<RunCommandConfig>(this as RunCommandConfig);
+  }
+
+  Map<String, dynamic> toMap() {
+    return RunCommandConfigMapper.ensureInitialized()
+        .encodeMap<RunCommandConfig>(this as RunCommandConfig);
+  }
+
+  RunCommandConfigCopyWith<RunCommandConfig, RunCommandConfig, RunCommandConfig>
+      get copyWith =>
+          _RunCommandConfigCopyWithImpl<RunCommandConfig, RunCommandConfig>(
+            this as RunCommandConfig,
+            $identity,
+            $identity,
+          );
+  @override
+  String toString() {
+    return RunCommandConfigMapper.ensureInitialized().stringifyValue(
+      this as RunCommandConfig,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return RunCommandConfigMapper.ensureInitialized().equalsValue(
+      this as RunCommandConfig,
+      other,
+    );
+  }
+
+  @override
+  int get hashCode {
+    return RunCommandConfigMapper.ensureInitialized().hashValue(
+      this as RunCommandConfig,
+    );
+  }
+}
+
+/// @nodoc
+extension RunCommandConfigValueCopy<$R, $Out>
+    on ObjectCopyWith<$R, RunCommandConfig, $Out> {
+  RunCommandConfigCopyWith<$R, RunCommandConfig, $Out>
+      get $asRunCommandConfig => $base
+          .as((v, t, t2) => _RunCommandConfigCopyWithImpl<$R, $Out>(v, t, t2));
+}
+
+/// @nodoc
+abstract class RunCommandConfigCopyWith<$R, $In extends RunCommandConfig, $Out>
+    implements ClassCopyWith<$R, $In, $Out> {
+  $R call({bool? enableDaemons, double? timeoutSeconds});
+  RunCommandConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  );
+}
+
+/// @nodoc
+class _RunCommandConfigCopyWithImpl<$R, $Out>
+    extends ClassCopyWithBase<$R, RunCommandConfig, $Out>
+    implements RunCommandConfigCopyWith<$R, RunCommandConfig, $Out> {
+  _RunCommandConfigCopyWithImpl(super.value, super.then, super.then2);
+
+  @override
+  late final ClassMapperBase<RunCommandConfig> $mapper =
+      RunCommandConfigMapper.ensureInitialized();
+  @override
+  $R call({bool? enableDaemons, Object? timeoutSeconds = $none}) => $apply(
+        FieldCopyWithData({
+          if (enableDaemons != null) #enableDaemons: enableDaemons,
+          if (timeoutSeconds != $none) #timeoutSeconds: timeoutSeconds,
+        }),
+      );
+  @override
+  RunCommandConfig $make(CopyWithData data) => RunCommandConfig(
+        enableDaemons: data.get(#enableDaemons, or: $value.enableDaemons),
+        timeoutSeconds: data.get(#timeoutSeconds, or: $value.timeoutSeconds),
+      );
+
+  @override
+  RunCommandConfigCopyWith<$R2, RunCommandConfig, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  ) =>
+      _RunCommandConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+}
+
+/// @nodoc
 class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
   CapabilitiesConfigMapper._();
 
@@ -162,6 +308,7 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
       MapperContainer.globals.use(_instance = CapabilitiesConfigMapper._());
       AgentBehaviorMapper.ensureInitialized();
       BuiltinToolsMapper.ensureInitialized();
+      RunCommandConfigMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -238,6 +385,15 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
     key: r'allowed_subagents',
     opt: true,
   );
+  static RunCommandConfig? _$runCommandConfig(CapabilitiesConfig v) =>
+      v.runCommandConfig;
+  static const Field<CapabilitiesConfig, RunCommandConfig> _f$runCommandConfig =
+      Field(
+    'runCommandConfig',
+    _$runCommandConfig,
+    key: r'run_command_config',
+    opt: true,
+  );
 
   @override
   final MappableFields<CapabilitiesConfig> fields = const {
@@ -250,6 +406,7 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
     #finishToolSchemaJson: _f$finishToolSchemaJson,
     #maxSubagentDepth: _f$maxSubagentDepth,
     #allowedSubagents: _f$allowedSubagents,
+    #runCommandConfig: _f$runCommandConfig,
   };
   @override
   final bool ignoreNull = true;
@@ -265,6 +422,7 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
       finishToolSchemaJson: data.dec(_f$finishToolSchemaJson),
       maxSubagentDepth: data.dec(_f$maxSubagentDepth),
       allowedSubagents: data.dec(_f$allowedSubagents),
+      runCommandConfig: data.dec(_f$runCommandConfig),
     );
   }
 
@@ -340,6 +498,8 @@ abstract class CapabilitiesConfigCopyWith<$R, $In extends CapabilitiesConfig,
       ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get disabledTools;
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
       get allowedSubagents;
+  RunCommandConfigCopyWith<$R, RunCommandConfig, RunCommandConfig>?
+      get runCommandConfig;
   $R call({
     bool? enableSubagents,
     AgentBehavior? agentBehavior,
@@ -350,6 +510,7 @@ abstract class CapabilitiesConfigCopyWith<$R, $In extends CapabilitiesConfig,
     String? finishToolSchemaJson,
     int? maxSubagentDepth,
     List<String>? allowedSubagents,
+    RunCommandConfig? runCommandConfig,
   });
   CapabilitiesConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -395,6 +556,11 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
             )
           : null;
   @override
+  RunCommandConfigCopyWith<$R, RunCommandConfig, RunCommandConfig>?
+      get runCommandConfig => $value.runCommandConfig?.copyWith.$chain(
+            (v) => call(runCommandConfig: v),
+          );
+  @override
   $R call({
     bool? enableSubagents,
     Object? agentBehavior = $none,
@@ -405,6 +571,7 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
     Object? finishToolSchemaJson = $none,
     Object? maxSubagentDepth = $none,
     Object? allowedSubagents = $none,
+    Object? runCommandConfig = $none,
   }) =>
       $apply(
         FieldCopyWithData({
@@ -419,6 +586,7 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
             #finishToolSchemaJson: finishToolSchemaJson,
           if (maxSubagentDepth != $none) #maxSubagentDepth: maxSubagentDepth,
           if (allowedSubagents != $none) #allowedSubagents: allowedSubagents,
+          if (runCommandConfig != $none) #runCommandConfig: runCommandConfig,
         }),
       );
   @override
@@ -440,6 +608,8 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
             data.get(#maxSubagentDepth, or: $value.maxSubagentDepth),
         allowedSubagents:
             data.get(#allowedSubagents, or: $value.allowedSubagents),
+        runCommandConfig:
+            data.get(#runCommandConfig, or: $value.runCommandConfig),
       );
 
   @override

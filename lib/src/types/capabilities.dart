@@ -121,6 +121,36 @@ AgentBehavior resolveAgentBehaviorAndWarn({
 /// Backward compatibility alias for [AgentBehavior].
 typedef AgentMode = AgentBehavior;
 
+/// Configuration for the builtin run_command tool.
+@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+class RunCommandConfig with RunCommandConfigMappable {
+  /// Whether the agent is authorized to start long-running daemon commands
+  /// (e.g. background dev servers, watchers) using run_command(IsDaemon=true)
+  /// without blocking session completion. When true, the IsDaemon argument is
+  /// exposed on the run_command tool schema. Defaults to false.
+  final bool enableDaemons;
+
+  /// Maximum execution duration in seconds for commands.
+  /// When null, the default timeout (10 minutes) is used. Defaults to null.
+  final double? timeoutSeconds;
+
+  RunCommandConfig({
+    this.enableDaemons = false,
+    this.timeoutSeconds,
+  }) {
+    if (timeoutSeconds != null && timeoutSeconds! <= 0) {
+      throw AntigravityValidationException(
+        'timeoutSeconds must be greater than 0, got $timeoutSeconds',
+      );
+    }
+  }
+
+  factory RunCommandConfig.fromMap(Map<String, dynamic> map) =>
+      RunCommandConfigMapper.fromMap(map);
+  factory RunCommandConfig.fromJson(String json) =>
+      RunCommandConfigMapper.fromJson(json);
+}
+
 /// General agent capability configuration.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class CapabilitiesConfig with CapabilitiesConfigMappable {
@@ -148,6 +178,9 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
   /// Whitelist of allowed static subagent names that this agent is permitted to invoke.
   final List<String>? allowedSubagents;
 
+  /// Optional configuration for the builtin run_command tool.
+  final RunCommandConfig? runCommandConfig;
+
   /// Backward compatibility alias for [agentBehavior].
   AgentBehavior get agentMode => agentBehavior;
 
@@ -161,6 +194,7 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
     this.finishToolSchemaJson,
     this.maxSubagentDepth,
     this.allowedSubagents,
+    this.runCommandConfig,
   }) : agentBehavior = resolveAgentBehaviorAndWarn(
           agentBehavior: agentBehavior,
           agentMode: agentMode,

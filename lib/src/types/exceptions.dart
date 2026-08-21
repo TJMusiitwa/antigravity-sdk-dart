@@ -59,14 +59,18 @@ class ToolExecutionException implements Exception {
   /// The optional tool call correlation ID.
   final String? callId;
 
+  /// The optional trajectory step correlation ID.
+  final String? stepId;
+
   ToolExecutionException(
     this.message, {
     this.toolName = '',
     this.serverName,
     this.callId,
+    this.stepId,
   });
 
   @override
   String toString() =>
-      'ToolExecutionException: $message (tool: $toolName${serverName != null ? ', server: $serverName' : ''}${callId != null ? ', callId: $callId' : ''})';
+      'ToolExecutionException: $message (tool: $toolName${serverName != null ? ', server: $serverName' : ''}${callId != null ? ', callId: $callId' : ''}${stepId != null ? ', stepId: $stepId' : ''})';
 }

@@ -10,6 +10,9 @@ class ToolCall with ToolCallMappable {
   @MappableField(key: 'call_id')
   final String? callId;
 
+  @MappableField(key: 'step_id')
+  final String? stepId;
+
   final String name;
 
   @MappableField(key: 'arguments_json', hook: ArgumentsHook())
@@ -26,6 +29,7 @@ class ToolCall with ToolCallMappable {
     Map<String, dynamic>? args,
     this.id,
     this.callId,
+    this.stepId,
     this.canonicalPath,
     this.serverName,
   }) : args = args ?? {};
@@ -78,6 +82,9 @@ class ToolResult with ToolResultMappable {
   @MappableField(key: 'call_id')
   final String? callId;
 
+  @MappableField(key: 'step_id')
+  final String? stepId;
+
   final String name;
   final dynamic result;
   final String? error;
@@ -89,6 +96,7 @@ class ToolResult with ToolResultMappable {
     required this.name,
     this.id,
     this.callId,
+    this.stepId,
     this.result,
     this.error,
     this.exception,

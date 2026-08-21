@@ -149,6 +149,7 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
       MapperContainer.globals.use(_instance = SubagentCapabilitiesMapper._());
       AgentBehaviorMapper.ensureInitialized();
       BuiltinToolsMapper.ensureInitialized();
+      RunCommandConfigMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -194,6 +195,15 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
     key: r'allowed_subagents',
     opt: true,
   );
+  static RunCommandConfig? _$runCommandConfig(SubagentCapabilities v) =>
+      v.runCommandConfig;
+  static const Field<SubagentCapabilities, RunCommandConfig>
+      _f$runCommandConfig = Field(
+    'runCommandConfig',
+    _$runCommandConfig,
+    key: r'run_command_config',
+    opt: true,
+  );
 
   @override
   final MappableFields<SubagentCapabilities> fields = const {
@@ -202,6 +212,7 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
     #enabledTools: _f$enabledTools,
     #disabledTools: _f$disabledTools,
     #allowedSubagents: _f$allowedSubagents,
+    #runCommandConfig: _f$runCommandConfig,
   };
   @override
   final bool ignoreNull = true;
@@ -213,6 +224,7 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
       enabledTools: data.dec(_f$enabledTools),
       disabledTools: data.dec(_f$disabledTools),
       allowedSubagents: data.dec(_f$allowedSubagents),
+      runCommandConfig: data.dec(_f$runCommandConfig),
     );
   }
 
@@ -287,12 +299,15 @@ abstract class SubagentCapabilitiesCopyWith<
       ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get disabledTools;
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
       get allowedSubagents;
+  RunCommandConfigCopyWith<$R, RunCommandConfig, RunCommandConfig>?
+      get runCommandConfig;
   $R call({
     AgentBehavior? agentBehavior,
     AgentBehavior? agentMode,
     List<BuiltinTools>? enabledTools,
     List<BuiltinTools>? disabledTools,
     List<String>? allowedSubagents,
+    RunCommandConfig? runCommandConfig,
   });
   SubagentCapabilitiesCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -338,12 +353,18 @@ class _SubagentCapabilitiesCopyWithImpl<$R, $Out>
             )
           : null;
   @override
+  RunCommandConfigCopyWith<$R, RunCommandConfig, RunCommandConfig>?
+      get runCommandConfig => $value.runCommandConfig?.copyWith.$chain(
+            (v) => call(runCommandConfig: v),
+          );
+  @override
   $R call({
     Object? agentBehavior = $none,
     Object? agentMode = $none,
     Object? enabledTools = $none,
     Object? disabledTools = $none,
     Object? allowedSubagents = $none,
+    Object? runCommandConfig = $none,
   }) =>
       $apply(
         FieldCopyWithData({
@@ -352,6 +373,7 @@ class _SubagentCapabilitiesCopyWithImpl<$R, $Out>
           if (enabledTools != $none) #enabledTools: enabledTools,
           if (disabledTools != $none) #disabledTools: disabledTools,
           if (allowedSubagents != $none) #allowedSubagents: allowedSubagents,
+          if (runCommandConfig != $none) #runCommandConfig: runCommandConfig,
         }),
       );
   @override
@@ -362,6 +384,8 @@ class _SubagentCapabilitiesCopyWithImpl<$R, $Out>
         disabledTools: data.get(#disabledTools, or: $value.disabledTools),
         allowedSubagents:
             data.get(#allowedSubagents, or: $value.allowedSubagents),
+        runCommandConfig:
+            data.get(#runCommandConfig, or: $value.runCommandConfig),
       );
 
   @override

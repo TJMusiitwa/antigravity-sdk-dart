@@ -1,8 +1,25 @@
 class HookResult {
   final bool allow;
   final String message;
+  final Map<String, dynamic>? modifiedArgs;
 
-  HookResult({this.allow = true, this.message = ''});
+  HookResult({
+    this.allow = true,
+    this.message = '',
+    this.modifiedArgs,
+  });
+
+  HookResult copyWith({
+    bool? allow,
+    String? message,
+    Map<String, dynamic>? modifiedArgs,
+  }) {
+    return HookResult(
+      allow: allow ?? this.allow,
+      message: message ?? this.message,
+      modifiedArgs: modifiedArgs ?? this.modifiedArgs,
+    );
+  }
 }
 
 class QuestionResponse {

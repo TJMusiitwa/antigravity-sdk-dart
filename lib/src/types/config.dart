@@ -23,6 +23,9 @@ class SubagentCapabilities with SubagentCapabilitiesMappable {
   /// Whitelist of allowed subagent names that this subagent is permitted to invoke.
   final List<String>? allowedSubagents;
 
+  /// Optional configuration for the builtin run_command tool.
+  final RunCommandConfig? runCommandConfig;
+
   /// Backward compatibility alias for [agentBehavior].
   AgentBehavior get agentMode => agentBehavior;
 
@@ -32,6 +35,7 @@ class SubagentCapabilities with SubagentCapabilitiesMappable {
     this.enabledTools,
     this.disabledTools,
     this.allowedSubagents,
+    this.runCommandConfig,
   }) : agentBehavior = resolveAgentBehaviorAndWarn(
           agentBehavior: agentBehavior,
           agentMode: agentMode,

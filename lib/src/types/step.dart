@@ -469,11 +469,13 @@ class Step with StepMappable {
 
       final trajId = updatedMap['trajectory_id'] ?? '';
       final stepIdx = updatedMap['step_index'] ?? 0;
-      final callId =
+      final stepId =
           trajId.toString().isNotEmpty ? '$trajId:$stepIdx' : '$stepIdx';
+      final callId = activeToolId ?? stepId;
 
       toolCalls.add({
-        'id': activeToolId ?? callId,
+        'id': callId,
+        'step_id': stepId,
         'name': activeToolName,
         'arguments_json': activeToolArgs,
         'arguments': activeToolArgs,
