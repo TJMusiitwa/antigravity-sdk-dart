@@ -1,3 +1,23 @@
+# 0.10.0
+
+* **Sync with Python SDK v0.1.13**:
+  - **Pre-Tool Hook Argument Modification**:
+    - Pre-tool lifecycle hooks can now inspect, sanitize, and modify tool input arguments prior to execution by returning `HookResult(allow: true, modifiedArgs: {...})`.
+    - Added sequential argument modification chaining across registered `PreToolCallDecideHook` instances in `HookRunner.dispatchPreToolCall`.
+    - Updated `HookRouter` to emit `modified_arguments_json` in `PreToolResult` for harness-side tool authorization.
+  - **Tool Lifecycle Step Correlation (`stepId`)**:
+    - Added `stepId` (`@MappableField(key: 'step_id')`) to `ToolCall` and `ToolResult`.
+    - Added `stepId` parameter and property to `ToolExecutionException`.
+    - Updated `HookRouter` to extract and correlate `stepId` (`trajectory_id:step_index`) across pre-tool, post-tool, and on-tool-error lifecycle hooks.
+  - **Structured Command Execution Configuration (`RunCommandConfig`)**:
+    - Introduced `RunCommandConfig` to configure execution timeouts (`timeoutSeconds`) and authorize background daemon commands (`enableDaemons`).
+    - Added `runCommandConfig` property to `CapabilitiesConfig` and `SubagentCapabilities`.
+    - Mapped `RunCommandConfig` to `localharness` `harness_side_tools.run_command` configuration (`enable_daemon_commands` and `max_timeout_ms`).
+  - **Vertex AI Custom Base URL Support**:
+    - Updated `VertexEndpoint` to avoid hydrating ambient `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` environment variables when a custom `baseUrl` is specified.
+  - **Harness & Binary Discovery**:
+    - Updated default `localharness` binary download version in `HarnessDownloader` to `0.1.13`.
+
 # 0.9.2
  
 * **Fix `RetryConfig` Serialization**:
