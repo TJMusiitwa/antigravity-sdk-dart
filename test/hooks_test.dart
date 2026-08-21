@@ -313,6 +313,76 @@ void main() {
       expect(result.message, contains('blocked'));
       expect(secondHookCalls, equals(0));
     });
+
+    test('chains sequential argument modifications across hooks', () async {
+      final observedInHook2 = <String, dynamic>{};
+      final runner = HookRunner();
+      runner.registerHook(
+        _makePreToolCallHook((_, tc) async {
+          return HookResult(allow: true, modifiedArgs: {'a': 10});
+        }),
+      );
+      runner.registerHook(
+        _makePreToolCallHook((_, tc) async {
+          observedInHook2.addAll(tc.args);
+          return HookResult(allow: true, message: 'Audited by policy');
+        }),
+      );
+
+      final turn = runner.createTurnContext();
+      final tc = ToolCall(name: 'test_tool', args: {'a': 1, 'b': 2, 'c': 3});
+      final res = await runner.dispatchPreToolCall(turn, tc);
+
+      expect(res.allow, isTrue);
+      expect(observedInHook2, equals({'a': 10, 'b': 2, 'c': 3}));
+      expect(res.message, equals('Audited by policy'));
+      expect(res.modifiedArgs, equals({'a': 10, 'b': 2, 'c': 3}));
+    });
+
+    test('modifying hook then denying hook denies execution', () async {
+      final observedInHook2 = <String, dynamic>{};
+      final runner = HookRunner();
+      runner.registerHook(
+        _makePreToolCallHook((_, tc) async {
+          return HookResult(allow: true, modifiedArgs: {'cmd': 'echo safe'});
+        }),
+      );
+      runner.registerHook(
+        _makePreToolCallHook((_, tc) async {
+          observedInHook2.addAll(tc.args);
+          return HookResult(allow: false, message: 'Forbidden tool');
+        }),
+      );
+
+      final turn = runner.createTurnContext();
+      final tc = ToolCall(name: 'run_command', args: {'cmd': 'rm -rf /'});
+      final res = await runner.dispatchPreToolCall(turn, tc);
+
+      expect(res.allow, isFalse);
+      expect(observedInHook2, equals({'cmd': 'echo safe'}));
+      expect(res.message, equals('Forbidden tool'));
+    });
+  });
+
+  group('Synchronous functional hook execution', () {
+    test(
+        'FunctionInspectHook and FunctionDecideHook work with synchronous callbacks',
+        () async {
+      bool inspectCalled = false;
+      final inspectHook = FunctionInspectHook.stateless((data) {
+        inspectCalled = true;
+      });
+      final ctx = HookContext();
+      await inspectHook.run(ctx, 'test');
+      expect(inspectCalled, isTrue);
+
+      final decideHook = FunctionDecideHook.stateless((data) {
+        return HookResult(allow: true, message: 'sync_allow');
+      });
+      final res = await decideHook.run(ctx, 'prompt');
+      expect(res.allow, isTrue);
+      expect(res.message, equals('sync_allow'));
+    });
   });
 
   group('HookRunner – dispatchPostToolCall', () {

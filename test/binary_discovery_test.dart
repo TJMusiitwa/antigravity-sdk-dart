@@ -176,7 +176,7 @@ void main() {
       // Write an old version file (0.1.0)
       File('${binDir.path}/.version').writeAsStringSync('0.1.0');
 
-      // We expect it to try to auto-download because version is older than defaultVersion (0.1.12).
+      // We expect it to try to auto-download because version is older than defaultVersion (0.1.13).
       // Since autoDownload is false, it will fail and throw AntigravityBinaryNotFoundException.
       expect(
         BinaryDiscovery.discover(autoDownload: false),
@@ -190,8 +190,8 @@ void main() {
         ..createSync(recursive: true);
       final binFile = File('${binDir.path}/localharness')
         ..writeAsStringSync('binary_content');
-      // Write current default version (0.1.12)
-      File('${binDir.path}/.version').writeAsStringSync('0.1.12');
+      // Write current default version (0.1.13)
+      File('${binDir.path}/.version').writeAsStringSync('0.1.13');
 
       final result = await BinaryDiscovery.discover(autoDownload: false);
       expect(result, equals(binFile.absolute.path));

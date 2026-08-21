@@ -1622,4 +1622,182 @@ void main() {
       );
     });
   });
+
+  group('v0.10.0 updates', () {
+    test('ToolCall and ToolResult support stepId correlation', () {
+      final tcDefault = ToolCall(name: 'run_command');
+      expect(tcDefault.stepId, isNull);
+
+      final tc = ToolCall(
+        name: 'run_command',
+        id: 'call_1',
+        callId: 'call_1',
+        stepId: 'traj-1:5',
+      );
+      expect(tc.stepId, equals('traj-1:5'));
+      expect(tc.toMap()['step_id'], equals('traj-1:5'));
+
+      final tcFromMap = ToolCall.fromMap({
+        'name': 'run_command',
+        'step_id': 'traj-1:5',
+      });
+      expect(tcFromMap.stepId, equals('traj-1:5'));
+
+      final trDefault = ToolResult(name: 'run_command');
+      expect(trDefault.stepId, isNull);
+
+      final tr = ToolResult(
+        name: 'run_command',
+        stepId: 'traj-1:3',
+        result: 'ok',
+      );
+      expect(tr.stepId, equals('traj-1:3'));
+      expect(tr.toMap()['step_id'], equals('traj-1:3'));
+
+      final trFromMap = ToolResult.fromMap({
+        'name': 'run_command',
+        'step_id': 'traj-1:3',
+      });
+      expect(trFromMap.stepId, equals('traj-1:3'));
+    });
+
+    test('ToolExecutionException stepId property and toString formatting', () {
+      final exDefault = ToolExecutionException('failed', toolName: 'run_cmd');
+      expect(exDefault.stepId, isNull);
+      expect(exDefault.toString(),
+          equals('ToolExecutionException: failed (tool: run_cmd)'));
+
+      final ex = ToolExecutionException(
+        'query failed',
+        toolName: 'mcp_tool',
+        serverName: 'mcp_server',
+        callId: 'call_123',
+        stepId: 'step_456',
+      );
+      expect(ex.stepId, equals('step_456'));
+      expect(
+        ex.toString(),
+        equals(
+            'ToolExecutionException: query failed (tool: mcp_tool, server: mcp_server, callId: call_123, stepId: step_456)'),
+      );
+    });
+
+    test('HookResult modifiedArgs and copyWith', () {
+      final hrDefault = HookResult();
+      expect(hrDefault.allow, isTrue);
+      expect(hrDefault.modifiedArgs, isNull);
+
+      final hr = HookResult(
+        allow: true,
+        message: 'allowed',
+        modifiedArgs: {'query': 'sanitized'},
+      );
+      expect(hr.modifiedArgs, equals({'query': 'sanitized'}));
+
+      final copied = hr.copyWith(modifiedArgs: {'query': 'overridden'});
+      expect(copied.modifiedArgs, equals({'query': 'overridden'}));
+      expect(copied.message, equals('allowed'));
+    });
+
+    test('RunCommandConfig construction, validation, and serialization', () {
+      final def = RunCommandConfig();
+      expect(def.enableDaemons, isFalse);
+      expect(def.timeoutSeconds, isNull);
+
+      final custom = RunCommandConfig(
+        enableDaemons: true,
+        timeoutSeconds: 300.0,
+      );
+      expect(custom.enableDaemons, isTrue);
+      expect(custom.timeoutSeconds, equals(300.0));
+      expect(custom.toMap(),
+          equals({'enable_daemons': true, 'timeout_seconds': 300.0}));
+
+      final fromMap = RunCommandConfig.fromMap({
+        'enable_daemons': true,
+        'timeout_seconds': 60.0,
+      });
+      expect(fromMap.enableDaemons, isTrue);
+      expect(fromMap.timeoutSeconds, equals(60.0));
+
+      expect(
+        () => RunCommandConfig(timeoutSeconds: 0),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => RunCommandConfig(timeoutSeconds: -10.0),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+    });
+
+    test('CapabilitiesConfig and SubagentCapabilities support runCommandConfig',
+        () {
+      final caps = CapabilitiesConfig(
+        runCommandConfig: RunCommandConfig(
+          enableDaemons: true,
+          timeoutSeconds: 600.0,
+        ),
+      );
+      expect(caps.runCommandConfig, isNotNull);
+      expect(caps.runCommandConfig!.enableDaemons, isTrue);
+      expect(caps.runCommandConfig!.timeoutSeconds, equals(600.0));
+
+      final subCaps = SubagentCapabilities(
+        runCommandConfig: RunCommandConfig(timeoutSeconds: 30.0),
+      );
+      expect(subCaps.runCommandConfig, isNotNull);
+      expect(subCaps.runCommandConfig!.timeoutSeconds, equals(30.0));
+    });
+
+    // `Platform.environment` is immutable in-process, so these run a probe
+    // subprocess with GOOGLE_CLOUD_PROJECT / GOOGLE_CLOUD_LOCATION actually
+    // set. Asserting `project == null` in-process would pass whether or not
+    // the base_url guard exists, since CI leaves those vars unset.
+    group('VertexEndpoint ambient environment hydration', () {
+      const probe = 'test/support/vertex_env_probe.dart';
+      const env = {
+        'GOOGLE_CLOUD_PROJECT': 'env-proj',
+        'GOOGLE_CLOUD_LOCATION': 'env-loc',
+      };
+
+      Future<Map<String, dynamic>> runProbe({required bool withBaseUrl}) async {
+        final result = await Process.run(
+          Platform.resolvedExecutable,
+          ['run', probe, if (withBaseUrl) 'with-base-url'],
+          environment: env,
+          workingDirectory: Directory.current.path,
+        );
+        expect(
+          result.exitCode,
+          equals(0),
+          reason: 'probe failed: ${result.stderr}',
+        );
+        return jsonDecode((result.stdout as String).trim())
+            as Map<String, dynamic>;
+      }
+
+      test('hydrates project and location from the environment when no baseUrl',
+          () async {
+        final out = await runProbe(withBaseUrl: false);
+        expect(out['baseUrl'], isNull);
+        expect(out['project'], equals('env-proj'));
+        expect(out['location'], equals('env-loc'));
+      }, timeout: const Timeout(Duration(minutes: 2)));
+
+      test('skips environment hydration when a custom baseUrl is set',
+          () async {
+        final out = await runProbe(withBaseUrl: true);
+        expect(out['baseUrl'], equals('http://localhost:8080'));
+        expect(out['project'], isNull);
+        expect(out['location'], isNull);
+      }, timeout: const Timeout(Duration(minutes: 2)));
+
+      test('baseUrl endpoint validates without project or location', () {
+        final ep = VertexEndpoint(baseUrl: 'http://localhost:8080');
+        expect(ep.baseUrl, equals('http://localhost:8080'));
+        expect(ep.apiKey, isNull);
+        ep.validateEndpoint(); // Should not throw
+      });
+    });
+  });
 }

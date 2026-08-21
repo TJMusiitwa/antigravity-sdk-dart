@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:antigravity/antigravity.dart';
 import 'package:antigravity/src/connections/local/hook_router.dart';
 import 'package:test/test.dart';
@@ -296,6 +297,83 @@ void main() {
           sentEvents.last['call_hook_response']['pre_tool_result'];
       expect(preToolResult['decision'], equals('DENY'));
       expect(preToolResult['reason'], equals('Policy denied execution'));
+    });
+
+    test('handles pre tool call hook argument modification', () async {
+      final preTool = MockPreToolCallDecideHook(
+        HookResult(allow: true, modifiedArgs: {'cmd': 'echo sanitized'}),
+      );
+      final runner = HookRunner(preToolCallDecideHooks: [preTool]);
+      final sentEvents = <Map<String, dynamic>>[];
+      final router = HookRouter(runner, (evt) async {
+        sentEvents.add(evt);
+      });
+
+      await router.handle({
+        'request_id': 'req-10',
+        'type': 'LIFECYCLE_HOOK_PRE_TOOL',
+        'pre_tool_args': {
+          'tool_name': 'run_command',
+          'arguments_json': '{"cmd": "rm -rf /"}',
+          'call_id': 'call-modify',
+          'trajectory_id': 'traj_mod',
+          'step_index': 4,
+        },
+      });
+
+      expect(preTool.receivedToolCall, isNotNull);
+      expect(preTool.receivedToolCall!.stepId, equals('traj_mod:4'));
+
+      final resp = sentEvents.last['call_hook_response'];
+      expect(resp['request_id'], equals('req-10'));
+      final preToolResult = resp['pre_tool_result'];
+      expect(preToolResult['decision'], equals('ALLOW'));
+      expect(
+        preToolResult['modified_arguments_json'],
+        equals(jsonEncode({'cmd': 'echo sanitized'})),
+      );
+    });
+
+    test('extracts step_id across post_tool and on_tool_error hooks', () async {
+      final postTool = MockPostToolCallHook();
+      final toolError = MockOnToolErrorHook();
+      final runner = HookRunner(
+        postToolCallHooks: [postTool],
+        onToolErrorHooks: [toolError],
+      );
+      final sentEvents = <Map<String, dynamic>>[];
+      final router = HookRouter(runner, (evt) async {
+        sentEvents.add(evt);
+      });
+
+      await router.handle({
+        'request_id': 'req-post-step',
+        'type': 'LIFECYCLE_HOOK_POST_TOOL',
+        'post_tool_args': {
+          'tool_name': 'run_command',
+          'result': 'done',
+          'trajectory_id': 'traj_post',
+          'step_index': 7,
+        },
+      });
+
+      expect(postTool.receivedResult, isNotNull);
+      expect(postTool.receivedResult!.stepId, equals('traj_post:7'));
+
+      await router.handle({
+        'request_id': 'req-err-step',
+        'type': 'LIFECYCLE_HOOK_ON_TOOL_ERROR',
+        'on_tool_error_args': {
+          'tool_name': 'run_command',
+          'error_message': 'execution failed',
+          'trajectory_id': 'traj_err',
+          'step_index': 8,
+        },
+      });
+
+      expect(toolError.receivedError, isA<ToolExecutionException>());
+      final err = toolError.receivedError as ToolExecutionException;
+      expect(err.stepId, equals('traj_err:8'));
     });
   });
 }

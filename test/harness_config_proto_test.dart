@@ -195,4 +195,60 @@ void main() {
       );
     });
   });
+
+  group('run_command proto configuration', () {
+    test('defaults enable_daemon_commands to false and max_timeout_ms to 0',
+        () {
+      final config = buildStrategy().buildHarnessConfigForTest();
+      final runCmd = (config['harness_side_tools'] as Map)['run_command']
+          as Map<String, dynamic>;
+
+      expect(runCmd['enabled'], isTrue);
+      expect(runCmd['enable_daemon_commands'], isFalse);
+      expect(runCmd['max_timeout_ms'], equals(0));
+    });
+
+    test(
+        'custom RunCommandConfig sets enable_daemon_commands and max_timeout_ms',
+        () {
+      final config = buildStrategy(
+        capabilitiesConfig: CapabilitiesConfig(
+          runCommandConfig: RunCommandConfig(
+            enableDaemons: true,
+            timeoutSeconds: 60.0,
+          ),
+        ),
+      ).buildHarnessConfigForTest();
+      final runCmd = (config['harness_side_tools'] as Map)['run_command']
+          as Map<String, dynamic>;
+
+      expect(runCmd['enabled'], isTrue);
+      expect(runCmd['enable_daemon_commands'], isTrue);
+      expect(runCmd['max_timeout_ms'], equals(60000));
+    });
+
+    test('subagent honors RunCommandConfig', () {
+      final config = buildStrategy(
+        subagents: [
+          SubagentConfig(
+            name: 'dev_server',
+            description: 'Runs daemons',
+            capabilities: SubagentCapabilities(
+              runCommandConfig: RunCommandConfig(
+                enableDaemons: true,
+                timeoutSeconds: 30.0,
+              ),
+            ),
+          ),
+        ],
+      ).buildHarnessConfigForTest();
+
+      final subagent = (config['custom_subagents'] as List).first as Map;
+      final subRunCmd = (subagent['harness_side_tools'] as Map)['run_command']
+          as Map<String, dynamic>;
+
+      expect(subRunCmd['enable_daemon_commands'], isTrue);
+      expect(subRunCmd['max_timeout_ms'], equals(30000));
+    });
+  });
 }
