@@ -164,12 +164,16 @@ class VertexEndpoint extends ModelEndpoint with VertexEndpointMappable {
     String? location,
     this.apiKey,
     this.options,
-  })  : project = (apiKey == null || apiKey.isEmpty)
-            ? (project ?? Platform.environment['GOOGLE_CLOUD_PROJECT'])
-            : project,
-        location = (apiKey == null || apiKey.isEmpty)
-            ? (location ?? Platform.environment['GOOGLE_CLOUD_LOCATION'])
-            : location;
+  })  : project = (baseUrl != null && baseUrl.isNotEmpty)
+            ? project
+            : ((apiKey == null || apiKey.isEmpty)
+                ? (project ?? Platform.environment['GOOGLE_CLOUD_PROJECT'])
+                : project),
+        location = (baseUrl != null && baseUrl.isNotEmpty)
+            ? location
+            : ((apiKey == null || apiKey.isEmpty)
+                ? (location ?? Platform.environment['GOOGLE_CLOUD_LOCATION'])
+                : location);
 
   @override
   void validateEndpoint() {

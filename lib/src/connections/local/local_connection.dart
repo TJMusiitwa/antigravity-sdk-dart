@@ -21,6 +21,22 @@ import 'localharness_proto.dart';
 final _logger = Logger('antigravity.connection.local');
 
 /// Strategy for establishing a LocalConnection to a Go-based localharness binary.
+/// Builds the `run_command` harness-side tool proto map.
+///
+/// [enabled] reflects whether the builtin run_command tool is active. When
+/// [cfg] is null the upstream defaults are emitted (daemons disabled and a
+/// `max_timeout_ms` of 0, which the harness reads as "use the default
+/// timeout"), matching `RunCommandToolConfig` in the Python SDK.
+Map<String, dynamic> _runCommandToolProto(bool enabled, RunCommandConfig? cfg) {
+  final timeoutSeconds = cfg?.timeoutSeconds;
+  return {
+    'enabled': enabled,
+    'enable_daemon_commands': cfg?.enableDaemons ?? false,
+    'max_timeout_ms':
+        timeoutSeconds != null ? (timeoutSeconds * 1000).round() : 0,
+  };
+}
+
 class LocalConnectionStrategy implements ConnectionStrategy {
   final String? _configuredBinaryPath;
   final ToolRunner _toolRunner;
@@ -421,7 +437,10 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       'user_questions': {
         'enabled': activeTools.contains(BuiltinTools.askQuestion),
       },
-      'run_command': {'enabled': activeTools.contains(BuiltinTools.runCommand)},
+      'run_command': _runCommandToolProto(
+        activeTools.contains(BuiltinTools.runCommand),
+        cfg.runCommandConfig,
+      ),
       'file_edit': {'enabled': activeTools.contains(BuiltinTools.editFile)},
       'view_file': {'enabled': activeTools.contains(BuiltinTools.viewFile)},
       'write_to_file': {
@@ -556,9 +575,10 @@ class LocalConnectionStrategy implements ConnectionStrategy {
               'allowed_subagents': subagentCapabilities.allowedSubagents,
           },
           'find': {'enabled': activeSubTools.contains(BuiltinTools.findFile)},
-          'run_command': {
-            'enabled': activeSubTools.contains(BuiltinTools.runCommand),
-          },
+          'run_command': _runCommandToolProto(
+            activeSubTools.contains(BuiltinTools.runCommand),
+            subagentCapabilities?.runCommandConfig,
+          ),
           'file_edit': {
             'enabled': activeSubTools.contains(BuiltinTools.editFile),
           },
@@ -1100,19 +1120,42 @@ class LocalConnection implements Connection {
             : 'Tool execution denied by policy';
         _logger.warning('Tool execution denied: $errReason');
         await sendToolResults([
-          ToolResult(id: toolCall.id, name: toolCall.name, error: errReason),
+          ToolResult(
+            id: toolCall.id,
+            callId: toolCall.callId,
+            stepId: toolCall.stepId,
+            name: toolCall.name,
+            error: errReason,
+          ),
         ]);
         return;
       }
 
+      var effectiveToolCall = toolCall;
+      if (res.modifiedArgs != null) {
+        final mergedArgs = Map<String, dynamic>.from(effectiveToolCall.args);
+        mergedArgs.addAll(res.modifiedArgs!);
+        effectiveToolCall = ToolCall(
+          name: effectiveToolCall.name,
+          args: mergedArgs,
+          id: effectiveToolCall.id,
+          callId: effectiveToolCall.callId,
+          stepId: effectiveToolCall.stepId,
+          canonicalPath: effectiveToolCall.canonicalPath,
+          serverName: effectiveToolCall.serverName,
+        );
+      }
+
       ToolResult result;
       try {
-        final results = await _toolRunner.processToolCalls([toolCall]);
+        final results = await _toolRunner.processToolCalls([effectiveToolCall]);
         result = results[0];
       } catch (e) {
         result = ToolResult(
-          id: toolCall.id,
-          name: toolCall.name,
+          id: effectiveToolCall.id,
+          callId: effectiveToolCall.callId,
+          stepId: effectiveToolCall.stepId,
+          name: effectiveToolCall.name,
           error: e.toString(),
           exception: e is Exception ? e : Exception(e.toString()),
         );
