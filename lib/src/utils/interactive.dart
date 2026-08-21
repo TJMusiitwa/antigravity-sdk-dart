@@ -118,42 +118,7 @@ class AskQuestionHook extends OnInteractionHook {
       final responses = <QuestionResponse>[];
       try {
         for (final q in spec.questions) {
-          print("\nQuestion: ${q.question}");
-          final options = q.options;
-          for (var i = 0; i < options.length; i++) {
-            print("  ${i + 1}. ${options[i].text}");
-          }
-          final ans = (await asyncInput("Response: ")).trim();
-          if (ans.isEmpty) {
-            responses.add(QuestionResponse(skipped: true));
-            continue;
-          }
-
-          String? matchedId;
-          if (options.isNotEmpty) {
-            try {
-              final selectedIdx = int.parse(ans) - 1;
-              if (selectedIdx >= 0 && selectedIdx < options.length) {
-                matchedId = options[selectedIdx].id;
-              }
-            } catch (_) {}
-
-            if (matchedId == null) {
-              for (final opt in options) {
-                if (ans.toLowerCase() == opt.text.toLowerCase() ||
-                    ans.toLowerCase() == opt.id.toLowerCase()) {
-                  matchedId = opt.id;
-                  break;
-                }
-              }
-            }
-          }
-
-          if (matchedId != null) {
-            responses.add(QuestionResponse(selectedOptionIds: [matchedId]));
-          } else {
-            responses.add(QuestionResponse(freeformResponse: ans));
-          }
+          responses.add(await _promptSingleQuestion(q));
         }
       } catch (_) {
         return QuestionHookResult(responses: responses, cancelled: true);
@@ -162,6 +127,43 @@ class AskQuestionHook extends OnInteractionHook {
     } finally {
       Spinner.resumeActive();
     }
+  }
+
+  static Future<QuestionResponse> _promptSingleQuestion(AskQuestionEntry q) async {
+    print("\nQuestion: ${q.question}");
+    for (var i = 0; i < q.options.length; i++) {
+      print("  ${i + 1}. ${q.options[i].text}");
+    }
+    final ans = (await asyncInput("Response: ")).trim();
+    if (ans.isEmpty) {
+      return QuestionResponse(skipped: true);
+    }
+
+    final matchedId = _resolveSelectedOptionId(q.options, ans);
+    if (matchedId != null) {
+      return QuestionResponse(selectedOptionIds: [matchedId]);
+    }
+    return QuestionResponse(freeformResponse: ans);
+  }
+
+  static String? _resolveSelectedOptionId(List<AskQuestionOption> options, String ans) {
+    if (options.isEmpty) return null;
+
+    final parsedIdx = int.tryParse(ans);
+    if (parsedIdx != null) {
+      final idx = parsedIdx - 1;
+      if (idx >= 0 && idx < options.length) {
+        return options[idx].id;
+      }
+    }
+
+    final lowerAns = ans.toLowerCase();
+    for (final opt in options) {
+      if (lowerAns == opt.text.toLowerCase() || lowerAns == opt.id.toLowerCase()) {
+        return opt.id;
+      }
+    }
+    return null;
   }
 }
 
@@ -197,7 +199,6 @@ Future<void> runInteractiveLoop(
   }
 
   final policiesList = _upgradePoliciesList(config.policies);
-
   final upgradedConfig = config.copyWith(
     hooks: hooksList,
     policies: policiesList,
@@ -211,49 +212,55 @@ Future<void> runInteractiveLoop(
   try {
     print("Starting interactive loop. Type 'exit' or 'quit' to end.");
     while (true) {
-      try {
-        final userInput = (await asyncInput("User: ")).trim();
-        if (userInput.isEmpty) {
-          continue;
-        }
-        if (userInput.toLowerCase() == 'exit' ||
-            userInput.toLowerCase() == 'quit') {
-          print("Goodbye!");
-          break;
-        }
-
-        await agent.conversation.send(userInput);
-
-        final spinner = Spinner(message: "Thinking...");
-        spinner.start();
-
-        Step? finalStep;
-        await for (final step in agent.conversation.receiveSteps()) {
-          final spinnerMsg = formatStepSpinnerMessage(step);
-          if (spinnerMsg != null) {
-            spinner.update(spinnerMsg);
-          }
-
-          if (step.isCompleteResponse == true) {
-            finalStep = step;
-            break;
-          }
-        }
-
-        spinner.stop();
-
-        if (finalStep != null) {
-          print("Agent: ${finalStep.content}");
-        }
-      } on OSError catch (_) {
-        print("\nGoodbye!");
-        break;
-      } catch (e) {
-        print("Error: $e");
-      }
+      final shouldContinue = await _executeInteractiveTurn(agent);
+      if (!shouldContinue) break;
     }
   } finally {
     await agent.stop();
+  }
+}
+
+Future<bool> _executeInteractiveTurn(Agent agent) async {
+  try {
+    final userInput = (await asyncInput("User: ")).trim();
+    if (userInput.isEmpty) return true;
+    if (userInput.toLowerCase() == 'exit' || userInput.toLowerCase() == 'quit') {
+      print("Goodbye!");
+      return false;
+    }
+
+    await _streamAgentTurn(agent, userInput);
+    return true;
+  } on OSError catch (_) {
+    print("\nGoodbye!");
+    return false;
+  } catch (e) {
+    print("Error: $e");
+    return true;
+  }
+}
+
+Future<void> _streamAgentTurn(Agent agent, String userInput) async {
+  await agent.conversation.send(userInput);
+
+  final spinner = Spinner(message: "Thinking...");
+  spinner.start();
+
+  Step? finalStep;
+  await for (final step in agent.conversation.receiveSteps()) {
+    final spinnerMsg = formatStepSpinnerMessage(step);
+    if (spinnerMsg != null) {
+      spinner.update(spinnerMsg);
+    }
+    if (step.isCompleteResponse == true) {
+      finalStep = step;
+      break;
+    }
+  }
+
+  spinner.stop();
+  if (finalStep != null) {
+    print("Agent: ${finalStep.content}");
   }
 }
 

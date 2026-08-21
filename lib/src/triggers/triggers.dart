@@ -60,37 +60,40 @@ Trigger onFileChange(
       callback,
 ) {
   return (ctx) async {
-    final entity =
-        FileSystemEntity.typeSync(path) == FileSystemEntityType.directory
-            ? Directory(path)
-            : File(path);
-
+    final entity = _resolveWatchEntity(path);
     if (!entity.existsSync()) {
       throw FileSystemException("Path to watch does not exist", path);
     }
 
     final subscription = entity.watch().listen((event) async {
       if (ctx.isCancelled) return;
-
-      final kind = switch (event.type) {
-        FileSystemEvent.create => FileChangeKind.added,
-        FileSystemEvent.delete => FileChangeKind.deleted,
-        _ => FileChangeKind.modified,
-      };
-
-      final change = FileChange(kind: kind, path: event.path);
+      final change = FileChange(
+        kind: _mapFileSystemEventType(event.type),
+        path: event.path,
+      );
       try {
         await callback(ctx, [change]);
-      } catch (e) {
-        // Log/swallow callback errors
-      }
+      } catch (_) {}
     });
 
-    // Keep the trigger alive until cancelled
     while (!ctx.isCancelled) {
       await Future.delayed(const Duration(milliseconds: 500));
     }
 
     await subscription.cancel();
+  };
+}
+
+FileSystemEntity _resolveWatchEntity(String path) {
+  return FileSystemEntity.typeSync(path) == FileSystemEntityType.directory
+      ? Directory(path)
+      : File(path);
+}
+
+FileChangeKind _mapFileSystemEventType(int type) {
+  return switch (type) {
+    FileSystemEvent.create => FileChangeKind.added,
+    FileSystemEvent.delete => FileChangeKind.deleted,
+    _ => FileChangeKind.modified,
   };
 }

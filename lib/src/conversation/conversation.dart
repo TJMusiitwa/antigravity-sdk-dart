@@ -122,39 +122,27 @@ class Conversation {
 
   static void validatePrompt(dynamic prompt) {
     if (prompt == null) {
-      throw AntigravityValidationException(
-        "chat() requires non-empty message content. Got null.",
-      );
+      throw AntigravityValidationException("chat() requires non-empty message content. Got null.");
     }
     if (prompt is String && prompt.trim().isEmpty) {
-      throw AntigravityValidationException(
-        "chat() requires a non-empty message string. Got: '$prompt'",
-      );
+      throw AntigravityValidationException("chat() requires a non-empty message string. Got: '$prompt'");
     }
     if (prompt is Iterable) {
-      if (prompt.isEmpty) {
-        throw AntigravityValidationException(
-          "chat() requires non-empty message content. Got an empty list.",
-        );
-      }
-      bool allEmpty = true;
-      for (final item in prompt) {
-        if (item is String && item.trim().isNotEmpty) {
-          allEmpty = false;
-          break;
-        } else if (item is Text && item.text.trim().isNotEmpty) {
-          allEmpty = false;
-          break;
-        } else if (item != null && item is! String && item is! Text) {
-          allEmpty = false;
-          break;
-        }
-      }
-      if (allEmpty) {
-        throw AntigravityValidationException(
-          "chat() requires non-empty message content. Got: $prompt",
-        );
-      }
+      _validateIterablePrompt(prompt);
+    }
+  }
+
+  static void _validateIterablePrompt(Iterable prompt) {
+    if (prompt.isEmpty) {
+      throw AntigravityValidationException("chat() requires non-empty message content. Got an empty list.");
+    }
+    final hasContent = prompt.any((item) {
+      if (item is String) return item.trim().isNotEmpty;
+      if (item is Text) return item.text.trim().isNotEmpty;
+      return item != null;
+    });
+    if (!hasContent) {
+      throw AntigravityValidationException("chat() requires non-empty message content. Got: $prompt");
     }
   }
 
@@ -167,7 +155,19 @@ class Conversation {
     _turnStartUsage = usage;
     _lastTurnStopReason = StopReason.unspecified;
 
-    // 2. Record user input step in history
+    _recordUserPromptStep(prompt);
+
+    final deniedResponse = await _checkPreTurnDenial(prompt);
+    if (deniedResponse != null) return deniedResponse;
+
+    final controller = StreamController<dynamic>();
+    _setupStepForwarding(controller);
+
+    await _connection.send(prompt, kwargs: kwargs);
+    return ChatResponse(controller.stream, conversation: this);
+  }
+
+  void _recordUserPromptStep(dynamic prompt) {
     final userStep = Step(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       stepIndex: _history.length + 1,
@@ -179,135 +179,125 @@ class Conversation {
     );
     _history.add(userStep);
     _enforceMaxHistory();
+  }
 
-    // 3. Dispatch pre-turn hooks
-    if (_hookRunner != null) {
-      final res = await _hookRunner!.dispatchPreTurn(prompt);
-      if (!res.allow) {
-        final message = res.message.isNotEmpty
-            ? res.message
-            : 'Turn execution denied by hook.';
-        _logger.warning("Turn denied by hook: $message");
+  Future<ChatResponse?> _checkPreTurnDenial(dynamic prompt) async {
+    if (_hookRunner == null) return null;
+    final res = await _hookRunner!.dispatchPreTurn(prompt);
+    if (res.allow) return null;
 
-        final canceledStep = Step(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          stepIndex: _history.length + 1,
-          type: StepType.systemMessage,
-          source: StepSource.system,
-          target: StepTarget.user,
-          status: StepStatus.canceled,
-          content: '',
-          error: message,
-        );
-        _history.add(canceledStep);
+    final message = res.message.isNotEmpty ? res.message : 'Turn execution denied by hook.';
+    _logger.warning("Turn denied by hook: $message");
 
-        final controller = StreamController<dynamic>();
-        controller.add(canceledStep);
-        unawaited(controller.close());
-        return ChatResponse(controller.stream);
-      }
-    }
+    final canceledStep = Step(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      stepIndex: _history.length + 1,
+      type: StepType.systemMessage,
+      source: StepSource.system,
+      target: StepTarget.user,
+      status: StepStatus.canceled,
+      content: '',
+      error: message,
+    );
+    _history.add(canceledStep);
 
-    // 4. Wrap step stream to update internal state
     final controller = StreamController<dynamic>();
+    controller.add(canceledStep);
+    unawaited(controller.close());
+    return ChatResponse(controller.stream);
+  }
+
+  void _setupStepForwarding(StreamController<dynamic> controller) {
     final originalStream = _connection.receiveSteps();
-    final Set<String> seenToolIds = {};
+    final seenToolIds = <String>{};
     late StreamSubscription subscription;
 
     subscription = originalStream.listen(
-      (step) {
-        if (step.id == 'idle_sentinel') {
-          _lastTurnStopReason = _connection.lastTurnStopReason;
-          // Check for post-turn hook
-          if (_hookRunner != null) {
-            final ctx = _hookRunner!.createTurnContext();
-            final lastTextContent =
-                _history.isEmpty ? '' : _history.last.content;
-            _hookRunner!.dispatchPostTurn(ctx, lastTextContent).catchError((
-              Object err,
-              StackTrace st,
-            ) {
-              _logger.severe('Error in post-turn hook: $err', err, st);
-            });
-          }
-          unawaited(subscription.cancel());
-          controller.close();
-          return;
-        }
-
-        _history.add(step);
-        if (step.type == StepType.compaction) {
-          _compactionIndices.add(_history.length - 1);
-        }
-        _enforceMaxHistory();
-        if (step.usageMetadata != null) {
-          _accumulateUsage(step.usageMetadata!);
-        }
-
-        // Forward chunks to ChatResponse
-        final isModel = step.source == StepSource.model;
-        final isTargetUser = step.target == StepTarget.user;
-
-        if (isModel && isTargetUser) {
-          if (step.thinkingDelta.isNotEmpty) {
-            controller.add(
-              Thought(stepIndex: step.stepIndex, text: step.thinkingDelta),
-            );
-          }
-          if (step.contentDelta.isNotEmpty) {
-            controller.add(
-              Text(stepIndex: step.stepIndex, text: step.contentDelta),
-            );
-          }
-        }
-
-        for (final call in step.toolCalls) {
-          final id = call.id ?? '';
-          if (id.isEmpty || !seenToolIds.contains(id)) {
-            if (id.isNotEmpty) {
-              seenToolIds.add(id);
-            }
-            controller.add(call);
-          }
-        }
-
-        final isError = step.status == StepStatus.error;
-        final isFinish = step.type == StepType.finish;
-
-        final isTurnComplete = isFinish || isError;
-
-        if (isTurnComplete) {
-          _lastTurnStopReason = _connection.lastTurnStopReason;
-          // Check for post-turn hook
-          if (_hookRunner != null) {
-            final ctx = _hookRunner!.createTurnContext();
-            _hookRunner!.dispatchPostTurn(ctx, step.content).catchError((
-              Object err,
-              StackTrace st,
-            ) {
-              _logger.severe('Error in post-turn hook: $err', err, st);
-            });
-          }
-          unawaited(subscription.cancel());
-          controller.close();
-        }
-      },
+      (step) => _handleStepEvent(step, controller, seenToolIds, subscription),
       onError: (err) {
         controller.addError(err);
         unawaited(subscription.cancel());
         controller.close();
       },
       onDone: () {
-        if (!controller.isClosed) {
-          controller.close();
-        }
+        if (!controller.isClosed) controller.close();
       },
     );
+  }
 
-    // 5. Send to connection
-    await _connection.send(prompt, kwargs: kwargs);
+  void _handleStepEvent(
+    Step step,
+    StreamController<dynamic> controller,
+    Set<String> seenToolIds,
+    StreamSubscription subscription,
+  ) {
+    if (step.id == 'idle_sentinel') {
+      _finalizeTurn(subscription, controller, _history.isEmpty ? '' : _history.last.content);
+      return;
+    }
 
-    return ChatResponse(controller.stream, conversation: this);
+    _recordHistoryStep(step);
+    _forwardStepChunks(step, controller, seenToolIds);
+
+    if (step.type == StepType.finish || step.status == StepStatus.error) {
+      _finalizeTurn(subscription, controller, step.content);
+    }
+  }
+
+  void _recordHistoryStep(Step step) {
+    _history.add(step);
+    if (step.type == StepType.compaction) {
+      _compactionIndices.add(_history.length - 1);
+    }
+    _enforceMaxHistory();
+    if (step.usageMetadata != null) {
+      _accumulateUsage(step.usageMetadata!);
+    }
+  }
+
+  void _forwardStepChunks(
+    Step step,
+    StreamController<dynamic> controller,
+    Set<String> seenToolIds,
+  ) {
+    final isModel = step.source == StepSource.model;
+    final isTargetUser = step.target == StepTarget.user;
+
+    if (isModel && isTargetUser) {
+      if (step.thinkingDelta.isNotEmpty) {
+        controller.add(Thought(stepIndex: step.stepIndex, text: step.thinkingDelta));
+      }
+      if (step.contentDelta.isNotEmpty) {
+        controller.add(Text(stepIndex: step.stepIndex, text: step.contentDelta));
+      }
+    }
+
+    for (final call in step.toolCalls) {
+      final id = call.id ?? '';
+      if (id.isEmpty || !seenToolIds.contains(id)) {
+        if (id.isNotEmpty) seenToolIds.add(id);
+        controller.add(call);
+      }
+    }
+  }
+
+  void _finalizeTurn(
+    StreamSubscription subscription,
+    StreamController<dynamic> controller,
+    String lastContent,
+  ) {
+    _lastTurnStopReason = _connection.lastTurnStopReason;
+    if (_hookRunner != null) {
+      final ctx = _hookRunner!.createTurnContext();
+      _hookRunner!.dispatchPostTurn(ctx, lastContent).catchError((
+        Object err,
+        StackTrace st,
+      ) {
+        _logger.severe('Error in post-turn hook: $err', err, st);
+      });
+    }
+    unawaited(subscription.cancel());
+    controller.close();
   }
 
   /// Proxies for Connection methods used in examples

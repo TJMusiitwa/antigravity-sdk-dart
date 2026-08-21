@@ -436,60 +436,54 @@ class PolicyDecideHook extends PreToolCallDecideHook {
   }
 
   Future<HookResult?> _evaluatePolicy(Policy p, ToolCall toolCall) async {
-    final String callTarget;
-    final bool isMcp;
-    if (toolCall.serverName != null && toolCall.serverName!.isNotEmpty) {
-      callTarget = '${toolCall.serverName}/${toolCall.name}';
-      isMcp = true;
-    } else {
-      final legacyMcp = _parseMcpTool(toolCall.name);
-      if (legacyMcp != null) {
-        callTarget = '${legacyMcp.key}/${legacyMcp.value}';
-        isMcp = true;
-      } else {
-        callTarget = toolCall.name;
-        isMcp = false;
-      }
-    }
-
-    if (!_matchesTarget(p.tool, callTarget, isMcp)) {
+    final targetInfo = _resolveCallTarget(toolCall);
+    if (!_matchesTarget(p.tool, targetInfo.target, targetInfo.isMcp)) {
       return null;
     }
 
+    final label = p.name.isNotEmpty ? p.name : p.tool;
     try {
       if (p.when != null) {
         final matches = await p.when!(toolCall);
-        if (!matches) {
-          return null;
-        }
+        if (!matches) return null;
       }
-
-      final label = p.name.isNotEmpty ? p.name : p.tool;
-
-      if (p.decision == Decision.deny) {
-        return HookResult(allow: false, message: "Denied by policy '$label'.");
-      }
-
-      if (p.decision == Decision.approve) {
-        return HookResult(allow: true);
-      }
-
-      // ASK_USER
-      if (p.askUser != null) {
-        final approved = await p.askUser!(toolCall);
-        if (approved) {
-          return HookResult(allow: true);
-        }
-        return HookResult(
-          allow: false,
-          message: "User denied tool '${toolCall.name}' (policy '$label').",
-        );
-      }
+      return await _executePolicyDecision(p, toolCall, label);
     } catch (e) {
-      final label = p.name.isNotEmpty ? p.name : p.tool;
       return HookResult(
         allow: false,
         message: "Policy evaluation failed for policy '$label': $e",
+      );
+    }
+  }
+
+  ({String target, bool isMcp}) _resolveCallTarget(ToolCall toolCall) {
+    if (toolCall.serverName != null && toolCall.serverName!.isNotEmpty) {
+      return (target: '${toolCall.serverName}/${toolCall.name}', isMcp: true);
+    }
+    final legacyMcp = _parseMcpTool(toolCall.name);
+    if (legacyMcp != null) {
+      return (target: '${legacyMcp.key}/${legacyMcp.value}', isMcp: true);
+    }
+    return (target: toolCall.name, isMcp: false);
+  }
+
+  static Future<HookResult?> _executePolicyDecision(
+    Policy p,
+    ToolCall toolCall,
+    String label,
+  ) async {
+    if (p.decision == Decision.deny) {
+      return HookResult(allow: false, message: "Denied by policy '$label'.");
+    }
+    if (p.decision == Decision.approve) {
+      return HookResult(allow: true);
+    }
+    if (p.askUser != null) {
+      final approved = await p.askUser!(toolCall);
+      if (approved) return HookResult(allow: true);
+      return HookResult(
+        allow: false,
+        message: "User denied tool '${toolCall.name}' (policy '$label').",
       );
     }
     return null;

@@ -149,32 +149,40 @@ class LocalHarnessProto {
       if (tag == 1 && wireType == 0) {
         port = decodeVarint(bytes, indexRef);
       } else if (tag == 2 && wireType == 2) {
-        final len = decodeVarint(bytes, indexRef);
-        final idx = indexRef[0];
-        if (idx + len > bytes.length) {
-          throw FormatException('Truncated string field in OutputConfig');
-        }
-        final strBytes = bytes.sublist(idx, idx + len);
-        apiKey = utf8.decode(strBytes);
-        indexRef[0] = idx + len;
+        apiKey = _decodeProtoString(bytes, indexRef);
       } else {
-        // Skip unknown fields
-        if (wireType == 0) {
-          decodeVarint(bytes, indexRef);
-        } else if (wireType == 2) {
-          final len = decodeVarint(bytes, indexRef);
-          indexRef[0] = indexRef[0] + len;
-        } else if (wireType == 1) {
-          indexRef[0] = indexRef[0] + 8; // 64-bit
-        } else if (wireType == 5) {
-          indexRef[0] = indexRef[0] + 4; // 32-bit
-        } else {
-          throw FormatException('Unsupported wire type: $wireType');
-        }
+        _skipUnknownWireField(bytes, indexRef, wireType);
       }
     }
 
     return LocalHarnessProto(port: port, apiKey: apiKey);
+  }
+
+  static String _decodeProtoString(List<int> bytes, List<int> indexRef) {
+    final len = decodeVarint(bytes, indexRef);
+    final idx = indexRef[0];
+    if (idx + len > bytes.length) {
+      throw FormatException('Truncated string field in OutputConfig');
+    }
+    final strBytes = bytes.sublist(idx, idx + len);
+    indexRef[0] = idx + len;
+    return utf8.decode(strBytes);
+  }
+
+  static void _skipUnknownWireField(List<int> bytes, List<int> indexRef, int wireType) {
+    switch (wireType) {
+      case 0:
+        decodeVarint(bytes, indexRef);
+      case 2:
+        final len = decodeVarint(bytes, indexRef);
+        indexRef[0] += len;
+      case 1:
+        indexRef[0] += 8;
+      case 5:
+        indexRef[0] += 4;
+      default:
+        throw FormatException('Unsupported wire type: $wireType');
+    }
   }
 
   /// Packs a message payload with a 4-byte little-endian length prefix.

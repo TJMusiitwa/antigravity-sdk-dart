@@ -265,46 +265,58 @@ class Step with StepMappable {
   });
 
   factory Step.fromMap(Map<String, dynamic> map) {
-    // 1. Convert all keys from camelCase to snake_case
+    final updatedMap = _normalizeStepKeys(map);
+    _normalizeContentFields(updatedMap);
+    _normalizeError(updatedMap);
+    _normalizeStatusAndSource(updatedMap);
+    _normalizeUsageMetadata(updatedMap);
+
+    final toolCalls = _extractToolCalls(updatedMap);
+    if (toolCalls.isNotEmpty) {
+      updatedMap['tool_calls'] = toolCalls;
+    }
+
+    _determineStepType(updatedMap, toolCalls.isNotEmpty);
+    _extractStructuredOutput(updatedMap);
+    _determineIsCompleteResponse(updatedMap);
+
+    return StepMapper.fromMap(updatedMap);
+  }
+
+  static Map<String, dynamic> _normalizeStepKeys(Map<String, dynamic> map) {
     final updatedMap = <String, dynamic>{};
     map.forEach((key, val) {
-      final snakeKey = _toSnakeCase(key);
-      updatedMap[snakeKey] = val;
+      updatedMap[_toSnakeCase(key)] = val;
     });
-
     if (updatedMap.containsKey('depth')) {
       updatedMap['depth'] = int.tryParse(updatedMap['depth'].toString()) ?? 0;
     }
+    return updatedMap;
+  }
 
-    // 2. Map 'text' to 'content'
-    if (!updatedMap.containsKey('content') && updatedMap.containsKey('text')) {
-      updatedMap['content'] = updatedMap['text'];
+  static void _normalizeContentFields(Map<String, dynamic> map) {
+    if (!map.containsKey('content') && map.containsKey('text')) {
+      map['content'] = map['text'];
     }
-
-    // 3. Map 'text_delta' to 'content_delta'
-    if (!updatedMap.containsKey('content_delta') &&
-        updatedMap.containsKey('text_delta')) {
-      updatedMap['content_delta'] = updatedMap['text_delta'];
+    if (!map.containsKey('content_delta') && map.containsKey('text_delta')) {
+      map['content_delta'] = map['text_delta'];
     }
+  }
 
-    // 4. Extract nested error message
-    if (updatedMap.containsKey('error')) {
-      final errorField = updatedMap['error'];
-      if (errorField is Map) {
-        final errorMsg =
-            errorField['error_message'] ?? errorField['errorMessage'] ?? '';
-        updatedMap['error'] = errorMsg.toString();
-      } else if (errorField is! String) {
-        updatedMap['error'] = errorField.toString();
-      }
-    } else if (updatedMap.containsKey('error_message')) {
-      updatedMap['error'] = updatedMap['error_message'];
+  static void _normalizeError(Map<String, dynamic> map) {
+    if (map.containsKey('error')) {
+      final err = map['error'];
+      map['error'] = err is Map
+          ? (err['error_message'] ?? err['errorMessage'] ?? '').toString()
+          : err.toString();
+    } else if (map.containsKey('error_message')) {
+      map['error'] = map['error_message'];
     }
+  }
 
-    // 5. Map 'state' to 'status'
-    if (updatedMap.containsKey('state')) {
-      final stateStr = updatedMap['state'].toString();
-      updatedMap['status'] = switch (stateStr) {
+  static void _normalizeStatusAndSource(Map<String, dynamic> map) {
+    if (map.containsKey('state')) {
+      map['status'] = switch (map['state'].toString()) {
         'STATE_ACTIVE' || 'ACTIVE' => 'ACTIVE',
         'STATE_DONE' || 'DONE' => 'DONE',
         'STATE_WAITING_FOR_USER' || 'WAITING_FOR_USER' => 'WAITING_FOR_USER',
@@ -313,277 +325,234 @@ class Step with StepMappable {
         _ => 'UNKNOWN',
       };
     }
-
-    // 6. Map 'source'
-    if (updatedMap.containsKey('source')) {
-      final sourceStr = updatedMap['source'].toString();
-      updatedMap['source'] = switch (sourceStr) {
+    if (map.containsKey('source')) {
+      map['source'] = switch (map['source'].toString()) {
         'SOURCE_SYSTEM' || 'SYSTEM' => 'SYSTEM',
         'SOURCE_USER' || 'USER' => 'USER',
         'SOURCE_MODEL' || 'MODEL' => 'MODEL',
         _ => 'UNKNOWN',
       };
     }
+  }
 
-    // 7. Normalize 'usage_metadata' keys and parse String values to int
-    if (updatedMap.containsKey('usage_metadata') &&
-        updatedMap['usage_metadata'] is Map) {
-      final rawUsage = updatedMap['usage_metadata'] as Map;
-      final normalizedUsage = <String, dynamic>{};
-      rawUsage.forEach((k, v) {
-        final snakeK = _toSnakeCase(k.toString());
-        if (v != null) {
-          if (v is num) {
-            normalizedUsage[snakeK] = v.toInt();
-          } else {
-            normalizedUsage[snakeK] = int.tryParse(v.toString());
-          }
-        }
-      });
-      updatedMap['usage_metadata'] = normalizedUsage;
+  static void _normalizeUsageMetadata(Map<String, dynamic> map) {
+    final raw = map['usage_metadata'];
+    if (raw is! Map) return;
+    final normalized = <String, dynamic>{};
+    raw.forEach((k, v) {
+      if (v != null) {
+        final snakeKey = _toSnakeCase(k.toString());
+        normalized[snakeKey] = v is num ? v.toInt() : int.tryParse(v.toString());
+      }
+    });
+    map['usage_metadata'] = normalized;
+  }
+
+  static const _toolFields = {
+    'create_file': 'create_file',
+    'edit_file': 'edit_file',
+    'find_file': 'find_file',
+    'list_directory': 'list_directory',
+    'run_command': 'run_command',
+    'search_directory': 'search_directory',
+    'view_file': 'view_file',
+    'invoke_subagent': 'invoke_subagent',
+    'generate_image': 'generate_image',
+    'search_web': 'search_web',
+    'read_url_content': 'read_url_content',
+    'finish': 'finish',
+  };
+
+  static List<Map<String, dynamic>> _extractToolCalls(Map<String, dynamic> map) {
+    final singleCall = _extractSingleActiveTool(map);
+    if (singleCall != null) {
+      return [singleCall];
     }
+    final rawList = map['tool_calls'] ?? map['toolCalls'];
+    if (rawList is List) {
+      return _parseRawToolCalls(rawList);
+    }
+    return const [];
+  }
 
-    // 8. Parse tool calls
-    const toolFields = {
-      'create_file': 'create_file',
-      'edit_file': 'edit_file',
-      'find_file': 'find_file',
-      'list_directory': 'list_directory',
-      'run_command': 'run_command',
-      'search_directory': 'search_directory',
-      'view_file': 'view_file',
-      'invoke_subagent': 'invoke_subagent',
-      'generate_image': 'generate_image',
-      'search_web': 'search_web',
-      'read_url_content': 'read_url_content',
-      'finish': 'finish',
+  static Map<String, dynamic>? _extractSingleActiveTool(Map<String, dynamic> map) {
+    final detected =
+        _findBuiltinTool(map) ?? _findMcpTool(map) ?? _findCustomTool(map);
+
+    if (detected == null) return null;
+
+    final canonicalPath = _normalizeToolPathArgs(detected.args);
+    final trajId = map['trajectory_id']?.toString() ?? '';
+    final stepIdx = map['step_index'] ?? 0;
+    final stepId = trajId.isNotEmpty ? '$trajId:$stepIdx' : '$stepIdx';
+    final callId = detected.id ?? stepId;
+
+    return {
+      'id': callId,
+      'step_id': stepId,
+      'name': detected.name,
+      'arguments_json': detected.args,
+      'arguments': detected.args,
+      'canonical_path': canonicalPath,
+      if (detected.serverName != null && detected.serverName!.isNotEmpty)
+        'server_name': detected.serverName,
     };
+  }
 
-    final toolCalls = <Map<String, dynamic>>[];
-    String? activeToolName;
-    String? activeServerName;
-    String? activeToolId;
-    Map<String, dynamic> activeToolArgs = {};
-
-    // Parse builtin/harness tools
-    for (final entry in toolFields.entries) {
+  static ({String name, Map<String, dynamic> args, String? serverName, String? id})? _findBuiltinTool(
+    Map<String, dynamic> map,
+  ) {
+    for (final entry in _toolFields.entries) {
       final protoField = entry.key;
-      final protoFieldCamel = _toCamelCase(protoField);
-      final toolName = entry.value;
-
-      final keyToUse = updatedMap.containsKey(protoField)
+      final camel = _toCamelCase(protoField);
+      final key = map.containsKey(protoField)
           ? protoField
-          : (updatedMap.containsKey(protoFieldCamel) ? protoFieldCamel : null);
+          : (map.containsKey(camel) ? camel : null);
 
-      if (keyToUse != null && updatedMap[keyToUse] is Map) {
-        activeToolName = toolName;
-        activeToolArgs = Map<String, dynamic>.from(updatedMap[keyToUse] as Map);
-        break; // A step has at most one tool call in the Go-harness
+      if (key != null && map[key] is Map) {
+        return (
+          name: entry.value,
+          args: Map<String, dynamic>.from(map[key] as Map),
+          serverName: null,
+          id: null,
+        );
       }
     }
+    return null;
+  }
 
-    // Parse MCP tools if activeToolName wasn't set by a builtin
-    if (activeToolName == null) {
-      final mcpKey = updatedMap.containsKey('mcp_tool')
-          ? 'mcp_tool'
-          : (updatedMap.containsKey('mcpTool') ? 'mcpTool' : null);
+  static ({String name, Map<String, dynamic> args, String? serverName, String? id})? _findMcpTool(
+    Map<String, dynamic> map,
+  ) {
+    final mcpKey = map.containsKey('mcp_tool')
+        ? 'mcp_tool'
+        : (map.containsKey('mcpTool') ? 'mcpTool' : null);
+    if (mcpKey == null || map[mcpKey] is! Map) return null;
 
-      if (mcpKey != null && updatedMap[mcpKey] is Map) {
-        final mcpDict = Map<String, dynamic>.from(updatedMap[mcpKey] as Map);
-        activeServerName =
-            (mcpDict['server_name'] ?? mcpDict['serverName'] ?? '').toString();
-        activeToolName =
-            (mcpDict['tool_name'] ?? mcpDict['toolName'] ?? '').toString();
-        final argsJson =
-            mcpDict['arguments_json'] ?? mcpDict['argumentsJson'] ?? '{}';
-        try {
-          if (argsJson is String) {
-            activeToolArgs =
-                Map<String, dynamic>.from(jsonDecode(argsJson) as Map);
-          } else if (argsJson is Map) {
-            activeToolArgs = Map<String, dynamic>.from(argsJson);
-          }
-        } catch (e) {
-          _logger.warning('Failed to parse MCP arguments_json: $e');
-        }
+    final dict = Map<String, dynamic>.from(map[mcpKey] as Map);
+    final serverName = (dict['server_name'] ?? dict['serverName'] ?? '').toString();
+    final toolName = (dict['tool_name'] ?? dict['toolName'] ?? '').toString();
+    final argsJson = dict['arguments_json'] ?? dict['argumentsJson'] ?? '{}';
+    final args = _decodeToolArguments(argsJson);
+
+    return (name: toolName, args: args, serverName: serverName, id: null);
+  }
+
+  static ({String name, Map<String, dynamic> args, String? serverName, String? id})? _findCustomTool(
+    Map<String, dynamic> map,
+  ) {
+    final customKey = map.containsKey('custom_tool')
+        ? 'custom_tool'
+        : (map.containsKey('customTool') ? 'customTool' : null);
+    if (customKey == null || map[customKey] is! Map) return null;
+
+    final ctDict = Map<String, dynamic>.from(map[customKey] as Map);
+    final tcKey = ctDict.containsKey('tool_call')
+        ? 'tool_call'
+        : (ctDict.containsKey('toolCall') ? 'toolCall' : null);
+    if (tcKey == null || ctDict[tcKey] is! Map) return null;
+
+    final tcDict = Map<String, dynamic>.from(ctDict[tcKey] as Map);
+    final name = tcDict['name']?.toString();
+    if (name == null || name.isEmpty) return null;
+
+    final argsJson = tcDict['arguments_json'] ?? tcDict['argumentsJson'] ?? '{}';
+    final args = _decodeToolArguments(argsJson);
+
+    return (name: name, args: args, serverName: null, id: tcDict['id']?.toString());
+  }
+
+  static Map<String, dynamic> _decodeToolArguments(dynamic argsJson) {
+    try {
+      if (argsJson is String) {
+        return Map<String, dynamic>.from(jsonDecode(argsJson) as Map);
+      }
+      if (argsJson is Map) {
+        return Map<String, dynamic>.from(argsJson);
+      }
+    } catch (e) {
+      _logger.warning('Failed to parse tool arguments_json: $e');
+    }
+    return <String, dynamic>{};
+  }
+
+  static const _pathKeys = [
+    'path',
+    'file_path',
+    'TargetFile',
+    'directory_path',
+    'output_path',
+  ];
+
+  static String? _normalizeToolPathArgs(Map<String, dynamic> args) {
+    String? canonicalPath;
+    for (final pathKey in _pathKeys) {
+      final snakeKey = _toSnakeCase(pathKey);
+      final key = args.containsKey(pathKey)
+          ? pathKey
+          : (args.containsKey(snakeKey) ? snakeKey : null);
+      if (key != null && args[key] is String) {
+        final normalized = _normalizeWirePath(args[key] as String);
+        args[key] = normalized;
+        canonicalPath ??= normalized;
       }
     }
+    return canonicalPath;
+  }
 
-    // Parse custom_tool if activeToolName wasn't set by a builtin or MCP
-    if (activeToolName == null) {
-      final customToolKey = updatedMap.containsKey('custom_tool')
-          ? 'custom_tool'
-          : (updatedMap.containsKey('customTool') ? 'customTool' : null);
-      if (customToolKey != null && updatedMap[customToolKey] is Map) {
-        final ctDict =
-            Map<String, dynamic>.from(updatedMap[customToolKey] as Map);
-        final tcKey = ctDict.containsKey('tool_call')
-            ? 'tool_call'
-            : (ctDict.containsKey('toolCall') ? 'toolCall' : null);
-        if (tcKey != null && ctDict[tcKey] is Map) {
-          final tcDict = Map<String, dynamic>.from(ctDict[tcKey] as Map);
-          final name = tcDict['name']?.toString();
-          if (name != null && name.isNotEmpty) {
-            activeToolName = name;
-            activeToolId = tcDict['id']?.toString();
-            final argsJson =
-                tcDict['arguments_json'] ?? tcDict['argumentsJson'] ?? '{}';
-            try {
-              if (argsJson is String) {
-                activeToolArgs =
-                    Map<String, dynamic>.from(jsonDecode(argsJson) as Map);
-              } else if (argsJson is Map) {
-                activeToolArgs = Map<String, dynamic>.from(argsJson);
-              }
-            } catch (e) {
-              _logger.warning('Failed to parse custom tool arguments_json: $e');
-            }
-          }
-        }
+  static List<Map<String, dynamic>> _parseRawToolCalls(List rawCalls) {
+    final toolCalls = <Map<String, dynamic>>[];
+    for (final rawCall in rawCalls) {
+      if (rawCall is! Map) continue;
+      final callMap = Map<String, dynamic>.from(rawCall);
+      final args = _decodeToolArguments(callMap['arguments_json'] ?? callMap['arguments']);
+      final canonicalPath = _normalizeToolPathArgs(args) ?? callMap['canonical_path']?.toString();
+
+      callMap['arguments'] = args;
+      callMap['arguments_json'] = args;
+      callMap['canonical_path'] = canonicalPath;
+      toolCalls.add(callMap);
+    }
+    return toolCalls;
+  }
+
+  static void _determineStepType(Map<String, dynamic> map, bool hasToolCalls) {
+    if (map['type'] != null && map['type'] != 'UNKNOWN') return;
+
+    if (map['compaction'] != null) {
+      map['type'] = 'COMPACTION';
+    } else if (map['finish'] != null) {
+      map['type'] = 'FINISH';
+    } else if (hasToolCalls) {
+      map['type'] = 'TOOL_CALL';
+    } else if (map['thinking'] != null && map['thinking'].toString().isNotEmpty) {
+      map['type'] = 'THINKING';
+    } else if (map['text'] != null && map['text'].toString().isNotEmpty) {
+      map['type'] = 'TEXT_RESPONSE';
+    } else {
+      map['type'] = 'UNKNOWN';
+    }
+  }
+
+  static void _extractStructuredOutput(Map<String, dynamic> map) {
+    final finish = map['finish'];
+    if (finish is! Map) return;
+    final outputString = finish['output_string'] ?? finish['outputString'];
+    if (outputString != null && outputString.toString().isNotEmpty) {
+      try {
+        map['structured_output'] = jsonDecode(outputString.toString());
+      } catch (e) {
+        _logger.warning('Failed to parse structured output JSON: $e');
       }
     }
+  }
 
-    if (activeToolName != null) {
-      // Normalize file paths
-      String? canonicalPath;
-      const pathKeys = [
-        'path',
-        'file_path',
-        'TargetFile',
-        'directory_path',
-        'output_path'
-      ];
-      for (final pathKey in pathKeys) {
-        final snakePathKey = _toSnakeCase(pathKey);
-        final keyToCheck = activeToolArgs.containsKey(pathKey)
-            ? pathKey
-            : (activeToolArgs.containsKey(snakePathKey) ? snakePathKey : null);
-        if (keyToCheck != null && activeToolArgs[keyToCheck] is String) {
-          final normalized = _normalizeWirePath(
-            activeToolArgs[keyToCheck] as String,
-          );
-          activeToolArgs[keyToCheck] = normalized;
-          canonicalPath = normalized;
-        }
-      }
-
-      final trajId = updatedMap['trajectory_id'] ?? '';
-      final stepIdx = updatedMap['step_index'] ?? 0;
-      final stepId =
-          trajId.toString().isNotEmpty ? '$trajId:$stepIdx' : '$stepIdx';
-      final callId = activeToolId ?? stepId;
-
-      toolCalls.add({
-        'id': callId,
-        'step_id': stepId,
-        'name': activeToolName,
-        'arguments_json': activeToolArgs,
-        'arguments': activeToolArgs,
-        'canonical_path': canonicalPath,
-        if (activeServerName != null && activeServerName.isNotEmpty)
-          'server_name': activeServerName,
-      });
-    } else if (updatedMap['tool_calls'] is List ||
-        updatedMap['toolCalls'] is List) {
-      final rawCalls =
-          (updatedMap['tool_calls'] ?? updatedMap['toolCalls']) as List;
-      for (final rawCall in rawCalls) {
-        if (rawCall is Map) {
-          final callMap = Map<String, dynamic>.from(rawCall);
-          var args = <String, dynamic>{};
-          if (callMap['arguments_json'] is String) {
-            try {
-              args = Map<String, dynamic>.from(
-                jsonDecode(callMap['arguments_json'] as String) as Map,
-              );
-            } catch (_) {}
-          } else if (callMap['arguments'] is Map) {
-            args = Map<String, dynamic>.from(callMap['arguments'] as Map);
-          } else if (callMap['arguments_json'] is Map) {
-            args = Map<String, dynamic>.from(callMap['arguments_json'] as Map);
-          }
-
-          String? canonicalPath = callMap['canonical_path']?.toString();
-          const pathKeys = [
-            'path',
-            'file_path',
-            'TargetFile',
-            'directory_path',
-            'output_path'
-          ];
-          for (final pathKey in pathKeys) {
-            final snakePathKey = _toSnakeCase(pathKey);
-            final keyToCheck = args.containsKey(pathKey)
-                ? pathKey
-                : (args.containsKey(snakePathKey) ? snakePathKey : null);
-            if (keyToCheck != null && args[keyToCheck] is String) {
-              final normalized = _normalizeWirePath(args[keyToCheck] as String);
-              args[keyToCheck] = normalized;
-              canonicalPath ??= normalized;
-            }
-          }
-          callMap['arguments'] = args;
-          callMap['arguments_json'] = args;
-          callMap['canonical_path'] = canonicalPath;
-          toolCalls.add(callMap);
-        }
-      }
-    }
-
-    if (toolCalls.isNotEmpty) {
-      updatedMap['tool_calls'] = toolCalls;
-    }
-
-    // 9. Determine StepType type
-    if (!updatedMap.containsKey('type') ||
-        updatedMap['type'] == null ||
-        updatedMap['type'] == 'UNKNOWN') {
-      var typeVal = 'UNKNOWN';
-      if (updatedMap['compaction'] != null) {
-        typeVal = 'COMPACTION';
-      } else if (updatedMap['finish'] != null) {
-        typeVal = 'FINISH';
-      } else if (toolCalls.isNotEmpty) {
-        typeVal = 'TOOL_CALL';
-      } else if (updatedMap['thinking'] != null &&
-          updatedMap['thinking'].toString().isNotEmpty) {
-        typeVal = 'THINKING';
-      } else if (updatedMap['text'] != null &&
-          updatedMap['text'].toString().isNotEmpty) {
-        typeVal = 'TEXT_RESPONSE';
-      }
-      updatedMap['type'] = typeVal;
-    }
-
-    // Extract structured output from finish payload
-    if (updatedMap['finish'] != null) {
-      final finishField = updatedMap['finish'];
-      if (finishField is Map) {
-        final outputString =
-            finishField['output_string'] ?? finishField['outputString'];
-        if (outputString != null && outputString.toString().isNotEmpty) {
-          try {
-            updatedMap['structured_output'] = jsonDecode(
-              outputString.toString(),
-            );
-          } catch (e) {
-            _logger.warning('Failed to parse structured output JSON: $e');
-          }
-        }
-      }
-    }
-
-    // Determine is_complete_response
-    final isFromModel = updatedMap['source'] == 'MODEL';
-    final isDone = updatedMap['status'] == 'DONE';
-    final hasText = updatedMap['content'] != null &&
-        updatedMap['content'].toString().isNotEmpty;
-    final isTargetUser =
-        updatedMap['target'] == 'TARGET_USER' || updatedMap['target'] == 'user';
-    updatedMap['is_complete_response'] =
-        isFromModel && isDone && hasText && isTargetUser;
-
-    return StepMapper.fromMap(updatedMap);
+  static void _determineIsCompleteResponse(Map<String, dynamic> map) {
+    final isFromModel = map['source'] == 'MODEL';
+    final isDone = map['status'] == 'DONE';
+    final hasText = map['content'] != null && map['content'].toString().isNotEmpty;
+    final isTargetUser = map['target'] == 'TARGET_USER' || map['target'] == 'user';
+    map['is_complete_response'] = isFromModel && isDone && hasText && isTargetUser;
   }
 
   static String _normalizeWirePath(String path) {

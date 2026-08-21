@@ -131,20 +131,35 @@ class LocalConnectionStrategy implements ConnectionStrategy {
 
   @override
   Future<void> start() async {
-    // 1. Validate all model endpoints
     _validateConnection();
 
-    // 2. Discover the binary path dynamically
     final resolvedBinaryPath = await BinaryDiscovery.discover(
       configPath: _configuredBinaryPath,
     );
-
     _logger.info('Starting localharness binary at: $resolvedBinaryPath');
 
-    // 3. Start the process
     _process = await Process.start(resolvedBinaryPath, []);
+    await _sendHandshakeInputConfig(_process!);
 
-    // 4. Send standard input handshake payload
+    final outputConfig = await _readHandshakeOutputConfig(_process!);
+    final ws = await _connectWebSocketWithRetry(outputConfig, _process!);
+    _ws = ws;
+
+    final sessionData = await _initializeHarnessSession(ws, _process!);
+
+    _connection = LocalConnection(
+      process: _process!,
+      ws: _ws!,
+      messageStream: sessionData.messageStream,
+      toolRunner: _toolRunner,
+      hookRunner: _hookRunner,
+      initialHistory: sessionData.initialHistory,
+    );
+    _connection!._startStderrReader();
+    _connection!._startReaderLoop();
+  }
+
+  Future<void> _sendHandshakeInputConfig(Process process) async {
     final inputConfigBytes = LocalHarnessProto.encodeInputConfig(
       storageDirectory: _saveDir ?? '',
       clientLanguage: 'dart',
@@ -152,165 +167,132 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       clientLanguageVersion: Platform.version,
     );
     final packedMessage = LocalHarnessProto.packMessage(inputConfigBytes);
-    _process!.stdin.add(packedMessage);
-    await _process!.stdin.flush();
+    process.stdin.add(packedMessage);
+    await process.stdin.flush();
+  }
 
-    // 5. Read output config from stdout using our stateful HandshakeReader
-    late LocalHarnessProto outputConfig;
+  Future<LocalHarnessProto> _readHandshakeOutputConfig(Process process) async {
     try {
       final reader = HandshakeReader();
-      outputConfig = await reader.read(_process!.stdout);
+      return await reader.read(process.stdout);
     } catch (e) {
-      _process!.kill();
-      // Read stderr to see if it crashed
-      final stderrText = await _process!.stderr.transform(utf8.decoder).join();
-      _logger.severe(
-        'Failed to handshake with localharness. Stderr: $stderrText',
-      );
-      throw Exception(
-        'Failed to handshake with localharness process. Stderr: $stderrText. Error: $e',
-      );
+      process.kill();
+      final stderrText = await process.stderr.transform(utf8.decoder).join();
+      _logger.severe('Failed to handshake with localharness. Stderr: $stderrText');
+      throw Exception('Failed to handshake with localharness process. Stderr: $stderrText. Error: $e');
     }
+  }
 
-    // 6. Connect to local WebSocket server with retry backoff (trying both localhost and 127.0.0.1)
-    WebSocket? ws;
-    String? connectedWsUrl;
+  Future<WebSocket> _connectWebSocketWithRetry(LocalHarnessProto outputConfig, Process process) async {
     int attempt = 0;
     const maxRetries = 5;
     Object? lastException;
+
     while (attempt < maxRetries) {
       for (final host in ['localhost', '127.0.0.1']) {
-        final url = 'ws://$host:${outputConfig.port}/';
         try {
-          ws = await WebSocket.connect(
-            url,
+          return await WebSocket.connect(
+            'ws://$host:${outputConfig.port}/',
             headers: {'x-goog-api-key': outputConfig.apiKey},
           );
-          connectedWsUrl = url;
-          break;
         } catch (e) {
           lastException = e;
         }
       }
-      if (ws != null) {
-        break;
-      }
       attempt++;
       if (attempt >= maxRetries) {
-        _process!.kill();
-        final stderrText =
-            await _process!.stderr.transform(utf8.decoder).join();
+        process.kill();
+        final stderrText = await process.stderr.transform(utf8.decoder).join();
         throw Exception(
           'Failed to connect to WebSocket after $maxRetries attempts. Last error: $lastException. Stderr: $stderrText',
         );
       }
       final delay = Duration(milliseconds: 100 * (1 << attempt));
-      _logger.warning(
-        'WebSocket connection failed. Retrying in ${delay.inMilliseconds}ms...',
-      );
+      _logger.warning('WebSocket connection failed. Retrying in ${delay.inMilliseconds}ms...');
       await Future.delayed(delay);
     }
+    throw StateError('Unreachable');
+  }
 
-    _ws = ws;
-    _logger.fine(
-        'Handshake successful. Connected to WebSocket at $connectedWsUrl');
+  Future<({List<Step> initialHistory, Stream<dynamic> messageStream})> _initializeHarnessSession(
+    WebSocket ws,
+    Process process,
+  ) async {
+    final initCompleter = Completer<List<Step>>();
+    final messageController = StreamController<dynamic>();
+
+    ws.listen(
+      (message) => _handleInitMessage(message, initCompleter, messageController),
+      onError: (err) {
+        if (!initCompleter.isCompleted) initCompleter.completeError(err);
+        messageController.addError(err);
+      },
+      onDone: () {
+        if (!initCompleter.isCompleted) initCompleter.complete([]);
+        messageController.close();
+      },
+    );
+
+    final harnessConfig = _buildHarnessConfig();
+    ws.add(jsonEncode({'config': harnessConfig}));
 
     try {
-      final initCompleter = Completer<List<Step>>();
-      final messageController = StreamController<dynamic>();
-
-      // Listen to the WebSocket immediately to capture the first handshake message.
-      ws!.listen(
-        (message) {
-          if (!initCompleter.isCompleted) {
-            try {
-              if (message is String) {
-                final Map<String, dynamic> parsed = jsonDecode(message);
-                final normalized = LocalConnection._normalizeJsonKeys(parsed);
-                if (normalized
-                    .containsKey('initialize_conversation_response')) {
-                  final initResp = Map<String, dynamic>.from(
-                    normalized['initialize_conversation_response'] as Map,
-                  );
-                  final List<Step> initialHistory = [];
-                  if (initResp.containsKey('history')) {
-                    final historyList = initResp['history'] as List;
-                    for (final stepJson in historyList) {
-                      initialHistory.add(
-                        Step.fromMap(
-                            Map<String, dynamic>.from(stepJson as Map)),
-                      );
-                    }
-                  }
-                  if (initResp.containsKey('cumulative_usage') &&
-                      initResp['cumulative_usage'] is Map) {
-                    _connection?._cumulativeUsage = UsageMetadata.fromMap(
-                      Map<String, dynamic>.from(
-                        initResp['cumulative_usage'] as Map,
-                      ),
-                    );
-                  }
-                  if (initResp.containsKey('trajectory_usage') &&
-                      initResp['trajectory_usage'] is List) {
-                    _connection?._parseTrajectoryUsages(
-                      initResp['trajectory_usage'] as List,
-                    );
-                  }
-                  initCompleter.complete(initialHistory);
-                  return; // Discard from forwarding as it's the startup handshake response.
-                }
-              }
-            } catch (e) {
-              initCompleter.completeError(e);
-            }
-            if (!initCompleter.isCompleted) {
-              initCompleter.complete([]);
-            }
-          }
-          messageController.add(message);
-        },
-        onError: (err) {
-          if (!initCompleter.isCompleted) {
-            initCompleter.completeError(err);
-          }
-          messageController.addError(err);
-        },
-        onDone: () {
-          if (!initCompleter.isCompleted) {
-            initCompleter.complete([]);
-          }
-          messageController.close();
-        },
-      );
-
-      // 7. Send InitializeConversationEvent JSON over WebSocket
-      final harnessConfig = _buildHarnessConfig();
-      final initEvent = {'config': harnessConfig};
-      _ws!.add(jsonEncode(initEvent));
-
-      // Wait for the initialization response to resolve.
-      final List<Step> initialHistory = await initCompleter.future;
-
-      _connection = LocalConnection(
-        process: _process!,
-        ws: _ws!,
-        messageStream: messageController.stream,
-        toolRunner: _toolRunner,
-        hookRunner: _hookRunner,
-        initialHistory: initialHistory,
-      );
+      final initialHistory = await initCompleter.future;
+      return (initialHistory: initialHistory, messageStream: messageController.stream);
     } catch (e) {
-      _process!.kill();
-      final stderrText = await _process!.stderr.transform(utf8.decoder).join();
-      _logger.severe(
-        'Failed to initialize conversation with localharness. Stderr: $stderrText',
-      );
-      throw Exception(
-        'Failed to initialize conversation with localharness process. Stderr: $stderrText. Error: $e',
-      );
+      process.kill();
+      final stderrText = await process.stderr.transform(utf8.decoder).join();
+      _logger.severe('Failed to initialize conversation with localharness. Stderr: $stderrText');
+      throw Exception('Failed to initialize conversation with localharness process. Stderr: $stderrText. Error: $e');
     }
-    _connection!._startStderrReader();
-    _connection!._startReaderLoop();
+  }
+
+  void _handleInitMessage(
+    dynamic message,
+    Completer<List<Step>> initCompleter,
+    StreamController<dynamic> messageController,
+  ) {
+    if (!initCompleter.isCompleted && message is String) {
+      try {
+        final parsed = jsonDecode(message);
+        if (parsed is Map) {
+          final normalized = LocalConnection._normalizeJsonKeys(Map<String, dynamic>.from(parsed));
+          if (normalized.containsKey('initialize_conversation_response')) {
+            final initResp = Map<String, dynamic>.from(normalized['initialize_conversation_response'] as Map);
+            final initialHistory = _parseInitialHistory(initResp);
+            _extractStartupUsage(initResp);
+            initCompleter.complete(initialHistory);
+            return;
+          }
+        }
+      } catch (e) {
+        initCompleter.completeError(e);
+      }
+      if (!initCompleter.isCompleted) {
+        initCompleter.complete([]);
+      }
+    }
+    messageController.add(message);
+  }
+
+  List<Step> _parseInitialHistory(Map<String, dynamic> initResp) {
+    final historyList = initResp['history'];
+    if (historyList is! List) return [];
+    return historyList
+        .whereType<Map>()
+        .map((s) => Step.fromMap(Map<String, dynamic>.from(s)))
+        .toList();
+  }
+
+  void _extractStartupUsage(Map<String, dynamic> initResp) {
+    final cum = initResp['cumulative_usage'];
+    if (cum is Map) {
+      _connection?._cumulativeUsage = UsageMetadata.fromMap(Map<String, dynamic>.from(cum));
+    }
+    final traj = initResp['trajectory_usage'];
+    if (traj is List) {
+      _connection?._parseTrajectoryUsages(traj);
+    }
   }
 
   @override
@@ -326,290 +308,19 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   Map<String, dynamic> buildHarnessConfigForTest() => _buildHarnessConfig();
 
   Map<String, dynamic> _buildHarnessConfig() {
-    // Generate tool schemas from dynamic functions registered in L2
-    final List<Map<String, dynamic>> toolsProtos = [];
-    for (final name in _toolRunner.tools.keys) {
-      final toolFn = _toolRunner.tools[name]!;
-      toolsProtos.add({
-        'name': toolFn.name,
-        'description': toolFn.description,
-        'parameters_json_schema': jsonEncode(toolFn.schema),
-      });
-    }
-
-    Map<String, dynamic>? systemInstructionsProto;
-    if (_systemInstructions != null) {
-      if (_systemInstructions is String) {
-        systemInstructionsProto = {
-          'appended': {
-            'appended_sections': [
-              {'title': 'System', 'content': _systemInstructions},
-            ],
-          },
-        };
-      } else if (_systemInstructions is CustomSystemInstructions) {
-        final c = _systemInstructions as CustomSystemInstructions;
-        systemInstructionsProto = {
-          'custom': {
-            'part': [
-              {'text': c.text},
-            ],
-          },
-        };
-      } else {
-        systemInstructionsProto = _systemInstructions.toMap();
-      }
-    }
-
-    final modelsProtos = <Map<String, dynamic>>[];
-    if (_models != null) {
-      for (final model in _models!) {
-        final protoMap = <String, dynamic>{};
-        if (model.name != null) {
-          protoMap['name'] = model.name;
-        }
-        if (model.types.isNotEmpty) {
-          protoMap['types'] = model.types
-              .map((t) => 'MODEL_TYPE_${t.value.toUpperCase()}')
-              .toList();
-        }
-        if (model.endpoint != null) {
-          if (model.endpoint is GeminiAPIEndpoint) {
-            final ep = model.endpoint as GeminiAPIEndpoint;
-            final opts = _buildModelOptionsMap(ep.options);
-            protoMap['gemini_api_endpoint'] = {
-              if (ep.baseUrl != null) 'base_url': ep.baseUrl,
-              if (ep.httpHeaders != null) 'http_headers': ep.httpHeaders,
-              if (ep.apiKey != null) 'api_key': ep.apiKey,
-              if (opts != null) 'options': opts,
-            };
-          } else if (model.endpoint is VertexEndpoint) {
-            final ep = model.endpoint as VertexEndpoint;
-            final opts = _buildModelOptionsMap(ep.options);
-            protoMap['vertex_endpoint'] = {
-              if (ep.baseUrl != null) 'base_url': ep.baseUrl,
-              if (ep.httpHeaders != null) 'http_headers': ep.httpHeaders,
-              if (ep.project != null) 'project': ep.project,
-              if (ep.location != null) 'location': ep.location,
-              if (ep.apiKey != null && ep.apiKey!.isNotEmpty)
-                'api_key': ep.apiKey,
-              if (opts != null) 'options': opts,
-            };
-          }
-        }
-        modelsProtos.add(protoMap);
-      }
-    }
-
+    final toolsProtos = _buildToolsProtos();
+    final systemInstructionsProto = _buildSystemInstructionsProto(_systemInstructions);
+    final modelsProtos = _buildModelsProtos();
     final workspacesProto = _workspaces
-        .map(
-          (ws) => {
-            'filesystem_workspace': {'directory': ws},
-          },
-        )
+        .map((ws) => {'filesystem_workspace': {'directory': ws}})
         .toList();
 
     final cfg = _capabilitiesConfig;
-
-    // Determine enabled tools allowlist
-    final allTools = BuiltinTools.values.toSet();
-    Set<BuiltinTools> activeTools;
-    if (cfg.enabledTools != null) {
-      activeTools = cfg.enabledTools!.toSet();
-    } else if (cfg.disabledTools != null) {
-      activeTools = allTools.difference(cfg.disabledTools!.toSet());
-    } else {
-      activeTools = allTools;
-    }
-
-    final subagentsEnabled =
-        cfg.enableSubagents && activeTools.contains(BuiltinTools.startSubagent);
-
-    final harnessSideTools = {
-      'subagents': {
-        'enabled': subagentsEnabled,
-        if (cfg.maxSubagentDepth != null)
-          'max_nesting_depth': cfg.maxSubagentDepth,
-        if (cfg.allowedSubagents != null && cfg.allowedSubagents!.isNotEmpty)
-          'allowed_subagents': cfg.allowedSubagents,
-      },
-      'find': {'enabled': activeTools.contains(BuiltinTools.findFile)},
-      'user_questions': {
-        'enabled': activeTools.contains(BuiltinTools.askQuestion),
-      },
-      'run_command': _runCommandToolProto(
-        activeTools.contains(BuiltinTools.runCommand),
-        cfg.runCommandConfig,
-      ),
-      'file_edit': {'enabled': activeTools.contains(BuiltinTools.editFile)},
-      'view_file': {'enabled': activeTools.contains(BuiltinTools.viewFile)},
-      'write_to_file': {
-        'enabled': activeTools.contains(BuiltinTools.createFile),
-      },
-      'grep_search': {
-        'enabled': activeTools.contains(BuiltinTools.searchDirectory),
-      },
-      'list_dir': {'enabled': activeTools.contains(BuiltinTools.listDirectory)},
-      'generate_image': {
-        'enabled': activeTools.contains(BuiltinTools.generateImage),
-      },
-      'search_web': {'enabled': activeTools.contains(BuiltinTools.searchWeb)},
-      'read_url_content': {
-        'enabled': activeTools.contains(BuiltinTools.readUrlContent),
-      },
-    };
-
-    final List<Map<String, dynamic>> mcpServersProto = [];
-    for (final s in _mcpServers) {
-      final Map<String, dynamic> item = {
-        'name': s.name,
-        'enabled_tools': s.enabledTools ?? const [],
-        'disabled_tools': s.disabledTools ?? const [],
-        'timeout_seconds': s.timeoutSeconds ?? 0,
-      };
-      if (s is McpStdioServer) {
-        item['stdio'] = {
-          'command': s.command,
-          'args': s.args,
-          if (s.env != null) 'env': s.env,
-        };
-      } else if (s is McpStreamableHttpServer) {
-        item['http'] = {'url': s.url, 'headers': s.headers ?? const {}};
-      }
-      mcpServersProto.add(item);
-    }
-
-    final enabledHooks = <String>[];
-    if (_hookRunner.onSessionStartHooks.isNotEmpty) {
-      enabledHooks.add('LIFECYCLE_HOOK_ON_SESSION_START');
-    }
-    if (_hookRunner.onSessionEndHooks.isNotEmpty) {
-      enabledHooks.add('LIFECYCLE_HOOK_ON_SESSION_END');
-    }
-    if (_hookRunner.preTurnHooks.isNotEmpty) {
-      enabledHooks.add('LIFECYCLE_HOOK_PRE_TURN');
-    }
-    if (_hookRunner.postTurnHooks.isNotEmpty) {
-      enabledHooks.add('LIFECYCLE_HOOK_POST_TURN');
-    }
-    if (_hookRunner.preToolCallDecideHooks.isNotEmpty) {
-      enabledHooks.add('LIFECYCLE_HOOK_PRE_TOOL');
-    }
-    if (_hookRunner.postToolCallHooks.isNotEmpty) {
-      enabledHooks.add('LIFECYCLE_HOOK_POST_TOOL');
-    }
-    if (_hookRunner.onToolErrorHooks.isNotEmpty) {
-      enabledHooks.add('LIFECYCLE_HOOK_ON_TOOL_ERROR');
-    }
-
-    final customAgentsProtos = <Map<String, dynamic>>[];
-    for (final subagent in _subagents) {
-      final subagentCapabilities = subagent.capabilities;
-      final activeSubTools = subagentCapabilities?.enabledTools?.toSet() ??
-          BuiltinTools.readOnly().toSet();
-      final subagentCanSpawn =
-          activeSubTools.contains(BuiltinTools.startSubagent);
-
-      final resolvedSubagentTools = <Map<String, dynamic>>[];
-      for (final toolName in subagent.tools) {
-        if (!toolsProtos.any((t) => t['name'] == toolName)) {
-          throw ArgumentError(
-            "Subagent tool '$toolName' is not registered on the main agent "
-            "config. Any custom tools used by subagents must also be added "
-            "to the main agent's tools list.",
-          );
-        }
-        resolvedSubagentTools.add(
-          toolsProtos.firstWhere((t) => t['name'] == toolName),
-        );
-      }
-
-      final subagentSystemInstructionsProto = <String, dynamic>{};
-      if (subagent.systemInstructions != null) {
-        if (subagent.systemInstructions is String) {
-          subagentSystemInstructionsProto['appended'] = {
-            'appended_sections': [
-              {'title': 'System', 'content': subagent.systemInstructions},
-            ],
-          };
-        } else if (subagent.systemInstructions
-            is List<SystemInstructionSection>) {
-          subagentSystemInstructionsProto['appended'] = {
-            'appended_sections':
-                (subagent.systemInstructions as List<SystemInstructionSection>)
-                    .map((s) => {'title': s.title, 'content': s.content})
-                    .toList(),
-          };
-        } else if (subagent.systemInstructions is CustomSystemInstructions) {
-          final c = subagent.systemInstructions as CustomSystemInstructions;
-          subagentSystemInstructionsProto['custom'] = {
-            'part': [
-              {'text': c.text},
-            ],
-          };
-        } else if (subagent.systemInstructions is TemplatedSystemInstructions) {
-          final t = subagent.systemInstructions as TemplatedSystemInstructions;
-          subagentSystemInstructionsProto['appended'] = {
-            if (t.identity != null) 'custom_identity': t.identity,
-            'appended_sections': t.sections
-                .map((s) => {'title': s.title, 'content': s.content})
-                .toList(),
-          };
-        } else if (subagent.systemInstructions is SystemInstructions) {
-          subagentSystemInstructionsProto.addAll(
-            (subagent.systemInstructions as SystemInstructions).toMap(),
-          );
-        }
-      }
-
-      customAgentsProtos.add({
-        'name': subagent.name,
-        'description': subagent.description,
-        if (subagentSystemInstructionsProto.isNotEmpty)
-          'system_instructions': subagentSystemInstructionsProto,
-        'harness_side_tools': {
-          'subagents': {
-            'enabled': subagentCanSpawn,
-            if (subagentCapabilities?.allowedSubagents != null &&
-                subagentCapabilities!.allowedSubagents!.isNotEmpty)
-              'allowed_subagents': subagentCapabilities.allowedSubagents,
-          },
-          'find': {'enabled': activeSubTools.contains(BuiltinTools.findFile)},
-          'run_command': _runCommandToolProto(
-            activeSubTools.contains(BuiltinTools.runCommand),
-            subagentCapabilities?.runCommandConfig,
-          ),
-          'file_edit': {
-            'enabled': activeSubTools.contains(BuiltinTools.editFile),
-          },
-          'view_file': {
-            'enabled': activeSubTools.contains(BuiltinTools.viewFile),
-          },
-          'write_to_file': {
-            'enabled': activeSubTools.contains(BuiltinTools.createFile),
-          },
-          'grep_search': {
-            'enabled': activeSubTools.contains(BuiltinTools.searchDirectory),
-          },
-          'list_dir': {
-            'enabled': activeSubTools.contains(BuiltinTools.listDirectory),
-          },
-          'generate_image': {
-            'enabled': activeSubTools.contains(BuiltinTools.generateImage),
-          },
-          'search_web': {
-            'enabled': activeSubTools.contains(BuiltinTools.searchWeb),
-          },
-          'read_url_content': {
-            'enabled': activeSubTools.contains(BuiltinTools.readUrlContent),
-          },
-        },
-        'tools': resolvedSubagentTools,
-        'agent_behavior':
-            (subagentCapabilities?.agentBehavior ?? AgentBehavior.autonomous)
-                .protoValue,
-      });
-    }
+    final activeTools = _resolveActiveTools(cfg);
+    final harnessSideTools = _buildHarnessSideTools(cfg, activeTools);
+    final mcpServersProto = _buildMcpServersProto();
+    final enabledHooks = _buildEnabledHooks();
+    final customAgentsProtos = _buildCustomAgentsProtos(toolsProtos);
 
     final sessionContinuationModeProto = switch (_sessionContinuationMode) {
       SessionContinuationMode.resume => 'RESUME',
@@ -643,6 +354,252 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       if (debugConfigMap != null && debugConfigMap.isNotEmpty)
         'debug_config': debugConfigMap,
     };
+  }
+
+  List<Map<String, dynamic>> _buildToolsProtos() {
+    return _toolRunner.tools.values.map((toolFn) {
+      return {
+        'name': toolFn.name,
+        'description': toolFn.description,
+        'parameters_json_schema': jsonEncode(toolFn.schema),
+      };
+    }).toList();
+  }
+
+  Map<String, dynamic>? _buildSystemInstructionsProto(dynamic instructions) {
+    if (instructions == null) return null;
+    if (instructions is String) {
+      return {
+        'appended': {
+          'appended_sections': [
+            {'title': 'System', 'content': instructions},
+          ],
+        },
+      };
+    }
+    if (instructions is CustomSystemInstructions) {
+      return {
+        'custom': {
+          'part': [
+            {'text': instructions.text},
+          ],
+        },
+      };
+    }
+    if (instructions is SystemInstructions) {
+      return instructions.toMap();
+    }
+    return null;
+  }
+
+  List<Map<String, dynamic>> _buildModelsProtos() {
+    if (_models == null) return <Map<String, dynamic>>[];
+    return _models!.map(_buildModelProto).toList();
+  }
+
+  Map<String, dynamic> _buildModelProto(dynamic model) {
+    final protoMap = <String, dynamic>{};
+    if (model.name != null) protoMap['name'] = model.name;
+    if (model.types.isNotEmpty) {
+      protoMap['types'] = model.types
+          .map((t) => 'MODEL_TYPE_${t.value.toUpperCase()}')
+          .toList();
+    }
+    final epMap = _buildEndpointProto(model.endpoint);
+    if (epMap != null) protoMap.addAll(epMap);
+    return protoMap;
+  }
+
+  Map<String, dynamic>? _buildEndpointProto(dynamic endpoint) {
+    return switch (endpoint) {
+      GeminiAPIEndpoint ep => _buildGeminiEndpointProto(ep),
+      VertexEndpoint ep => _buildVertexEndpointProto(ep),
+      _ => null,
+    };
+  }
+
+  Map<String, dynamic> _buildGeminiEndpointProto(GeminiAPIEndpoint ep) {
+    final opts = _buildModelOptionsMap(ep.options);
+    return {
+      'gemini_api_endpoint': {
+        if (ep.baseUrl != null) 'base_url': ep.baseUrl,
+        if (ep.httpHeaders != null) 'http_headers': ep.httpHeaders,
+        if (ep.apiKey != null) 'api_key': ep.apiKey,
+        if (opts != null) 'options': opts,
+      }
+    };
+  }
+
+  Map<String, dynamic> _buildVertexEndpointProto(VertexEndpoint ep) {
+    final opts = _buildModelOptionsMap(ep.options);
+    return {
+      'vertex_endpoint': {
+        if (ep.baseUrl != null) 'base_url': ep.baseUrl,
+        if (ep.httpHeaders != null) 'http_headers': ep.httpHeaders,
+        if (ep.project != null) 'project': ep.project,
+        if (ep.location != null) 'location': ep.location,
+        if (ep.apiKey != null && ep.apiKey!.isNotEmpty) 'api_key': ep.apiKey,
+        if (opts != null) 'options': opts,
+      }
+    };
+  }
+
+  Set<BuiltinTools> _resolveActiveTools(CapabilitiesConfig cfg) {
+    final allTools = BuiltinTools.values.toSet();
+    if (cfg.enabledTools != null) return cfg.enabledTools!.toSet();
+    if (cfg.disabledTools != null) return allTools.difference(cfg.disabledTools!.toSet());
+    return allTools;
+  }
+
+  Map<String, dynamic> _buildHarnessSideTools(
+    CapabilitiesConfig cfg,
+    Set<BuiltinTools> activeTools,
+  ) {
+    final subagentsEnabled = cfg.enableSubagents && activeTools.contains(BuiltinTools.startSubagent);
+    return {
+      'subagents': {
+        'enabled': subagentsEnabled,
+        if (cfg.maxSubagentDepth != null) 'max_nesting_depth': cfg.maxSubagentDepth,
+        if (cfg.allowedSubagents != null && cfg.allowedSubagents!.isNotEmpty)
+          'allowed_subagents': cfg.allowedSubagents,
+      },
+      'find': {'enabled': activeTools.contains(BuiltinTools.findFile)},
+      'user_questions': {'enabled': activeTools.contains(BuiltinTools.askQuestion)},
+      'run_command': _runCommandToolProto(
+        activeTools.contains(BuiltinTools.runCommand),
+        cfg.runCommandConfig,
+      ),
+      'file_edit': {'enabled': activeTools.contains(BuiltinTools.editFile)},
+      'view_file': {'enabled': activeTools.contains(BuiltinTools.viewFile)},
+      'write_to_file': {'enabled': activeTools.contains(BuiltinTools.createFile)},
+      'grep_search': {'enabled': activeTools.contains(BuiltinTools.searchDirectory)},
+      'list_dir': {'enabled': activeTools.contains(BuiltinTools.listDirectory)},
+      'generate_image': {'enabled': activeTools.contains(BuiltinTools.generateImage)},
+      'search_web': {'enabled': activeTools.contains(BuiltinTools.searchWeb)},
+      'read_url_content': {'enabled': activeTools.contains(BuiltinTools.readUrlContent)},
+    };
+  }
+
+  List<Map<String, dynamic>> _buildMcpServersProto() {
+    return _mcpServers.map((s) {
+      final item = <String, dynamic>{
+        'name': s.name,
+        'enabled_tools': s.enabledTools ?? const [],
+        'disabled_tools': s.disabledTools ?? const [],
+        'timeout_seconds': s.timeoutSeconds ?? 0,
+      };
+      if (s is McpStdioServer) {
+        item['stdio'] = {
+          'command': s.command,
+          'args': s.args,
+          if (s.env != null) 'env': s.env,
+        };
+      } else if (s is McpStreamableHttpServer) {
+        item['http'] = {'url': s.url, 'headers': s.headers ?? const {}};
+      }
+      return item;
+    }).toList();
+  }
+
+  List<String> _buildEnabledHooks() {
+    final enabled = <String>[];
+    if (_hookRunner.onSessionStartHooks.isNotEmpty) enabled.add('LIFECYCLE_HOOK_ON_SESSION_START');
+    if (_hookRunner.onSessionEndHooks.isNotEmpty) enabled.add('LIFECYCLE_HOOK_ON_SESSION_END');
+    if (_hookRunner.preTurnHooks.isNotEmpty) enabled.add('LIFECYCLE_HOOK_PRE_TURN');
+    if (_hookRunner.postTurnHooks.isNotEmpty) enabled.add('LIFECYCLE_HOOK_POST_TURN');
+    if (_hookRunner.preToolCallDecideHooks.isNotEmpty) enabled.add('LIFECYCLE_HOOK_PRE_TOOL');
+    if (_hookRunner.postToolCallHooks.isNotEmpty) enabled.add('LIFECYCLE_HOOK_POST_TOOL');
+    if (_hookRunner.onToolErrorHooks.isNotEmpty) enabled.add('LIFECYCLE_HOOK_ON_TOOL_ERROR');
+    return enabled;
+  }
+
+  List<Map<String, dynamic>> _buildCustomAgentsProtos(List<Map<String, dynamic>> toolsProtos) {
+    return _subagents.map((subagent) {
+      final subCap = subagent.capabilities;
+      final activeSubTools = subCap?.enabledTools?.toSet() ?? BuiltinTools.readOnly().toSet();
+      final subagentCanSpawn = activeSubTools.contains(BuiltinTools.startSubagent);
+
+      final resolvedSubTools = <Map<String, dynamic>>[];
+      for (final toolName in subagent.tools) {
+        if (!toolsProtos.any((t) => t['name'] == toolName)) {
+          throw ArgumentError(
+            "Subagent tool '$toolName' is not registered on the main agent config. Any custom tools used by subagents must also be added to the main agent's tools list.",
+          );
+        }
+        resolvedSubTools.add(toolsProtos.firstWhere((t) => t['name'] == toolName));
+      }
+
+      final subagentInstructionsProto = _buildSubagentSystemInstructions(subagent.systemInstructions);
+
+      return {
+        'name': subagent.name,
+        'description': subagent.description,
+        if (subagentInstructionsProto != null) 'system_instructions': subagentInstructionsProto,
+        'harness_side_tools': {
+          'subagents': {
+            'enabled': subagentCanSpawn,
+            if (subCap?.allowedSubagents != null && subCap!.allowedSubagents!.isNotEmpty)
+              'allowed_subagents': subCap.allowedSubagents,
+          },
+          'find': {'enabled': activeSubTools.contains(BuiltinTools.findFile)},
+          'run_command': _runCommandToolProto(
+            activeSubTools.contains(BuiltinTools.runCommand),
+            subCap?.runCommandConfig,
+          ),
+          'file_edit': {'enabled': activeSubTools.contains(BuiltinTools.editFile)},
+          'view_file': {'enabled': activeSubTools.contains(BuiltinTools.viewFile)},
+          'write_to_file': {'enabled': activeSubTools.contains(BuiltinTools.createFile)},
+          'grep_search': {'enabled': activeSubTools.contains(BuiltinTools.searchDirectory)},
+          'list_dir': {'enabled': activeSubTools.contains(BuiltinTools.listDirectory)},
+          'generate_image': {'enabled': activeSubTools.contains(BuiltinTools.generateImage)},
+          'search_web': {'enabled': activeSubTools.contains(BuiltinTools.searchWeb)},
+          'read_url_content': {'enabled': activeSubTools.contains(BuiltinTools.readUrlContent)},
+        },
+        'tools': resolvedSubTools,
+        'agent_behavior': (subCap?.agentBehavior ?? AgentBehavior.autonomous).protoValue,
+      };
+    }).toList();
+  }
+
+  Map<String, dynamic>? _buildSubagentSystemInstructions(dynamic instructions) {
+    if (instructions == null) return null;
+    if (instructions is String) {
+      return {
+        'appended': {
+          'appended_sections': [
+            {'title': 'System', 'content': instructions},
+          ],
+        },
+      };
+    }
+    if (instructions is List<SystemInstructionSection>) {
+      return {
+        'appended': {
+          'appended_sections': instructions.map((s) => {'title': s.title, 'content': s.content}).toList(),
+        },
+      };
+    }
+    if (instructions is CustomSystemInstructions) {
+      return {
+        'custom': {
+          'part': [
+            {'text': instructions.text},
+          ],
+        },
+      };
+    }
+    if (instructions is TemplatedSystemInstructions) {
+      return {
+        'appended': {
+          if (instructions.identity != null) 'custom_identity': instructions.identity,
+          'appended_sections': instructions.sections.map((s) => {'title': s.title, 'content': s.content}).toList(),
+        },
+      };
+    }
+    if (instructions is SystemInstructions) {
+      return instructions.toMap();
+    }
+    return null;
   }
 
   Map<String, dynamic>? _buildModelOptionsMap(GeminiModelOptions? options) {
@@ -859,184 +816,180 @@ class LocalConnection implements Connection {
     if (_disconnecting) return;
     final normalizedEvent = _normalizeJsonKeys(event);
 
-    // 1. Process call hook requests
     if (normalizedEvent.containsKey('call_hook_request')) {
-      final req = Map<String, dynamic>.from(
-          normalizedEvent['call_hook_request'] as Map);
-      if (_hookRouter != null) {
-        unawaited(_hookRouter!.handle(req));
-      } else {
-        final requestId = req['request_id']?.toString() ?? '';
-        _ws.add(jsonEncode({
-          'call_hook_response': {
-            'request_id': requestId,
-            'empty_result': {},
-          }
-        }));
-      }
+      _handleCallHookRequest(normalizedEvent['call_hook_request']);
       return;
     }
 
-    // Process usage update
     if (normalizedEvent.containsKey('usage_update')) {
-      final usageUpdate = Map<String, dynamic>.from(
-        normalizedEvent['usage_update'] as Map,
-      );
-      if (usageUpdate.containsKey('total') && usageUpdate['total'] is Map) {
-        _cumulativeUsage = UsageMetadata.fromMap(
-          Map<String, dynamic>.from(usageUpdate['total'] as Map),
-        );
-      }
-      if (usageUpdate.containsKey('agents') && usageUpdate['agents'] is List) {
-        _parseTrajectoryUsages(usageUpdate['agents'] as List);
-      }
+      _handleUsageUpdate(normalizedEvent['usage_update']);
       return;
     }
 
-    // 2. Process step update
     if (normalizedEvent.containsKey('step_update')) {
-      final stepJson = Map<String, dynamic>.from(
-        normalizedEvent['step_update'],
-      );
-      final step = Step.fromMap(stepJson);
-
-      if (step.cascadeId.isNotEmpty) {
-        _convId = step.cascadeId;
-      }
-
-      Step stepForQueue = step;
-      if (step.toolCalls.isNotEmpty) {
-        final registeredTools = _toolRunner.tools;
-        final filteredCalls = step.toolCalls
-            .where((tc) => !registeredTools.containsKey(tc.name))
-            .toList();
-        if (filteredCalls.length != step.toolCalls.length) {
-          stepForQueue = step.copyWith(toolCalls: filteredCalls);
-        }
-      }
-
-      // Add step to stream
-      _safeAdd(stepForQueue);
-
-      // Dispatch OnCompactionHook if step is compaction
-      if (step.type == StepType.compaction) {
-        final turnCtx =
-            _hookRouter?.currentTurnContext ?? _hookRunner.currentTurnContext;
-        unawaited(_hookRunner.dispatchCompaction(turnCtx, step));
-      }
-
-      // Track step state transitions and dispatch pre/post step hooks
-      final trajectoryId = stepJson['trajectory_id']?.toString() ?? '';
-      final stepIndex =
-          int.tryParse((stepJson['step_index'] ?? '0').toString()) ?? 0;
-      final stepKey = '$trajectoryId:$stepIndex';
-      final tracker = _stepTrackers.putIfAbsent(stepKey, () => _StepTracker());
-      final stateStr = (stepJson['state'] ?? 'STATE_UNSPECIFIED').toString();
-      tracker.updateState(stateStr);
-
-      if (!tracker.preStepDispatched && stateStr != 'STATE_UNSPECIFIED') {
-        tracker.preStepDispatched = true;
-        unawaited(_hookRunner.dispatchPreStep(step));
-      }
-
-      final isTerminal = stateStr == 'STATE_DONE' ||
-          stateStr == 'DONE' ||
-          stateStr == 'STATE_ERROR' ||
-          stateStr == 'ERROR';
-      if (isTerminal && !tracker.postStepDispatched) {
-        tracker.postStepDispatched = true;
-        unawaited(_hookRunner.dispatchPostStep(step));
-      }
-
-      // Handle interactive requests if in WAITING_FOR_USER status
-      if (step.status == StepStatus.waitingForUser) {
-        if (stepJson.containsKey('questions_request')) {
-          await _handleQuestionRequest(stepJson);
-        }
-        if (stepJson.containsKey('tool_confirmation_request')) {
-          await _handleToolConfirmationRequest(stepJson);
-        }
-      }
+      await _handleStepUpdate(normalizedEvent['step_update']);
+      return;
     }
 
-    // 3. Process trajectory state updates
     if (normalizedEvent.containsKey('trajectory_state_update')) {
-      final update = normalizedEvent['trajectory_state_update'] as Map;
-      final state = update['state']?.toString();
-      final trajectoryId = update['trajectory_id']?.toString() ?? '';
-      if (_convId.isEmpty && trajectoryId.isNotEmpty) {
-        _convId = trajectoryId;
-      }
-      final isSubagent = trajectoryId.isNotEmpty && trajectoryId != _convId;
-
-      if (update.containsKey('stop_reason') &&
-          update['stop_reason'] != null &&
-          update['stop_reason'].toString().isNotEmpty) {
-        _turnStopReason =
-            StopReason.fromString(update['stop_reason'].toString());
-      }
-
-      if (isSubagent) {
-        if (update.containsKey('error') &&
-            update['error'].toString().isNotEmpty) {
-          final errMsg = update['error'].toString();
-          _logger.info('Subagent trajectory failed with error: $errMsg');
-        }
-        return;
-      }
-
-      if (state == 'STATE_RUNNING' || state == 'RUNNING') {
-        _idleState = false;
-      } else if (state == 'STATE_FULLY_IDLE' ||
-          state == 'FULLY_IDLE' ||
-          state == 'STATE_IDLE' ||
-          state == 'IDLE') {
-        if (update.containsKey('error') &&
-            update['error'].toString().isNotEmpty) {
-          final errMsg = update['error'].toString();
-          _safeAddError(AntigravityExecutionException(errMsg));
-        }
-        if (!_idleState) {
-          _idleState = true;
-          _safeAdd(
-            Step(
-              id: 'idle_sentinel',
-              stepIndex: -1,
-              type: StepType.finish,
-              source: StepSource.system,
-              target: StepTarget.environment,
-              status: StepStatus.done,
-            ),
-          );
-        }
-      } else if (state == 'STATE_CANCELLED' || state == 'CANCELLED') {
-        final errMsg =
-            update.containsKey('error') && update['error'].toString().isNotEmpty
-                ? update['error'].toString()
-                : 'Turn cancelled';
-        _safeAddError(AntigravityExecutionException(errMsg));
-        _idleState = true;
-        _safeAdd(
-          Step(
-            id: 'idle_sentinel',
-            stepIndex: -1,
-            type: StepType.finish,
-            source: StepSource.system,
-            target: StepTarget.environment,
-            status: StepStatus.done,
-          ),
-        );
-      }
-      _logger.fine('Trajectory state updated: $state for $trajectoryId');
+      _handleTrajectoryStateUpdate(normalizedEvent['trajectory_state_update']);
+      return;
     }
 
-    // 4. Process tool call execution requested by model
     if (normalizedEvent.containsKey('tool_call')) {
-      final tcJson = Map<String, dynamic>.from(normalizedEvent['tool_call']);
-      final tc = ToolCall.fromMap(tcJson);
+      final tc = ToolCall.fromMap(Map<String, dynamic>.from(normalizedEvent['tool_call'] as Map));
       _logger.info('Tool call requested: ${tc.name}');
       await _handleToolCall(tc);
     }
+  }
+
+  void _handleCallHookRequest(dynamic rawReq) {
+    if (rawReq is! Map) return;
+    final req = Map<String, dynamic>.from(rawReq);
+    if (_hookRouter != null) {
+      unawaited(_hookRouter!.handle(req));
+    } else {
+      final requestId = req['request_id']?.toString() ?? '';
+      _ws.add(jsonEncode({
+        'call_hook_response': {
+          'request_id': requestId,
+          'empty_result': {},
+        }
+      }));
+    }
+  }
+
+  void _handleUsageUpdate(dynamic rawUpdate) {
+    if (rawUpdate is! Map) return;
+    final usageUpdate = Map<String, dynamic>.from(rawUpdate);
+    if (usageUpdate['total'] is Map) {
+      _cumulativeUsage = UsageMetadata.fromMap(Map<String, dynamic>.from(usageUpdate['total'] as Map));
+    }
+    if (usageUpdate['agents'] is List) {
+      _parseTrajectoryUsages(usageUpdate['agents'] as List);
+    }
+  }
+
+  Future<void> _handleStepUpdate(dynamic rawStepJson) async {
+    if (rawStepJson is! Map) return;
+    final stepJson = Map<String, dynamic>.from(rawStepJson);
+    final step = Step.fromMap(stepJson);
+
+    if (step.cascadeId.isNotEmpty) {
+      _convId = step.cascadeId;
+    }
+
+    final stepForQueue = _filterHostHandledToolCalls(step);
+    _safeAdd(stepForQueue);
+
+    if (step.type == StepType.compaction) {
+      final turnCtx = _hookRouter?.currentTurnContext ?? _hookRunner.currentTurnContext;
+      unawaited(_hookRunner.dispatchCompaction(turnCtx, step));
+    }
+
+    _trackStepTransitions(stepJson, step);
+
+    if (step.status == StepStatus.waitingForUser) {
+      if (stepJson.containsKey('questions_request')) {
+        await _handleQuestionRequest(stepJson);
+      }
+      if (stepJson.containsKey('tool_confirmation_request')) {
+        await _handleToolConfirmationRequest(stepJson);
+      }
+    }
+  }
+
+  Step _filterHostHandledToolCalls(Step step) {
+    if (step.toolCalls.isEmpty) return step;
+    final registeredTools = _toolRunner.tools;
+    final filteredCalls = step.toolCalls
+        .where((tc) => !registeredTools.containsKey(tc.name))
+        .toList();
+    return filteredCalls.length != step.toolCalls.length
+        ? step.copyWith(toolCalls: filteredCalls)
+        : step;
+  }
+
+  void _trackStepTransitions(Map<String, dynamic> stepJson, Step step) {
+    final trajectoryId = stepJson['trajectory_id']?.toString() ?? '';
+    final stepIndex = int.tryParse((stepJson['step_index'] ?? '0').toString()) ?? 0;
+    final stepKey = '$trajectoryId:$stepIndex';
+    final tracker = _stepTrackers.putIfAbsent(stepKey, () => _StepTracker());
+    final stateStr = (stepJson['state'] ?? 'STATE_UNSPECIFIED').toString();
+    tracker.updateState(stateStr);
+
+    if (!tracker.preStepDispatched && stateStr != 'STATE_UNSPECIFIED') {
+      tracker.preStepDispatched = true;
+      unawaited(_hookRunner.dispatchPreStep(step));
+    }
+
+    final isTerminal = stateStr == 'STATE_DONE' ||
+        stateStr == 'DONE' ||
+        stateStr == 'STATE_ERROR' ||
+        stateStr == 'ERROR';
+    if (isTerminal && !tracker.postStepDispatched) {
+      tracker.postStepDispatched = true;
+      unawaited(_hookRunner.dispatchPostStep(step));
+    }
+  }
+
+  void _handleTrajectoryStateUpdate(dynamic rawUpdate) {
+    if (rawUpdate is! Map) return;
+    final update = Map<String, dynamic>.from(rawUpdate);
+    final state = update['state']?.toString();
+    final trajectoryId = update['trajectory_id']?.toString() ?? '';
+    if (_convId.isEmpty && trajectoryId.isNotEmpty) {
+      _convId = trajectoryId;
+    }
+    final isSubagent = trajectoryId.isNotEmpty && trajectoryId != _convId;
+
+    if (update['stop_reason'] != null && update['stop_reason'].toString().isNotEmpty) {
+      _turnStopReason = StopReason.fromString(update['stop_reason'].toString());
+    }
+
+    if (isSubagent) {
+      if (update['error'] != null && update['error'].toString().isNotEmpty) {
+        _logger.info('Subagent trajectory failed with error: ${update['error']}');
+      }
+      return;
+    }
+
+    _applyTrajectoryState(state, update['error']?.toString());
+    _logger.fine('Trajectory state updated: $state for $trajectoryId');
+  }
+
+  void _applyTrajectoryState(String? state, String? error) {
+    if (state == 'STATE_RUNNING' || state == 'RUNNING') {
+      _idleState = false;
+      return;
+    }
+    if (state == 'STATE_FULLY_IDLE' || state == 'FULLY_IDLE' || state == 'STATE_IDLE' || state == 'IDLE') {
+      if (error != null && error.isNotEmpty) {
+        _safeAddError(AntigravityExecutionException(error));
+      }
+      if (!_idleState) {
+        _idleState = true;
+        _safeAdd(_createIdleSentinelStep());
+      }
+      return;
+    }
+    if (state == 'STATE_CANCELLED' || state == 'CANCELLED') {
+      final errMsg = (error != null && error.isNotEmpty) ? error : 'Turn cancelled';
+      _safeAddError(AntigravityExecutionException(errMsg));
+      _idleState = true;
+      _safeAdd(_createIdleSentinelStep());
+    }
+  }
+
+  static Step _createIdleSentinelStep() {
+    return Step(
+      id: 'idle_sentinel',
+      stepIndex: -1,
+      type: StepType.finish,
+      source: StepSource.system,
+      target: StepTarget.environment,
+      status: StepStatus.done,
+    );
   }
 
   void _parseTrajectoryUsages(List trajList) {
@@ -1404,64 +1357,72 @@ class _StepTracker {
 
 dynamic extractToolResult(Map<String, dynamic> stepUpdate) {
   if (stepUpdate.containsKey('run_command')) {
-    final rc = stepUpdate['run_command'];
-    if (rc is Map && rc.containsKey('combined_output')) {
-      return RunCommandResult(output: rc['combined_output'].toString());
-    }
-  } else if (stepUpdate.containsKey('list_directory')) {
-    final ld = stepUpdate['list_directory'];
-    if (ld is Map && ld.containsKey('results')) {
-      final results = ld['results'] as List;
-      final entries = results.map((r) {
-        if (r is Map) {
-          return ListDirectoryEntry(
-            name: (r['name'] ?? '').toString(),
-            isDirectory: r['is_directory'] == true || r['isDirectory'] == true,
-            fileSize: int.tryParse(
-                    (r['file_size'] ?? r['fileSize'] ?? '0').toString()) ??
-                0,
-          );
-        }
-        return const ListDirectoryEntry();
-      }).toList();
-      return ListDirectoryResult(entries: entries);
-    }
-  } else if (stepUpdate.containsKey('find_file')) {
-    final ff = stepUpdate['find_file'];
-    if (ff is Map && ff.containsKey('output')) {
-      return FindFileResult(output: ff['output'].toString());
-    }
-  } else if (stepUpdate.containsKey('search_directory')) {
-    final sd = stepUpdate['search_directory'];
-    if (sd is Map && sd.containsKey('num_results')) {
-      return SearchDirectoryResult(
-        numResults: int.tryParse(
-                (sd['num_results'] ?? sd['numResults'] ?? '0').toString()) ??
-            0,
-      );
-    }
-  } else if (stepUpdate.containsKey('edit_file')) {
-    final ef = stepUpdate['edit_file'];
-    if (ef is Map && ef.containsKey('diff_block')) {
-      return EditFileResult(summary: (stepUpdate['text'] ?? '').toString());
-    }
-  } else if (stepUpdate.containsKey('generate_image')) {
-    final gi = stepUpdate['generate_image'];
-    if (gi is Map) {
-      return GenerateImageResult.fromMap(Map<String, dynamic>.from(gi));
-    }
-  } else if (stepUpdate.containsKey('search_web')) {
-    final sw = stepUpdate['search_web'];
-    if (sw is Map) {
-      return SearchWebResult.fromMap(Map<String, dynamic>.from(sw));
-    }
-  } else if (stepUpdate.containsKey('read_url_content')) {
-    final ruc = stepUpdate['read_url_content'];
-    if (ruc is Map) {
-      return ReadUrlContentResult.fromMap(Map<String, dynamic>.from(ruc));
-    }
+    return _extractRunCommandResult(stepUpdate['run_command']);
+  }
+  if (stepUpdate.containsKey('list_directory')) {
+    return _extractListDirectoryResult(stepUpdate['list_directory']);
+  }
+  if (stepUpdate.containsKey('find_file')) {
+    return _extractFindFileResult(stepUpdate['find_file']);
+  }
+  if (stepUpdate.containsKey('search_directory')) {
+    return _extractSearchDirectoryResult(stepUpdate['search_directory']);
+  }
+  if (stepUpdate.containsKey('edit_file')) {
+    return _extractEditFileResult(stepUpdate['edit_file'], stepUpdate['text']);
+  }
+  if (stepUpdate.containsKey('generate_image') && stepUpdate['generate_image'] is Map) {
+    return GenerateImageResult.fromMap(Map<String, dynamic>.from(stepUpdate['generate_image'] as Map));
+  }
+  if (stepUpdate.containsKey('search_web') && stepUpdate['search_web'] is Map) {
+    return SearchWebResult.fromMap(Map<String, dynamic>.from(stepUpdate['search_web'] as Map));
+  }
+  if (stepUpdate.containsKey('read_url_content') && stepUpdate['read_url_content'] is Map) {
+    return ReadUrlContentResult.fromMap(Map<String, dynamic>.from(stepUpdate['read_url_content'] as Map));
   }
   return null;
+}
+
+RunCommandResult? _extractRunCommandResult(dynamic rc) {
+  return (rc is Map && rc.containsKey('combined_output'))
+      ? RunCommandResult(output: rc['combined_output'].toString())
+      : null;
+}
+
+ListDirectoryResult? _extractListDirectoryResult(dynamic ld) {
+  if (ld is! Map || ld['results'] is! List) return null;
+  final results = ld['results'] as List;
+  final entries = results.map((r) {
+    if (r is Map) {
+      return ListDirectoryEntry(
+        name: (r['name'] ?? '').toString(),
+        isDirectory: r['is_directory'] == true || r['isDirectory'] == true,
+        fileSize: int.tryParse((r['file_size'] ?? r['fileSize'] ?? '0').toString()) ?? 0,
+      );
+    }
+    return const ListDirectoryEntry();
+  }).toList();
+  return ListDirectoryResult(entries: entries);
+}
+
+FindFileResult? _extractFindFileResult(dynamic ff) {
+  return (ff is Map && ff.containsKey('output'))
+      ? FindFileResult(output: ff['output'].toString())
+      : null;
+}
+
+SearchDirectoryResult? _extractSearchDirectoryResult(dynamic sd) {
+  return (sd is Map && sd.containsKey('num_results'))
+      ? SearchDirectoryResult(
+          numResults: int.tryParse((sd['num_results'] ?? sd['numResults'] ?? '0').toString()) ?? 0,
+        )
+      : null;
+}
+
+EditFileResult? _extractEditFileResult(dynamic ef, dynamic text) {
+  return (ef is Map && ef.containsKey('diff_block'))
+      ? EditFileResult(summary: (text ?? '').toString())
+      : null;
 }
 
 class ExtractedMedia {
@@ -1475,30 +1436,38 @@ ExtractedMedia extractMediaFromResult(dynamic value) {
     return ExtractedMedia(null, [value]);
   }
   if (value is List) {
-    final cleanedList = [];
-    final List<MediaContent> listMedia = [];
-    for (final item in value) {
-      final res = extractMediaFromResult(item);
-      listMedia.addAll(res.media);
-      if (res.cleanedValue != null) {
-        cleanedList.add(res.cleanedValue);
-      }
-    }
-    return ExtractedMedia(cleanedList.isEmpty ? null : cleanedList, listMedia);
+    return _extractMediaFromList(value);
   }
   if (value is Map) {
-    final cleanedMap = <dynamic, dynamic>{};
-    final List<MediaContent> mapMedia = [];
-    for (final entry in value.entries) {
-      final res = extractMediaFromResult(entry.value);
-      mapMedia.addAll(res.media);
-      if (res.cleanedValue != null) {
-        cleanedMap[entry.key] = res.cleanedValue;
-      }
-    }
-    return ExtractedMedia(cleanedMap.isEmpty ? null : cleanedMap, mapMedia);
+    return _extractMediaFromMap(value);
   }
   return ExtractedMedia(value, const []);
+}
+
+ExtractedMedia _extractMediaFromList(List value) {
+  final cleanedList = [];
+  final listMedia = <MediaContent>[];
+  for (final item in value) {
+    final res = extractMediaFromResult(item);
+    listMedia.addAll(res.media);
+    if (res.cleanedValue != null) {
+      cleanedList.add(res.cleanedValue);
+    }
+  }
+  return ExtractedMedia(cleanedList.isEmpty ? null : cleanedList, listMedia);
+}
+
+ExtractedMedia _extractMediaFromMap(Map value) {
+  final cleanedMap = <dynamic, dynamic>{};
+  final mapMedia = <MediaContent>[];
+  for (final entry in value.entries) {
+    final res = extractMediaFromResult(entry.value);
+    mapMedia.addAll(res.media);
+    if (res.cleanedValue != null) {
+      cleanedMap[entry.key] = res.cleanedValue;
+    }
+  }
+  return ExtractedMedia(cleanedMap.isEmpty ? null : cleanedMap, mapMedia);
 }
 
 /// Strategy for establishing connection to an external local OpenAI completions API (Ollama/LM Studio).
@@ -1546,7 +1515,7 @@ class LocalOpenAIConnectionStrategy extends LocalConnectionStrategy {
         'base_url': baseUrl,
       },
     };
-    final models = harnessConfig['models'] as List<dynamic>? ?? [];
+    final models = List<dynamic>.from(harnessConfig['models'] as List? ?? []);
     models.add(modelCfg);
     harnessConfig['models'] = models;
     return harnessConfig;
@@ -1610,16 +1579,36 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
   Future<void> start() async {
     _validateConnection();
 
-    // 1. Prepare App Data Dir and write the LiteRT loopback server script
+    final scriptFile = _writeLiteRTServerScript();
+    _serverProcess = await _launchLiteRTServer(scriptFile);
+
+    final actualPort = await _readLiteRTPort(_serverProcess!);
+    final litertBaseUrl = 'http://127.0.0.1:$actualPort';
+    _logger.info('LiteRT Server started on port $actualPort. URL: $litertBaseUrl');
+
+    final client = HttpClient();
+    try {
+      await _waitForLiteRTHealth(client, litertBaseUrl);
+      await _warmupLiteRT(client, litertBaseUrl);
+    } finally {
+      client.close();
+    }
+
+    baseUrl = litertBaseUrl;
+    await super.start();
+  }
+
+  File _writeLiteRTServerScript() {
     final dir = Directory(_appDataDir ?? defaultAppDataDir);
     if (!dir.existsSync()) {
       dir.createSync(recursive: true);
     }
-    final scriptFile =
-        File('${dir.path}${Platform.pathSeparator}litert_server.py');
+    final scriptFile = File('${dir.path}${Platform.pathSeparator}litert_server.py');
     scriptFile.writeAsStringSync(litertServerPythonScript);
+    return scriptFile;
+  }
 
-    // 2. Start the LiteRT OpenAI HTTP server
+  Future<Process> _launchLiteRTServer(File scriptFile) async {
     final args = [
       scriptFile.path,
       '--model_path',
@@ -1632,22 +1621,18 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
       if (visionBackend != null) ...['--vision_backend', visionBackend!.name],
       '--port',
       port.toString(),
-      if (maxContextTokens != null) ...[
-        '--max_context_tokens',
-        maxContextTokens!.toString()
-      ],
+      if (maxContextTokens != null) ...['--max_context_tokens', maxContextTokens!.toString()],
     ];
 
     _logger.info('Starting LiteRT OpenAI server: python3 ${args.join(' ')}');
-    _serverProcess = await Process.start('python3', args);
+    return Process.start('python3', args);
+  }
 
+  Future<int> _readLiteRTPort(Process process) async {
     final portCompleter = Completer<int>();
     final portRegex = RegExp(r'^LITERT_SERVER_PORT:(\d+)$');
 
-    _serverProcess!.stdout
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .listen((line) {
+    process.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
       _logger.fine('[LiteRT Server Stdout] $line');
       final match = portRegex.firstMatch(line);
       if (match != null && !portCompleter.isCompleted) {
@@ -1655,49 +1640,32 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
       }
     });
 
-    _serverProcess!.stderr
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .listen((line) {
+    process.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
       _logger.warning('[LiteRT Server Stderr] $line');
     });
 
-    int actualPort;
     try {
-      actualPort =
-          await portCompleter.future.timeout(const Duration(seconds: 15));
+      return await portCompleter.future.timeout(const Duration(seconds: 15));
     } catch (e) {
-      _serverProcess?.kill();
-      throw Exception(
-          'Failed to receive port from LiteRT server process. Error: $e');
+      process.kill();
+      throw Exception('Failed to receive port from LiteRT server process. Error: $e');
     }
+  }
 
-    final litertBaseUrl = 'http://127.0.0.1:$actualPort';
-    _logger
-        .info('LiteRT Server started on port $actualPort. URL: $litertBaseUrl');
-
-    // 3. Health Check loop
-    final client = HttpClient();
-    bool healthOk = false;
+  Future<void> _waitForLiteRTHealth(HttpClient client, String litertBaseUrl) async {
     for (var i = 0; i < 60; i++) {
       try {
-        final request =
-            await client.getUrl(Uri.parse('$litertBaseUrl/v1/models'));
+        final request = await client.getUrl(Uri.parse('$litertBaseUrl/v1/models'));
         final response = await request.close();
-        if (response.statusCode == 200) {
-          healthOk = true;
-          break;
-        }
+        if (response.statusCode == 200) return;
       } catch (_) {}
       await Future.delayed(const Duration(milliseconds: 500));
     }
+    _serverProcess?.kill();
+    throw Exception('LiteRT loopback HTTP endpoint failed to respond.');
+  }
 
-    if (!healthOk) {
-      _serverProcess?.kill();
-      throw Exception('LiteRT loopback HTTP endpoint failed to respond.');
-    }
-
-    // 4. Warm-up request
+  Future<void> _warmupLiteRT(HttpClient client, String litertBaseUrl) async {
     try {
       var warmupTimeoutSeconds = 120.0;
       if (maxContextTokens != null && maxContextTokens! > 0) {
@@ -1706,8 +1674,7 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
           warmupTimeoutSeconds = scaled;
         }
       }
-      final request =
-          await client.postUrl(Uri.parse('$litertBaseUrl/v1/chat/completions'));
+      final request = await client.postUrl(Uri.parse('$litertBaseUrl/v1/chat/completions'));
       request.headers.contentType = ContentType.json;
       request.write(jsonEncode({
         'model': modelName,
@@ -1716,18 +1683,11 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
         ],
         'stream': false,
       }));
-      final response = await request.close().timeout(
-          Duration(milliseconds: (warmupTimeoutSeconds * 1000).round()));
+      final response = await request.close().timeout(Duration(milliseconds: (warmupTimeoutSeconds * 1000).round()));
       await response.drain();
     } catch (e) {
       _logger.warning('LiteRT warm-up request timed out or failed: $e');
     }
-    client.close();
-
-    baseUrl = litertBaseUrl;
-
-    // 5. Connect to local Go localharness subprocess
-    await super.start();
   }
 
   @override

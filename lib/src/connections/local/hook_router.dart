@@ -69,283 +69,284 @@ class HookRouter {
 
   ContentPrimitive _fromProtoUserInput(Map<String, dynamic> ui) {
     final parts = ui['parts'] as List?;
-    if (parts == null || parts.isEmpty) {
-      return '';
-    }
+    if (parts == null || parts.isEmpty) return '';
 
-    final List<dynamic> contentList = [];
+    final contentList = <dynamic>[];
     for (final part in parts) {
-      if (part is Map) {
-        if (part.containsKey('text')) {
-          contentList.add(part['text'].toString());
-        } else if (part.containsKey('slash_command')) {
-          final sc = part['slash_command'];
-          if (sc is Map && sc.containsKey('name')) {
-            final scNameStr = sc['name'].toString();
-            final scName = BuiltinSlashCommandName.values.firstWhere(
-              (e) => e.value == scNameStr,
-              orElse: () => BuiltinSlashCommandName.plan,
-            );
-            contentList.add(SlashCommand(name: scName));
-          }
-        } else if (part.containsKey('media')) {
-          final media = part['media'];
-          if (media is Map &&
-              media.containsKey('mime_type') &&
-              media.containsKey('data')) {
-            final mimeType = media['mime_type'].toString();
-            final dataBase64 = media['data'].toString();
-            final data = base64Decode(dataBase64);
-            final description = media['description']?.toString() ?? '';
-            try {
-              contentList.add(MediaContent.fromBytes(
-                data,
-                mimeType,
-                description: description,
-              ));
-            } catch (_) {}
-          }
-        }
+      if (part is! Map) continue;
+      final parsed = _parseUserInputPart(part);
+      if (parsed != null) {
+        contentList.add(parsed);
       }
     }
 
-    if (contentList.isEmpty) {
-      return '';
+    if (contentList.isEmpty) return '';
+    return contentList.length == 1 ? contentList[0] : contentList;
+  }
+
+  dynamic _parseUserInputPart(Map part) {
+    if (part.containsKey('text')) {
+      return part['text'].toString();
     }
-    if (contentList.length == 1) {
-      return contentList[0];
+    if (part.containsKey('slash_command')) {
+      return _parseSlashCommandPart(part['slash_command']);
     }
-    return contentList;
+    if (part.containsKey('media')) {
+      return _parseMediaPart(part['media']);
+    }
+    return null;
+  }
+
+  SlashCommand? _parseSlashCommandPart(dynamic sc) {
+    if (sc is! Map || !sc.containsKey('name')) return null;
+    final scNameStr = sc['name'].toString();
+    final scName = BuiltinSlashCommandName.values.firstWhere(
+      (e) => e.value == scNameStr,
+      orElse: () => BuiltinSlashCommandName.plan,
+    );
+    return SlashCommand(name: scName);
+  }
+
+  MediaContent? _parseMediaPart(dynamic media) {
+    if (media is! Map || !media.containsKey('mime_type') || !media.containsKey('data')) {
+      return null;
+    }
+    final mimeType = media['mime_type'].toString();
+    final data = base64Decode(media['data'].toString());
+    final description = media['description']?.toString() ?? '';
+    try {
+      return MediaContent.fromBytes(data, mimeType, description: description);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> handle(Map<String, dynamic> req) async {
     final requestId = req['request_id']?.toString() ?? '';
     final hookTypeStr = req['type']?.toString() ?? '';
-
     _logger.fine('Handling hook request: $hookTypeStr ($requestId)');
 
-    final response = <String, dynamic>{
-      'request_id': requestId,
-    };
+    final response = <String, dynamic>{'request_id': requestId};
 
     try {
-      if (hookTypeStr == 'LIFECYCLE_HOOK_ON_SESSION_START' ||
-          hookTypeStr == 'ON_SESSION_START') {
-        await _hookRunner.dispatchSessionStart();
-        response['empty_result'] = {};
-      } else if (hookTypeStr == 'LIFECYCLE_HOOK_ON_SESSION_END' ||
-          hookTypeStr == 'ON_SESSION_END') {
-        await _hookRunner.dispatchSessionEnd();
-        response['empty_result'] = {};
-      } else if (hookTypeStr == 'LIFECYCLE_HOOK_PRE_TURN' ||
-          hookTypeStr == 'PRE_TURN') {
-        Map<String, dynamic>? userInputMap;
-        if (req.containsKey('pre_turn_args') && req['pre_turn_args'] is Map) {
-          final args = req['pre_turn_args'] as Map;
-          if (args.containsKey('user_input') && args['user_input'] is Map) {
-            userInputMap = Map<String, dynamic>.from(args['user_input'] as Map);
-          }
-        }
-        final userInput =
-            userInputMap != null ? _fromProtoUserInput(userInputMap) : '';
-        final res = await _hookRunner.dispatchPreTurn(userInput);
-        _currentTurnContext = _hookRunner.currentTurnContext;
-
-        final ptr = <String, dynamic>{};
-        if (res.allow) {
-          ptr['decision'] = 'ALLOW';
-        } else {
-          ptr['decision'] = 'DENY';
-          ptr['reason'] = res.message;
-        }
-        response['pre_turn_result'] = ptr;
-      } else if (hookTypeStr == 'LIFECYCLE_HOOK_POST_TURN' ||
-          hookTypeStr == 'POST_TURN') {
-        var responseText = '';
-        if (req.containsKey('post_turn_args') && req['post_turn_args'] is Map) {
-          final args = req['post_turn_args'] as Map;
-          responseText =
-              (args['response_text'] ?? args['responseText'] ?? '').toString();
-        }
-        final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
-        await _hookRunner.dispatchPostTurn(turnCtx, responseText);
-        _currentTurnContext = null;
-        response['empty_result'] = {};
-      } else if (hookTypeStr == 'LIFECYCLE_HOOK_PRE_TOOL' ||
-          hookTypeStr == 'PRE_TOOL') {
-        var toolName = '';
-        var args = <String, dynamic>{};
-        String? serverName;
-        String? callId;
-        String? stepId;
-
-        if (req.containsKey('pre_tool_args') && req['pre_tool_args'] is Map) {
-          final pta = req['pre_tool_args'] as Map;
-          final rawToolName =
-              (pta['tool_name'] ?? pta['toolName'] ?? '').toString();
-          toolName = _protoFieldToSdkName[rawToolName] ?? rawToolName;
-
-          if (pta.containsKey('arguments_json') &&
-              pta['arguments_json'] != null) {
-            final argsJson = pta['arguments_json'].toString();
-            if (argsJson.isNotEmpty) {
-              try {
-                final decoded = jsonDecode(argsJson);
-                if (decoded is Map) {
-                  args = Map<String, dynamic>.from(decoded);
-                }
-              } catch (_) {}
-            }
-          } else if (pta.containsKey('arguments') && pta['arguments'] is Map) {
-            args = Map<String, dynamic>.from(pta['arguments'] as Map);
-          }
-
-          if (pta.containsKey('server_name') && pta['server_name'] != null) {
-            serverName = pta['server_name'].toString();
-          } else if (pta.containsKey('serverName') &&
-              pta['serverName'] != null) {
-            serverName = pta['serverName'].toString();
-          }
-
-          callId = _extractCallId(pta);
-          stepId = _extractStepId(pta);
-          _normalizePathArgs(args);
-        }
-
-        String? canonicalPath;
-        for (final key in _wirePathArgumentKeys) {
-          final val = args[key];
-          if (val is String && val.isNotEmpty) {
-            canonicalPath = val;
-            break;
-          }
-        }
-
-        final tc = ToolCall(
-          name: toolName,
-          args: args,
-          id: callId,
-          callId: callId,
-          stepId: stepId,
-          serverName: serverName,
-          canonicalPath: canonicalPath,
-        );
-
-        final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
-        final res = await _hookRunner.dispatchPreToolCall(turnCtx, tc);
-
-        final ptr = <String, dynamic>{};
-        if (res.allow) {
-          ptr['decision'] = 'ALLOW';
-          if (res.modifiedArgs != null) {
-            ptr['modified_arguments_json'] = jsonEncode(res.modifiedArgs);
-          }
-        } else {
-          ptr['decision'] = 'DENY';
-          ptr['reason'] = res.message;
-        }
-        response['pre_tool_result'] = ptr;
-      } else if (hookTypeStr == 'LIFECYCLE_HOOK_POST_TOOL' ||
-          hookTypeStr == 'POST_TOOL') {
-        var toolName = '';
-        dynamic resultVal;
-        var errorStr = '';
-        String? callId;
-        String? stepId;
-
-        if (req.containsKey('post_tool_args') && req['post_tool_args'] is Map) {
-          final args = req['post_tool_args'] as Map;
-          final rawToolName =
-              (args['tool_name'] ?? args['toolName'] ?? '').toString();
-          toolName = _protoFieldToSdkName[rawToolName] ?? rawToolName;
-          callId = _extractCallId(args);
-          stepId = _extractStepId(args);
-
-          final hasError =
-              args.containsKey('error') && args['error'].toString().isNotEmpty;
-          if (hasError) {
-            errorStr = args['error'].toString();
-          } else {
-            resultVal = args['result'];
-          }
-
-          if (args.containsKey('step_update') &&
-              args['step_update'] is Map &&
-              _resultExtractor != null) {
-            final stepUpdate =
-                Map<String, dynamic>.from(args['step_update'] as Map);
-            final extracted = _resultExtractor!(stepUpdate);
-            if (extracted != null) {
-              resultVal = extracted;
-            }
-          }
-        }
-
-        final toolResult = ToolResult(
-          name: toolName,
-          callId: callId,
-          stepId: stepId,
-          result: resultVal,
-          error: errorStr.isNotEmpty ? errorStr : null,
-        );
-
-        final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
-        await _hookRunner.dispatchPostToolCall(turnCtx, toolResult);
-        response['empty_result'] = {};
-      } else if (hookTypeStr == 'LIFECYCLE_HOOK_ON_TOOL_ERROR' ||
-          hookTypeStr == 'ON_TOOL_ERROR') {
-        var errorStr = 'Unknown tool error';
-        var rawToolName = '';
-        String? serverName;
-        String? callId;
-        String? stepId;
-        if (req.containsKey('on_tool_error_args') &&
-            req['on_tool_error_args'] is Map) {
-          final extracted = _extractToolErrorDetails(
-            req['on_tool_error_args'] as Map,
-          );
-          errorStr = extracted.error;
-          rawToolName = extracted.rawToolName;
-          serverName = extracted.serverName;
-          callId = extracted.callId;
-          stepId = extracted.stepId;
-        } else if (req.containsKey('post_tool_args') &&
-            req['post_tool_args'] is Map) {
-          final extracted = _extractToolErrorDetails(
-            req['post_tool_args'] as Map,
-          );
-          errorStr = extracted.error;
-          rawToolName = extracted.rawToolName;
-          serverName = extracted.serverName;
-          callId = extracted.callId;
-          stepId = extracted.stepId;
-        }
-        final toolName = _protoFieldToSdkName[rawToolName] ?? rawToolName;
-
-        final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
-        await _hookRunner.dispatchOnToolError(
-          turnCtx,
-          ToolExecutionException(
-            errorStr,
-            toolName: toolName,
-            serverName: serverName,
-            callId: callId,
-            stepId: stepId,
-          ),
-        );
-        response['empty_result'] = {};
-      } else {
-        _logger.warning('Unknown hook received: $hookTypeStr');
-        response['empty_result'] = {};
-      }
+      await _dispatchHook(hookTypeStr, req, response);
     } catch (e, stackTrace) {
       _logger.severe('Hook execution failed: $e', e, stackTrace);
       response['error_message'] = 'Hook failed: $e';
     }
 
-    await _send({
-      'call_hook_response': response,
-    });
+    await _send({'call_hook_response': response});
+  }
+
+  Future<void> _dispatchHook(
+    String hookType,
+    Map<String, dynamic> req,
+    Map<String, dynamic> response,
+  ) async {
+    switch (hookType) {
+      case 'LIFECYCLE_HOOK_ON_SESSION_START' || 'ON_SESSION_START':
+        await _hookRunner.dispatchSessionStart();
+        response['empty_result'] = {};
+      case 'LIFECYCLE_HOOK_ON_SESSION_END' || 'ON_SESSION_END':
+        await _hookRunner.dispatchSessionEnd();
+        response['empty_result'] = {};
+      case 'LIFECYCLE_HOOK_PRE_TURN' || 'PRE_TURN':
+        await _handlePreTurn(req, response);
+      case 'LIFECYCLE_HOOK_POST_TURN' || 'POST_TURN':
+        await _handlePostTurn(req, response);
+      case 'LIFECYCLE_HOOK_PRE_TOOL' || 'PRE_TOOL':
+        await _handlePreTool(req, response);
+      case 'LIFECYCLE_HOOK_POST_TOOL' || 'POST_TOOL':
+        await _handlePostTool(req, response);
+      case 'LIFECYCLE_HOOK_ON_TOOL_ERROR' || 'ON_TOOL_ERROR':
+        await _handleOnToolError(req, response);
+      default:
+        _logger.warning('Unknown hook received: $hookType');
+        response['empty_result'] = {};
+    }
+  }
+
+  Future<void> _handlePreTurn(
+    Map<String, dynamic> req,
+    Map<String, dynamic> response,
+  ) async {
+    Map<String, dynamic>? userInputMap;
+    final args = req['pre_turn_args'];
+    if (args is Map && args['user_input'] is Map) {
+      userInputMap = Map<String, dynamic>.from(args['user_input'] as Map);
+    }
+    final userInput = userInputMap != null ? _fromProtoUserInput(userInputMap) : '';
+    final res = await _hookRunner.dispatchPreTurn(userInput);
+    _currentTurnContext = _hookRunner.currentTurnContext;
+
+    final ptr = <String, dynamic>{'decision': res.allow ? 'ALLOW' : 'DENY'};
+    if (!res.allow) {
+      ptr['reason'] = res.message;
+    }
+    response['pre_turn_result'] = ptr;
+  }
+
+  Future<void> _handlePostTurn(
+    Map<String, dynamic> req,
+    Map<String, dynamic> response,
+  ) async {
+    var responseText = '';
+    final args = req['post_turn_args'];
+    if (args is Map) {
+      responseText = (args['response_text'] ?? args['responseText'] ?? '').toString();
+    }
+    final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
+    await _hookRunner.dispatchPostTurn(turnCtx, responseText);
+    _currentTurnContext = null;
+    response['empty_result'] = {};
+  }
+
+  Future<void> _handlePreTool(
+    Map<String, dynamic> req,
+    Map<String, dynamic> response,
+  ) async {
+    final toolCall = _parsePreToolCall(req['pre_tool_args']);
+    final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
+    final res = await _hookRunner.dispatchPreToolCall(turnCtx, toolCall);
+
+    final ptr = <String, dynamic>{'decision': res.allow ? 'ALLOW' : 'DENY'};
+    if (res.allow) {
+      if (res.modifiedArgs != null) {
+        ptr['modified_arguments_json'] = jsonEncode(res.modifiedArgs);
+      }
+    } else {
+      ptr['reason'] = res.message;
+    }
+    response['pre_tool_result'] = ptr;
+  }
+
+  ToolCall _parsePreToolCall(dynamic ptaRaw) {
+    var toolName = '';
+    var args = <String, dynamic>{};
+    String? serverName;
+    String? callId;
+    String? stepId;
+
+    if (ptaRaw is Map) {
+      final pta = ptaRaw;
+      final rawToolName = (pta['tool_name'] ?? pta['toolName'] ?? '').toString();
+      toolName = _protoFieldToSdkName[rawToolName] ?? rawToolName;
+      args = _extractToolCallArguments(pta);
+      serverName = (pta['server_name'] ?? pta['serverName'])?.toString();
+      callId = _extractCallId(pta);
+      stepId = _extractStepId(pta);
+      _normalizePathArgs(args);
+    }
+
+    String? canonicalPath;
+    for (final key in _wirePathArgumentKeys) {
+      final val = args[key];
+      if (val is String && val.isNotEmpty) {
+        canonicalPath = val;
+        break;
+      }
+    }
+
+    return ToolCall(
+      name: toolName,
+      args: args,
+      id: callId,
+      callId: callId,
+      stepId: stepId,
+      serverName: serverName,
+      canonicalPath: canonicalPath,
+    );
+  }
+
+  Map<String, dynamic> _extractToolCallArguments(Map pta) {
+    if (pta.containsKey('arguments_json') && pta['arguments_json'] != null) {
+      final argsJson = pta['arguments_json'].toString();
+      if (argsJson.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(argsJson);
+          if (decoded is Map) return Map<String, dynamic>.from(decoded);
+        } catch (_) {}
+      }
+    } else if (pta.containsKey('arguments') && pta['arguments'] is Map) {
+      return Map<String, dynamic>.from(pta['arguments'] as Map);
+    }
+    return <String, dynamic>{};
+  }
+
+  Future<void> _handlePostTool(
+    Map<String, dynamic> req,
+    Map<String, dynamic> response,
+  ) async {
+    var toolName = '';
+    dynamic resultVal;
+    var errorStr = '';
+    String? callId;
+    String? stepId;
+
+    final args = req['post_tool_args'];
+    if (args is Map) {
+      final rawToolName = (args['tool_name'] ?? args['toolName'] ?? '').toString();
+      toolName = _protoFieldToSdkName[rawToolName] ?? rawToolName;
+      callId = _extractCallId(args);
+      stepId = _extractStepId(args);
+
+      final hasError = args.containsKey('error') && args['error'].toString().isNotEmpty;
+      if (hasError) {
+        errorStr = args['error'].toString();
+      } else {
+        resultVal = args['result'];
+      }
+
+      if (args['step_update'] is Map && _resultExtractor != null) {
+        final stepUpdate = Map<String, dynamic>.from(args['step_update'] as Map);
+        final extracted = _resultExtractor!(stepUpdate);
+        if (extracted != null) {
+          resultVal = extracted;
+        }
+      }
+    }
+
+    final toolResult = ToolResult(
+      name: toolName,
+      callId: callId,
+      stepId: stepId,
+      result: resultVal,
+      error: errorStr.isNotEmpty ? errorStr : null,
+    );
+
+    final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
+    await _hookRunner.dispatchPostToolCall(turnCtx, toolResult);
+    response['empty_result'] = {};
+  }
+
+  Future<void> _handleOnToolError(
+    Map<String, dynamic> req,
+    Map<String, dynamic> response,
+  ) async {
+    final errorPayload = req['on_tool_error_args'] ?? req['post_tool_args'];
+    final extracted = errorPayload is Map
+        ? _extractToolErrorDetails(errorPayload)
+        : (
+            error: 'Unknown tool error',
+            rawToolName: '',
+            serverName: null,
+            callId: null,
+            stepId: null,
+          );
+
+    final toolName = _protoFieldToSdkName[extracted.rawToolName] ?? extracted.rawToolName;
+    final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
+    await _hookRunner.dispatchOnToolError(
+      turnCtx,
+      ToolExecutionException(
+        extracted.error,
+        toolName: toolName,
+        serverName: extracted.serverName,
+        callId: extracted.callId,
+        stepId: extracted.stepId,
+      ),
+    );
+    response['empty_result'] = {};
   }
 }
 

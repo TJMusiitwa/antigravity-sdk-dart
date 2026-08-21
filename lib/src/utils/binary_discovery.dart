@@ -37,85 +37,90 @@ class BinaryDiscovery {
   }) async {
     final env = environmentOverride ?? Platform.environment;
 
-    // 1. Check an explicit user-provided config path override first
-    if (configPath != null && configPath.isNotEmpty) {
-      final file = File(configPath);
-      if (file.existsSync()) {
-        return file.absolute.path;
-      }
-    }
+    final fromConfig = _findFromConfigPath(configPath);
+    if (fromConfig != null) return fromConfig;
 
-    // 2. Check the system environment variable override
-    final envPath = env[harnessEnvVar];
-    if (envPath != null && envPath.isNotEmpty) {
-      final file = File(envPath);
-      if (file.existsSync()) {
-        return file.absolute.path;
-      }
-    }
+    final fromEnv = _findFromEnvVar(env);
+    if (fromEnv != null) return fromEnv;
 
-    // 3. Scan the user's system environment variable PATH for globally installed paths
-    final pathEnv = env['PATH'];
-    if (pathEnv != null && pathEnv.isNotEmpty) {
-      final separator = Platform.isWindows ? ';' : ':';
-      final dirs = pathEnv.split(separator);
-      for (final dir in dirs) {
-        if (dir.trim().isEmpty) continue;
-        for (final binName in binaryNames) {
-          final fullName = Platform.isWindows ? '$binName.exe' : binName;
-          final file = File(p.join(dir.trim(), fullName));
-          if (file.existsSync()) {
-            return file.absolute.path;
-          }
-        }
-      }
-    }
+    final fromPath = _findFromSystemPath(env);
+    if (fromPath != null) return fromPath;
 
-    // 4. Check default global install folders (e.g. ~/.antigravity/bin/ across macOS, Linux, and Windows)
-    final homeDir = env['HOME'] ?? env['USERPROFILE'];
-    if (homeDir != null && homeDir.isNotEmpty) {
-      final globalBinDir = Directory(p.join(homeDir, '.antigravity', 'bin'));
-      if (globalBinDir.existsSync()) {
-        for (final binName in binaryNames) {
-          final fullName = Platform.isWindows ? '$binName.exe' : binName;
-          final file = File(p.join(globalBinDir.path, fullName));
-          if (file.existsSync()) {
-            final versionFile = File(p.join(globalBinDir.path, '.version'));
-            bool outOfDate = false;
-            if (versionFile.existsSync()) {
-              try {
-                final cachedVersion = versionFile.readAsStringSync().trim();
-                if (_isVersionOlder(
-                    cachedVersion, HarnessDownloader.defaultVersion)) {
-                  outOfDate = true;
-                }
-              } catch (_) {
-                outOfDate = true;
-              }
-            } else {
-              outOfDate = true;
-            }
+    final fromGlobal = _findFromGlobalInstall(env);
+    if (fromGlobal != null) return fromGlobal;
 
-            if (!outOfDate) {
-              return file.absolute.path;
-            }
-          }
-        }
-      }
-    }
-
-    // 5. Fallback: Try to automatically download the official precompiled binary
     Object? downloadError;
     if (autoDownload) {
       try {
-        final downloadedPath = await HarnessDownloader.downloadAndInstall();
-        return downloadedPath;
+        return await HarnessDownloader.downloadAndInstall();
       } catch (e) {
         downloadError = e;
       }
     }
 
-    // 6. Graceful Failure: Throw a descriptive exception with setup instructions
+    _throwNotFoundException(autoDownload, downloadError);
+  }
+
+  static String? _findFromConfigPath(String? configPath) {
+    if (configPath == null || configPath.isEmpty) return null;
+    final file = File(configPath);
+    return file.existsSync() ? file.absolute.path : null;
+  }
+
+  static String? _findFromEnvVar(Map<String, String> env) {
+    final envPath = env[harnessEnvVar];
+    if (envPath == null || envPath.isEmpty) return null;
+    final file = File(envPath);
+    return file.existsSync() ? file.absolute.path : null;
+  }
+
+  static String? _findFromSystemPath(Map<String, String> env) {
+    final pathEnv = env['PATH'];
+    if (pathEnv == null || pathEnv.isEmpty) return null;
+    final separator = Platform.isWindows ? ';' : ':';
+    final dirs = pathEnv.split(separator);
+    for (final dir in dirs) {
+      final trimmed = dir.trim();
+      if (trimmed.isEmpty) continue;
+      for (final binName in binaryNames) {
+        final fullName = Platform.isWindows ? '$binName.exe' : binName;
+        final file = File(p.join(trimmed, fullName));
+        if (file.existsSync()) {
+          return file.absolute.path;
+        }
+      }
+    }
+    return null;
+  }
+
+  static String? _findFromGlobalInstall(Map<String, String> env) {
+    final homeDir = env['HOME'] ?? env['USERPROFILE'];
+    if (homeDir == null || homeDir.isEmpty) return null;
+    final globalBinDir = Directory(p.join(homeDir, '.antigravity', 'bin'));
+    if (!globalBinDir.existsSync()) return null;
+
+    for (final binName in binaryNames) {
+      final fullName = Platform.isWindows ? '$binName.exe' : binName;
+      final file = File(p.join(globalBinDir.path, fullName));
+      if (file.existsSync() && _isCachedBinaryValid(globalBinDir)) {
+        return file.absolute.path;
+      }
+    }
+    return null;
+  }
+
+  static bool _isCachedBinaryValid(Directory globalBinDir) {
+    final versionFile = File(p.join(globalBinDir.path, '.version'));
+    if (!versionFile.existsSync()) return false;
+    try {
+      final cachedVersion = versionFile.readAsStringSync().trim();
+      return !_isVersionOlder(cachedVersion, HarnessDownloader.defaultVersion);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Never _throwNotFoundException(bool autoDownload, Object? downloadError) {
     final sep = p.separator;
     throw AntigravityBinaryNotFoundException(
       'Could not find or automatically download the Google Antigravity binary.\n\n'
