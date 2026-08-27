@@ -183,15 +183,21 @@ class SubagentConfig with SubagentConfigMappable {
   /// Optional capability configuration controlling enabled/disabled tools for this subagent.
   final SubagentCapabilities? capabilities;
 
-  /// Optional list of additional custom tools (string names or [Tool] instances) to enable.
-  final List<dynamic> tools;
+  /// Optional list of additional custom tools to enable for this subagent.
+  ///
+  /// Each entry is either a [String] naming a tool registered on the main
+  /// agent, or a [Tool] instance exclusive to this subagent. This mirrors the
+  /// upstream Python contract `list[Callable[..., Any] | str]`. Typed as
+  /// [Object] rather than `dynamic` so that member access on an entry requires
+  /// an explicit `is` check instead of failing at runtime.
+  final List<Object> tools;
 
   SubagentConfig({
     required this.name,
     required this.description,
     this.systemInstructions,
     this.capabilities,
-    List<dynamic>? tools,
+    List<Object>? tools,
   }) : tools = tools ?? [];
 
   static const fromMap = SubagentConfigMapper.fromMap;

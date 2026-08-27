@@ -41,7 +41,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   final String? _configuredBinaryPath;
   final ToolRunner _toolRunner;
   final HookRunner _hookRunner;
-  final List<dynamic>? _tools;
+  final List<Object>? _tools;
   final List<ModelTarget>? _models;
   final dynamic _systemInstructions;
   final CapabilitiesConfig _capabilitiesConfig;
@@ -69,7 +69,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     String? binaryPath,
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
-    List<dynamic>? tools,
+    List<Object>? tools,
     List<ModelTarget>? models,
     required dynamic systemInstructions,
     required CapabilitiesConfig capabilitiesConfig,
