@@ -1,3 +1,25 @@
+# 0.12.0
+
+* **Sync with Python SDK v0.1.15**:
+  - **Stop Lifecycle Hook (`StopHook`)**:
+    - Added `StopHook`, `StopDecision`, `StopHookResult`, and `StopArgs` for intercepting turn completion when the agent reaches idle.
+    - Enables inspecting the assistant's final response and deciding whether to allow the turn to finish (`StopDecision.allowStop`) or continue execution (`StopDecision.continueTurn`) with an injected feedback system prompt.
+    - Added `HookRunner.dispatchStop` and wired `LIFECYCLE_HOOK_STOP` through `HookRouter`, preserving turn context across continuation cycles.
+    - Followed Dart language heuristics: mapped Python `StopDecision.CONTINUE` to `StopDecision.continueTurn` (since `continue` is a reserved control flow keyword in Dart) while maintaining exact wire compatibility (`CONTINUE` on the wire, supporting both prefixed and bare values).
+  - **Terminal Command Sandbox Configuration (`enableSandbox`)**:
+    - Added `enableSandbox` property to `RunCommandConfig` (defaults to `false`).
+    - Propagated `enable_sandbox` into `localharness` `harness_side_tools.run_command` configuration over the wire, allowing opt-in execution within OS-level sandboxing (exebox).
+  - **Universal JSON Schema Normalization (`normalizeSchema`)**:
+    - Added `normalizeSchema` in `schema_utils.dart` to canonicalize custom tool input schemas before wire transmission.
+    - Recursively normalizes uppercase type names (`STRING`, `OBJECT`, etc.) to standard lowercase OpenAPI/JSON Schema strings (`string`, `object`), converts snake_case combiners and attributes (`any_of`, `additional_properties`, etc.) to camelCase (`anyOf`, `additionalProperties`), and preserves literal constraints (`enum`, `const`, `default`).
+    - Eliminates HTTP 400 Bad Request schema validation errors when targeting local OpenAI-compatible inference endpoints (Ollama, LM Studio, vLLM).
+  - **Tool Execution Metadata Preservation**:
+    - Added `serverName` to `ToolResult` and preserved `id`, `callId`, `stepId`, and `serverName` across all `ToolResult` executions, error handlers, and internal SDK fallback responses.
+  - **Interactive CLI Execution Behavior**:
+    - Updated `runInteractiveLoop` in `interactive.dart` to ensure `capabilities.agentBehavior` is explicitly set to `AgentBehavior.interactive`.
+  - **Harness Downloader Default Version**:
+    - Updated default upstream `localharness` binary download version in `HarnessDownloader` to `0.1.15`.
+
 # 0.11.0
 
 * **Sync with Python SDK v0.1.14**:

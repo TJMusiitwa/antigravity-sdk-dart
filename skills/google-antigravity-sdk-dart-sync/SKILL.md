@@ -1,12 +1,12 @@
 ---
 name: google-antigravity-sdk-dart-sync
-description: "Synchronize upstream Python SDK commits (v0.1.14), version strings, features, and test suites to Dart."
+description: "Synchronize upstream Python SDK commits (v0.1.15), version strings, features, and test suites to Dart."
 disable-model-invocation: true
 ---
 
 # Python to Dart Synchronization Skill
 
-Standard procedure for synchronizing features, bug fixes, updates, and package versions from the reference Python SDK repository (`antigravity-sdk-python` v0.1.14) to this Dart SDK.
+Standard procedure for synchronizing features, bug fixes, updates, and package versions from the reference Python SDK repository (`antigravity-sdk-python` v0.1.15) to this Dart SDK.
 
 ## Core Sync Workflow
 
