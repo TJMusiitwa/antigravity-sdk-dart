@@ -57,3 +57,24 @@ class MetricsPostToolCallHook extends PostToolCallHook {
   }
 }
 ```
+
+## 3. Stop Lifecycle Hook for Turn Continuation Decisions
+
+```dart
+import 'package:antigravity/antigravity.dart';
+
+class QualityAssuranceStopHook extends StopHook {
+  @override
+  Future<StopHookResult> run(HookContext context, StopArgs data) async {
+    // If the answer is too brief on the first attempt, prompt the model to elaborate
+    if (data.continuationCount == 0 && data.responseText.length < 50) {
+      return StopHookResult(
+        decision: StopDecision.continueTurn,
+        reason: 'Please provide a more comprehensive and detailed explanation.',
+      );
+    }
+    return StopHookResult(decision: StopDecision.allowStop);
+  }
+}
+```
+

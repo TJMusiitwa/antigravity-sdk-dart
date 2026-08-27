@@ -164,9 +164,62 @@ class HookRouter {
         await _handleOnToolError(req, response);
       case 'LIFECYCLE_HOOK_ON_COMPACTION' || 'ON_COMPACTION':
         await _handleOnCompaction(req, response);
+      case 'LIFECYCLE_HOOK_STOP' || 'STOP':
+        await _handleStop(req, response);
       default:
         _logger.warning('Unknown hook received: $hookType');
         response['empty_result'] = {};
+    }
+  }
+
+  /// Handles the LIFECYCLE_HOOK_STOP event from localharness.
+  Future<void> _handleStop(
+    Map<String, dynamic> req,
+    Map<String, dynamic> response,
+  ) async {
+    final stopArgsMap = (req['stop_args'] ?? req['stopArgs']) as Map? ?? {};
+    final responseText =
+        (stopArgsMap['response_text'] ?? stopArgsMap['responseText'] ?? '')
+            .toString();
+    final trajectoryId =
+        (stopArgsMap['trajectory_id'] ?? stopArgsMap['trajectoryId'] ?? '')
+            .toString();
+    final continuationCount = int.tryParse((stopArgsMap['continuation_count'] ??
+                stopArgsMap['continuationCount'] ??
+                '0')
+            .toString()) ??
+        0;
+    final rawStopReason =
+        stopArgsMap['stop_reason'] ?? stopArgsMap['stopReason'];
+    final stopReason = rawStopReason != null
+        ? StopReason.fromString(rawStopReason.toString())
+        : StopReason.unspecified;
+    final errorMessage =
+        (stopArgsMap['error_message'] ?? stopArgsMap['errorMessage'] ?? '')
+            .toString();
+
+    final stopArgs = StopArgs(
+      responseText: responseText,
+      trajectoryId: trajectoryId,
+      continuationCount: continuationCount,
+      stopReason: stopReason,
+      errorMessage: errorMessage,
+    );
+
+    final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
+    final result = await _hookRunner.dispatchStop(turnCtx, stopArgs);
+
+    if (result.decision == StopDecision.continueTurn) {
+      _currentTurnContext = turnCtx;
+      response['stop_result'] = {
+        'decision': 'CONTINUE',
+        'reason': result.reason.trim(),
+      };
+    } else {
+      _currentTurnContext = null;
+      response['stop_result'] = {
+        'decision': 'ALLOW_STOP',
+      };
     }
   }
 

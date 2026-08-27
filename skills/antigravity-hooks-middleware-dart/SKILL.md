@@ -16,7 +16,8 @@ Guidelines for registering harness and client-side lifecycle hooks using `HookRo
    - `PostToolCallHook`: Inspect or log tool outputs post-execution.
    - `OnToolErrorHook`: Catch tool execution failures (`ToolExecutionException`) and provide fallback responses.
    - `OnCompactionHook`: Intercept context window compaction events.
-3. **Stateless Factories**: Use `.stateless()` constructors (`FunctionInspectHook.stateless`, `FunctionDecideHook.stateless`, `FunctionTransformHook.stateless`) when context tracking is unneeded.
+   - `StopHook`: Intercept turn idle transitions to allow completion (`StopDecision.allowStop`) or continue execution (`StopDecision.continueTurn`) with an injected reason.
+3. **Stateless Factories**: Use `.stateless()` constructors (`FunctionInspectHook.stateless`, `FunctionDecideHook.stateless`, `FunctionTransformHook.stateless`, `FunctionStopHook.stateless`) when context tracking is unneeded.
 
 For complete hook implementations, inspect [`references/hooks_patterns.md`](file://references/hooks_patterns.md).
 
@@ -32,3 +33,4 @@ For code patterns, consult [`references/hooks_patterns.md`](file://references/ho
 - [ ] Lifecycle hooks wrap handlers using `HookRunner` or `.stateless()` factories.
 - [ ] `PreTurnHook` decisions return `HookResult(allow: true)` or `HookResult(allow: false, message: '...')`.
 - [ ] `OnToolErrorHook` catches `ToolExecutionException` without crashing the session loop.
+- [ ] `StopHook` returns `StopHookResult(decision: StopDecision.continueTurn, reason: '...')` to resume execution or `StopHookResult(decision: StopDecision.allowStop)` to finish.

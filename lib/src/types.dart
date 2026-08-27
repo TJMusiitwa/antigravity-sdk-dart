@@ -9,6 +9,7 @@ export 'types/file_change.dart';
 export 'types/interaction.dart';
 export 'types/mcp_config.dart';
 export 'types/step.dart';
+export 'types/stop.dart';
 export 'types/system_instructions.dart';
 export 'types/tool_call.dart';
 export 'types/tool_results.dart';

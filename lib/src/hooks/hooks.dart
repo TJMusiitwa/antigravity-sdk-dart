@@ -148,6 +148,35 @@ abstract class OnInteractionHook
 /// Invoked when a conversation context compaction event occurs.
 abstract class OnCompactionHook extends InspectHook<Step> {}
 
+/// Invoked when the root trajectory reaches fully idle to decide whether to stop or continue.
+///
+/// Return [StopHookResult] with `decision: StopDecision.continueTurn` and a non-empty `reason`
+/// to inject a system prompt and resume the agent loop, or allow the default
+/// [StopDecision.allowStop] to let the turn complete.
+abstract class StopHook implements Hook {
+  FutureOr<StopHookResult?> run(HookContext context, StopArgs data);
+}
+
+/// Helper class to adapt functions into [StopHook]s.
+class FunctionStopHook implements StopHook {
+  final FutureOr<StopHookResult?> Function(HookContext context, StopArgs data)
+      _func;
+
+  /// Creates a new [FunctionStopHook] instance accepting a [HookContext] and [StopArgs].
+  FunctionStopHook(this._func);
+
+  /// Creates a stateless [FunctionStopHook] instance accepting only [StopArgs].
+  factory FunctionStopHook.stateless(
+      FutureOr<StopHookResult?> Function(StopArgs data) func) {
+    return FunctionStopHook((_, data) => func(data));
+  }
+
+  @override
+  Future<StopHookResult?> run(HookContext context, StopArgs data) async {
+    return await _func(context, data);
+  }
+}
+
 /// Invoked when a step is first seen in the stream (internal).
 abstract class PreStepHook extends InspectHook<Step> {}
 
@@ -167,6 +196,7 @@ class HookRunner {
   final List<OnToolErrorHook> onToolErrorHooks;
   final List<OnInteractionHook> onInteractionHooks;
   final List<OnCompactionHook> onCompactionHooks;
+  final List<StopHook> stopHooks;
   final List<PreStepHook> preStepHooks;
   final List<PostStepHook> postStepHooks;
 
@@ -184,6 +214,7 @@ class HookRunner {
     List<OnToolErrorHook>? onToolErrorHooks,
     List<OnInteractionHook>? onInteractionHooks,
     List<OnCompactionHook>? onCompactionHooks,
+    List<StopHook>? stopHooks,
     List<PreStepHook>? preStepHooks,
     List<PostStepHook>? postStepHooks,
   })  : onSessionStartHooks = onSessionStartHooks ?? [],
@@ -195,6 +226,7 @@ class HookRunner {
         onToolErrorHooks = onToolErrorHooks ?? [],
         onInteractionHooks = onInteractionHooks ?? [],
         onCompactionHooks = onCompactionHooks ?? [],
+        stopHooks = stopHooks ?? [],
         preStepHooks = preStepHooks ?? [],
         postStepHooks = postStepHooks ?? [];
 
@@ -219,6 +251,8 @@ class HookRunner {
         onInteractionHooks.add(h);
       case OnCompactionHook h:
         onCompactionHooks.add(h);
+      case StopHook h:
+        stopHooks.add(h);
       case PreStepHook h:
         preStepHooks.add(h);
       case PostStepHook h:
@@ -239,6 +273,7 @@ class HookRunner {
       onToolErrorHooks.isNotEmpty ||
       onInteractionHooks.isNotEmpty ||
       onCompactionHooks.isNotEmpty ||
+      stopHooks.isNotEmpty ||
       preStepHooks.isNotEmpty ||
       postStepHooks.isNotEmpty;
 
@@ -375,6 +410,23 @@ class HookRunner {
     for (final hook in onCompactionHooks) {
       await hook.run(opContext, data);
     }
+  }
+
+  /// Dispatches stop hook events.
+  ///
+  /// Iterates stop hooks sequentially and short-circuits on the first
+  /// [StopDecision.continueTurn] decision with a non-empty reason.
+  Future<StopHookResult> dispatchStop(
+    TurnContext turnContext,
+    StopArgs args,
+  ) async {
+    for (final hook in stopHooks) {
+      final res = await hook.run(turnContext, args);
+      if (res != null && res.decision == StopDecision.continueTurn) {
+        return res;
+      }
+    }
+    return StopHookResult(decision: StopDecision.allowStop);
   }
 
   /// Dispatches internal pre-step observability events.

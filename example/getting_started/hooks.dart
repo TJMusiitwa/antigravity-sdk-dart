@@ -136,6 +136,35 @@ class MyOnCompactionHook extends OnCompactionHook {
 }
 
 // -----------------------------------------------------------------------------
+// Stop Hook
+// -----------------------------------------------------------------------------
+
+class MyStopHook extends StopHook {
+  @override
+  Future<StopHookResult> run(HookContext context, StopArgs data) async {
+    print(
+        '\n  [Stop Hook] Fired (continuationCount=${data.continuationCount})');
+    final preview = data.responseText.length > 60
+        ? '${data.responseText.substring(0, 60)}…'
+        : data.responseText;
+    print('  [Stop Hook] Response preview: "$preview"');
+
+    if (data.responseText.toLowerCase().contains('mars') &&
+        data.continuationCount == 0) {
+      print('  [Stop Hook] -> CONTINUE: Pushing agent to dig deeper.\n');
+      return StopHookResult(
+        decision: StopDecision.continueTurn,
+        reason:
+            'Great start. Now pick the single most surprising fact you mentioned and explain why it matters for future space exploration. Be concise.',
+      );
+    }
+
+    print('  [Stop Hook] -> ALLOW_STOP: Agent may finish.\n');
+    return StopHookResult(decision: StopDecision.allowStop);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Helper Tools
 // -----------------------------------------------------------------------------
 
@@ -176,6 +205,7 @@ Future<void> main() async {
       MyOnToolErrorHook(),
       MyOnInteractionHook(),
       MyOnCompactionHook(),
+      MyStopHook(),
     ],
     tools: [greetTool, brokenTool],
   );
@@ -218,6 +248,15 @@ Future<void> main() async {
     final r4 = await agent.chat('Ask me a multiple-choice trivia question.');
     stdout.write('  Agent Response: ');
     await for (final chunk in r4.textStream) {
+      stdout.write(chunk);
+    }
+    print('');
+
+    // 5. Trigger Stop Hook continuation.
+    print('\n  --- Prompt 5: Stop Hook (dig deeper) ---');
+    final r5 = await agent.chat('Tell me 3 interesting facts about Mars.');
+    stdout.write('  Agent Response: ');
+    await for (final chunk in r5.textStream) {
       stdout.write(chunk);
     }
     print('');
