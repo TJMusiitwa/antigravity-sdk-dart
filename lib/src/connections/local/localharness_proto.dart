@@ -169,7 +169,8 @@ class LocalHarnessProto {
     return utf8.decode(strBytes);
   }
 
-  static void _skipUnknownWireField(List<int> bytes, List<int> indexRef, int wireType) {
+  static void _skipUnknownWireField(
+      List<int> bytes, List<int> indexRef, int wireType) {
     switch (wireType) {
       case 0:
         decodeVarint(bytes, indexRef);

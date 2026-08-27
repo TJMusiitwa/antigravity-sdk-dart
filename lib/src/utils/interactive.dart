@@ -129,7 +129,8 @@ class AskQuestionHook extends OnInteractionHook {
     }
   }
 
-  static Future<QuestionResponse> _promptSingleQuestion(AskQuestionEntry q) async {
+  static Future<QuestionResponse> _promptSingleQuestion(
+      AskQuestionEntry q) async {
     print("\nQuestion: ${q.question}");
     for (var i = 0; i < q.options.length; i++) {
       print("  ${i + 1}. ${q.options[i].text}");
@@ -146,7 +147,8 @@ class AskQuestionHook extends OnInteractionHook {
     return QuestionResponse(freeformResponse: ans);
   }
 
-  static String? _resolveSelectedOptionId(List<AskQuestionOption> options, String ans) {
+  static String? _resolveSelectedOptionId(
+      List<AskQuestionOption> options, String ans) {
     if (options.isEmpty) return null;
 
     final parsedIdx = int.tryParse(ans);
@@ -159,7 +161,8 @@ class AskQuestionHook extends OnInteractionHook {
 
     final lowerAns = ans.toLowerCase();
     for (final opt in options) {
-      if (lowerAns == opt.text.toLowerCase() || lowerAns == opt.id.toLowerCase()) {
+      if (lowerAns == opt.text.toLowerCase() ||
+          lowerAns == opt.id.toLowerCase()) {
         return opt.id;
       }
     }
@@ -224,7 +227,8 @@ Future<bool> _executeInteractiveTurn(Agent agent) async {
   try {
     final userInput = (await asyncInput("User: ")).trim();
     if (userInput.isEmpty) return true;
-    if (userInput.toLowerCase() == 'exit' || userInput.toLowerCase() == 'quit') {
+    if (userInput.toLowerCase() == 'exit' ||
+        userInput.toLowerCase() == 'quit') {
       print("Goodbye!");
       return false;
     }

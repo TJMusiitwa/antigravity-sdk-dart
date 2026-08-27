@@ -120,7 +120,8 @@ class BinaryDiscovery {
     }
   }
 
-  static Never _throwNotFoundException(bool autoDownload, Object? downloadError) {
+  static Never _throwNotFoundException(
+      bool autoDownload, Object? downloadError) {
     final sep = p.separator;
     throw AntigravityBinaryNotFoundException(
       'Could not find or automatically download the Google Antigravity binary.\n\n'

@@ -1092,8 +1092,10 @@ void main() {
       );
     });
 
-    test('DebugConfig serializes and deserializes correctly with LevelMapper', () {
-      final debug = DebugConfig(level: Level.INFO, enableServerSideTracing: true);
+    test('DebugConfig serializes and deserializes correctly with LevelMapper',
+        () {
+      final debug =
+          DebugConfig(level: Level.INFO, enableServerSideTracing: true);
       final map = debug.toMap();
       expect(map['enable_server_side_tracing'], isTrue);
       expect(map['logging_level'], equals('INFO'));

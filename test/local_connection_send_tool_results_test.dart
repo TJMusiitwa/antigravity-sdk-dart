@@ -173,7 +173,8 @@ void main() {
       await messageStream.close();
     });
 
-    test('step_update sets mainTrajectoryId and preserves conversationId', () async {
+    test('step_update sets mainTrajectoryId and preserves conversationId',
+        () async {
       final steps = connection.receiveSteps();
       messageStream.add(jsonEncode({
         'step_update': {
@@ -194,7 +195,8 @@ void main() {
       expect(connection.conversationId, equals('cascade-123'));
     });
 
-    test('trajectory_state_update for main trajectory emits idle_sentinel', () async {
+    test('trajectory_state_update for main trajectory emits idle_sentinel',
+        () async {
       connection.mainTrajectoryId = 'traj-main';
 
       final steps = connection.receiveSteps();
@@ -212,7 +214,8 @@ void main() {
       expect(connection.isIdle, isTrue);
     });
 
-    test('subagent trajectory_state_update does not emit idle_sentinel', () async {
+    test('subagent trajectory_state_update does not emit idle_sentinel',
+        () async {
       connection.mainTrajectoryId = 'traj-main';
 
       final receivedSteps = <Step>[];

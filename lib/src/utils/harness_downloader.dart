@@ -11,7 +11,7 @@ class HarnessDownloader {
   static final Logger _logger = Logger('HarnessDownloader');
 
   /// Fallback version of google-antigravity to query if PyPI's latest resolution fails.
-  static const String defaultVersion = '0.1.13';
+  static const String defaultVersion = '0.1.14';
 
   /// Detects the current CPU architecture.
   static Future<String> getProcessorArchitecture() async {
@@ -69,11 +69,14 @@ class HarnessDownloader {
       );
     }
 
-    _logger.info('Resolving latest google-antigravity release metadata from PyPI...');
+    _logger.info(
+        'Resolving latest google-antigravity release metadata from PyPI...');
     final resolved = await _resolveWheelUrl(tag);
 
-    _logger.info('Downloading localharness v${resolved.version} wheel from ${resolved.url}...');
-    final tempDir = await Directory.systemTemp.createTemp('antigravity_download_');
+    _logger.info(
+        'Downloading localharness v${resolved.version} wheel from ${resolved.url}...');
+    final tempDir =
+        await Directory.systemTemp.createTemp('antigravity_download_');
     final tempWhlFile = File(p.join(tempDir.path, 'temp.whl'));
 
     try {
@@ -86,12 +89,14 @@ class HarnessDownloader {
     }
   }
 
-  static Future<({String url, String version})> _resolveWheelUrl(String tag) async {
+  static Future<({String url, String version})> _resolveWheelUrl(
+      String tag) async {
     String? whlUrl;
     String version = defaultVersion;
 
     try {
-      final response = await http.get(Uri.parse('https://pypi.org/pypi/google-antigravity/json'));
+      final response = await http
+          .get(Uri.parse('https://pypi.org/pypi/google-antigravity/json'));
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
         final info = json['info'] as Map<String, dynamic>;
@@ -99,12 +104,14 @@ class HarnessDownloader {
         whlUrl = _findMatchingWheelUrl(json['urls'] as List<dynamic>, tag);
       }
     } catch (e) {
-      _logger.warning('Failed to query latest PyPI metadata: $e. Falling back to default version $defaultVersion.');
+      _logger.warning(
+          'Failed to query latest PyPI metadata: $e. Falling back to default version $defaultVersion.');
     }
 
     if (whlUrl == null) {
       try {
-        final response = await http.get(Uri.parse('https://pypi.org/pypi/google-antigravity/$version/json'));
+        final response = await http.get(Uri.parse(
+            'https://pypi.org/pypi/google-antigravity/$version/json'));
         if (response.statusCode == 200) {
           final json = jsonDecode(response.body) as Map<String, dynamic>;
           whlUrl = _findMatchingWheelUrl(json['urls'] as List<dynamic>, tag);
@@ -143,25 +150,33 @@ class HarnessDownloader {
     await targetFile.writeAsBytes(bytesResponse.bodyBytes);
   }
 
-  static Future<String> _extractAndInstallBinary(File tempWhlFile, String version) async {
-    final homeDir = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'] ?? '.';
+  static Future<String> _extractAndInstallBinary(
+      File tempWhlFile, String version) async {
+    final homeDir = Platform.environment['HOME'] ??
+        Platform.environment['USERPROFILE'] ??
+        '.';
     final installDir = Directory(p.join(homeDir, '.antigravity', 'bin'));
     final binaryName = Platform.isWindows ? 'localharness.exe' : 'localharness';
     final targetBinaryFile = File(p.join(installDir.path, binaryName));
 
-    _logger.info('Extracting localharness binary to ${targetBinaryFile.path}...');
+    _logger
+        .info('Extracting localharness binary to ${targetBinaryFile.path}...');
 
-    final extractTempDir = await Directory.systemTemp.createTemp('antigravity_extract_');
+    final extractTempDir =
+        await Directory.systemTemp.createTemp('antigravity_extract_');
     try {
       final internalPath = Platform.isWindows
           ? 'google/antigravity/bin/localharness.exe'
           : 'google/antigravity/bin/localharness';
 
-      await _runExtractCommand(tempWhlFile.path, extractTempDir.path, internalPath);
+      await _runExtractCommand(
+          tempWhlFile.path, extractTempDir.path, internalPath);
 
-      final sourceFile = File(p.join(extractTempDir.path, p.fromUri(internalPath)));
+      final sourceFile =
+          File(p.join(extractTempDir.path, p.fromUri(internalPath)));
       if (!sourceFile.existsSync()) {
-        throw FileSystemException('Extracted localharness binary not found at expected location.');
+        throw FileSystemException(
+            'Extracted localharness binary not found at expected location.');
       }
 
       if (!installDir.existsSync()) {
@@ -172,7 +187,8 @@ class HarnessDownloader {
       _writeVersionFile(installDir, version);
       await _ensureExecutable(targetBinaryFile.path);
 
-      _logger.info('Successfully installed localharness v$version to ${targetBinaryFile.path}');
+      _logger.info(
+          'Successfully installed localharness v$version to ${targetBinaryFile.path}');
       return targetBinaryFile.absolute.path;
     } finally {
       if (extractTempDir.existsSync()) {
@@ -187,8 +203,10 @@ class HarnessDownloader {
     String internalPath,
   ) async {
     final result = Platform.isWindows
-        ? await Process.run('tar', ['-xf', zipPath, '-C', destDir, internalPath])
-        : await Process.run('unzip', ['-o', '-q', zipPath, internalPath, '-d', destDir]);
+        ? await Process.run(
+            'tar', ['-xf', zipPath, '-C', destDir, internalPath])
+        : await Process.run(
+            'unzip', ['-o', '-q', zipPath, internalPath, '-d', destDir]);
 
     if (result.exitCode != 0) {
       throw ProcessException(
@@ -213,7 +231,8 @@ class HarnessDownloader {
     if (Platform.isWindows) return;
     final chmodResult = await Process.run('chmod', ['+x', binaryPath]);
     if (chmodResult.exitCode != 0) {
-      _logger.warning('Failed to set executable flag on binary: ${chmodResult.stderr}');
+      _logger.warning(
+          'Failed to set executable flag on binary: ${chmodResult.stderr}');
     }
   }
 }

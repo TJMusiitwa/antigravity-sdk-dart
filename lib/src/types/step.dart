@@ -342,7 +342,8 @@ class Step with StepMappable {
     raw.forEach((k, v) {
       if (v != null) {
         final snakeKey = _toSnakeCase(k.toString());
-        normalized[snakeKey] = v is num ? v.toInt() : int.tryParse(v.toString());
+        normalized[snakeKey] =
+            v is num ? v.toInt() : int.tryParse(v.toString());
       }
     });
     map['usage_metadata'] = normalized;
@@ -363,7 +364,8 @@ class Step with StepMappable {
     'finish': 'finish',
   };
 
-  static List<Map<String, dynamic>> _extractToolCalls(Map<String, dynamic> map) {
+  static List<Map<String, dynamic>> _extractToolCalls(
+      Map<String, dynamic> map) {
     final singleCall = _extractSingleActiveTool(map);
     if (singleCall != null) {
       return [singleCall];
@@ -375,7 +377,8 @@ class Step with StepMappable {
     return const [];
   }
 
-  static Map<String, dynamic>? _extractSingleActiveTool(Map<String, dynamic> map) {
+  static Map<String, dynamic>? _extractSingleActiveTool(
+      Map<String, dynamic> map) {
     final detected =
         _findBuiltinTool(map) ?? _findMcpTool(map) ?? _findCustomTool(map);
 
@@ -399,7 +402,12 @@ class Step with StepMappable {
     };
   }
 
-  static ({String name, Map<String, dynamic> args, String? serverName, String? id})? _findBuiltinTool(
+  static ({
+    String name,
+    Map<String, dynamic> args,
+    String? serverName,
+    String? id
+  })? _findBuiltinTool(
     Map<String, dynamic> map,
   ) {
     for (final entry in _toolFields.entries) {
@@ -421,7 +429,12 @@ class Step with StepMappable {
     return null;
   }
 
-  static ({String name, Map<String, dynamic> args, String? serverName, String? id})? _findMcpTool(
+  static ({
+    String name,
+    Map<String, dynamic> args,
+    String? serverName,
+    String? id
+  })? _findMcpTool(
     Map<String, dynamic> map,
   ) {
     final mcpKey = map.containsKey('mcp_tool')
@@ -430,7 +443,8 @@ class Step with StepMappable {
     if (mcpKey == null || map[mcpKey] is! Map) return null;
 
     final dict = Map<String, dynamic>.from(map[mcpKey] as Map);
-    final serverName = (dict['server_name'] ?? dict['serverName'] ?? '').toString();
+    final serverName =
+        (dict['server_name'] ?? dict['serverName'] ?? '').toString();
     final toolName = (dict['tool_name'] ?? dict['toolName'] ?? '').toString();
     final argsJson = dict['arguments_json'] ?? dict['argumentsJson'] ?? '{}';
     final args = _decodeToolArguments(argsJson);
@@ -438,7 +452,12 @@ class Step with StepMappable {
     return (name: toolName, args: args, serverName: serverName, id: null);
   }
 
-  static ({String name, Map<String, dynamic> args, String? serverName, String? id})? _findCustomTool(
+  static ({
+    String name,
+    Map<String, dynamic> args,
+    String? serverName,
+    String? id
+  })? _findCustomTool(
     Map<String, dynamic> map,
   ) {
     final customKey = map.containsKey('custom_tool')
@@ -456,10 +475,16 @@ class Step with StepMappable {
     final name = tcDict['name']?.toString();
     if (name == null || name.isEmpty) return null;
 
-    final argsJson = tcDict['arguments_json'] ?? tcDict['argumentsJson'] ?? '{}';
+    final argsJson =
+        tcDict['arguments_json'] ?? tcDict['argumentsJson'] ?? '{}';
     final args = _decodeToolArguments(argsJson);
 
-    return (name: name, args: args, serverName: null, id: tcDict['id']?.toString());
+    return (
+      name: name,
+      args: args,
+      serverName: null,
+      id: tcDict['id']?.toString()
+    );
   }
 
   static Map<String, dynamic> _decodeToolArguments(dynamic argsJson) {
@@ -505,8 +530,10 @@ class Step with StepMappable {
     for (final rawCall in rawCalls) {
       if (rawCall is! Map) continue;
       final callMap = Map<String, dynamic>.from(rawCall);
-      final args = _decodeToolArguments(callMap['arguments_json'] ?? callMap['arguments']);
-      final canonicalPath = _normalizeToolPathArgs(args) ?? callMap['canonical_path']?.toString();
+      final args = _decodeToolArguments(
+          callMap['arguments_json'] ?? callMap['arguments']);
+      final canonicalPath =
+          _normalizeToolPathArgs(args) ?? callMap['canonical_path']?.toString();
 
       callMap['arguments'] = args;
       callMap['arguments_json'] = args;
@@ -525,7 +552,8 @@ class Step with StepMappable {
       map['type'] = 'FINISH';
     } else if (hasToolCalls) {
       map['type'] = 'TOOL_CALL';
-    } else if (map['thinking'] != null && map['thinking'].toString().isNotEmpty) {
+    } else if (map['thinking'] != null &&
+        map['thinking'].toString().isNotEmpty) {
       map['type'] = 'THINKING';
     } else if (map['text'] != null && map['text'].toString().isNotEmpty) {
       map['type'] = 'TEXT_RESPONSE';
@@ -550,9 +578,12 @@ class Step with StepMappable {
   static void _determineIsCompleteResponse(Map<String, dynamic> map) {
     final isFromModel = map['source'] == 'MODEL';
     final isDone = map['status'] == 'DONE';
-    final hasText = map['content'] != null && map['content'].toString().isNotEmpty;
-    final isTargetUser = map['target'] == 'TARGET_USER' || map['target'] == 'user';
-    map['is_complete_response'] = isFromModel && isDone && hasText && isTargetUser;
+    final hasText =
+        map['content'] != null && map['content'].toString().isNotEmpty;
+    final isTargetUser =
+        map['target'] == 'TARGET_USER' || map['target'] == 'user';
+    map['is_complete_response'] =
+        isFromModel && isDone && hasText && isTargetUser;
   }
 
   static String _normalizeWirePath(String path) {
