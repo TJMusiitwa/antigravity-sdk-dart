@@ -1,3 +1,22 @@
+# 0.11.0
+
+* **Sync with Python SDK v0.1.14**:
+  - **Workspace Path Normalization**:
+    - Added `normalizeWorkspacePath` and `normalizeWorkspacePaths` in `local_connection_config.dart` to expand `~`, normalize `file:///` URIs, and resolve relative workspace paths against the current working directory to absolute filesystem paths.
+    - Updated `BaseLocalAgentConfig` and `LocalConnectionStrategy` to canonicalize all workspace directories before transmitting to `localharness`, preventing incorrect resolution against `appDataDir`.
+  - **Compaction Lifecycle Hook**:
+    - Added `LIFECYCLE_HOOK_ON_COMPACTION` support to `HookRouter` and enabled hooks payload in `LocalConnection`.
+    - Removed duplicate compaction hook dispatches from raw streaming `StepUpdate` events, ensuring `OnCompactionHook` handlers fire exactly once per compaction event. This matches the upstream fix, which routes compaction solely through the lifecycle hook RPC.
+  - **Compaction index de-duplication (Dart-only, no Python counterpart)**:
+    - Added a `Conversation` safeguard that de-duplicates `compactionIndices` by compaction step identity (wire `id`, else `trajectoryId:stepIndex`). The Python SDK appends compaction indices unconditionally and relies on the harness emitting a single `COMPACTION` step per event; this guard keeps the count correct if successive `ACTIVE`/`DONE` updates arrive for the same step. It is a deliberate divergence, not a port.
+  - **Vertex AI authentication override**:
+    - Verified against the upstream `VertexEndpoint` and the `localharness` proto contract: the accepted resolution was the `api_key` (Express Mode) field, and there is no `auth` field in either the Python model or the wire message. Dart already shipped this in v0.10.0, so is satisfied without further work in this release.
+  - **Subagent Custom Tools Scoping & Discovery**:
+    - Added `AgentConfig.getAllCustomTools()` to automatically collect and register custom callable tools across the main agent and subagents, detecting name collisions early.
+    - Added support for subagent-exclusive tools and resolved tool definitions automatically in `LocalConnectionStrategy._buildHarnessConfig()`.
+  - **Harness Downloader Default Version**:
+    - Updated default upstream `localharness` binary download version in `HarnessDownloader` to `0.1.14`.
+
 # 0.10.0
 
 * **Sync with Python SDK v0.1.13**:
