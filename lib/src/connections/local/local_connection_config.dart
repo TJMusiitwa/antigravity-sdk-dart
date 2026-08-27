@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_mappable/dart_mappable.dart';
+import 'package:path/path.dart' as p;
 
 import '../../hooks/hooks.dart';
 import '../../hooks/policy.dart';
@@ -9,6 +10,7 @@ import '../../tools/tool_runner.dart';
 import '../../triggers/triggers.dart';
 import '../../types.dart';
 import '../connection.dart';
+import 'hook_router.dart';
 import 'local_connection.dart';
 
 part 'local_connection_config.mapper.dart';
@@ -18,6 +20,49 @@ String get defaultAppDataDir {
   final home =
       Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'] ?? '';
   return '$home${Platform.pathSeparator}.gemini${Platform.pathSeparator}antigravity';
+}
+
+/// Normalizes wire URIs, expands user home ~, and resolves relative paths to clean absolute filesystem paths.
+String normalizeWorkspacePath(String path) {
+  if (path.isEmpty) return '';
+  final normalized = normalizeWirePath(path);
+  if (normalized.startsWith('/cns/')) {
+    return normalized;
+  }
+  final isWindowsDrive = RegExp(r'^[a-zA-Z]:').hasMatch(normalized);
+  final uri = Uri.tryParse(normalized);
+  if (uri == null || !uri.hasScheme || uri.scheme == 'file' || isWindowsDrive) {
+    var rawPath = normalized;
+    if (rawPath.startsWith('~')) {
+      final home = Platform.environment['HOME'] ??
+          Platform.environment['USERPROFILE'] ??
+          '';
+      rawPath = rawPath.replaceFirst('~', home);
+    }
+    return p.normalize(Directory(rawPath).absolute.path);
+  }
+  return normalized;
+}
+
+/// Coerces sequence workspace paths and normalizes each entry.
+List<String> normalizeWorkspacePaths(
+  dynamic workspaces, {
+  bool defaultToCwd = false,
+}) {
+  if (workspaces == null) {
+    return defaultToCwd ? [Directory.current.absolute.path] : [];
+  }
+  if (workspaces is String) {
+    return [normalizeWorkspacePath(workspaces)];
+  }
+  if (workspaces is Iterable) {
+    return workspaces
+        .map((ws) => normalizeWorkspacePath(ws.toString()))
+        .toList();
+  }
+  throw ArgumentError(
+    'workspaces must be a sequence of paths, got ${workspaces.runtimeType}',
+  );
 }
 
 /// Creates a unique step identifier from trajectory ID and step index.
@@ -70,7 +115,7 @@ abstract class BaseLocalAgentConfig extends AgentConfig
           triggers: triggers ?? const [],
           mcpServers: mcpServers ?? const [],
           subagents: subagents ?? const [],
-          workspaces: workspaces ?? [Directory.current.absolute.path],
+          workspaces: normalizeWorkspacePaths(workspaces, defaultToCwd: true),
           skillsPaths: skillsPaths ?? const [],
         ) {
     _validateAllowedSubagents();
@@ -267,6 +312,7 @@ class LocalAgentConfig extends BaseLocalAgentConfig
       binaryPath: binaryPath,
       toolRunner: toolRunner,
       hookRunner: hookRunner,
+      tools: tools,
       models: _mergeModelsList(),
       systemInstructions: systemInstructions,
       capabilitiesConfig: capabilities,
@@ -345,6 +391,7 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
       modelName: modelName,
       toolRunner: toolRunner,
       hookRunner: hookRunner,
+      tools: tools,
       systemInstructions: systemInstructions,
       capabilitiesConfig: capabilities,
       conversationId: conversationId,
@@ -363,46 +410,42 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
 }
 
 /// Hardware backend options for local LiteRT model execution.
-@MappableEnum(caseStyle: CaseStyle.lowerCase)
+@MappableEnum(caseStyle: CaseStyle.snakeCase)
 enum LiteRTBackend {
-  cpu('cpu'),
-  gpu('gpu'),
-  npu('npu');
-
-  final String value;
-  const LiteRTBackend(this.value);
+  cpu,
+  gpu,
+  npu,
 }
 
-/// Configuration for local Gemma models using a managed LiteRT-LM backend.
+/// Agent configuration for executing on-device local models via LiteRT.
 @MappableClass()
 class LiteRTAgentConfig extends BaseLocalAgentConfig
     with LiteRTAgentConfigMappable {
-  /// The local path to the LiteRT model file (e.g. gemma.litertlm).
+  /// Path to the LiteRT `.bin`, `.task`, or `.tflite` model file on the local filesystem.
   final String modelPath;
 
-  /// The hardware accelerator backend to execute inference on (cpu, gpu, npu).
+  /// Hardware acceleration backend (`gpu`, `cpu`, or `npu`).
   final LiteRTBackend backend;
 
-  /// Whether to enable speculative decoding for accelerated performance.
+  /// Whether to enable speculative decoding for accelerated sampling.
   final bool enableSpeculativeDecoding;
 
-  /// Optional cache directory for model compilation artifacts.
+  /// Optional directory cache for model weights/compilation artifacts.
   final String? cacheDir;
 
-  /// Optional hardware accelerator backend specifically for audio modalities.
+  /// Hardware backend for audio preprocessing/inference.
   final LiteRTBackend? audioBackend;
 
-  /// Optional hardware accelerator backend specifically for vision modalities.
+  /// Hardware backend for vision preprocessing/inference.
   final LiteRTBackend? visionBackend;
 
-  /// Local port to bind the loopback HTTP server to (defaults to 0 for automatic selection).
+  /// Port on localhost to bind the internal LiteRT HTTP server to (0 for automatic random port).
   final int port;
 
-  /// Reserved for schema parity with Python SDK; triggers automatic download of
-  /// model weights in a future release if not found locally.
+  /// Whether to automatically download the model from Kaggle/HuggingFace if missing.
   final bool downloadIfMissing;
 
-  /// Optional limit on the maximum context window size in tokens.
+  /// Maximum sequence length/context window for the LiteRT runner.
   final int? maxContextTokens;
 
   LiteRTAgentConfig({
@@ -455,6 +498,7 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
       maxContextTokens: maxContextTokens,
       toolRunner: toolRunner,
       hookRunner: hookRunner,
+      tools: tools,
       systemInstructions: systemInstructions,
       capabilitiesConfig: capabilities,
       conversationId: conversationId,
