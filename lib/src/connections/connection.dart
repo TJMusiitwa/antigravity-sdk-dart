@@ -130,6 +130,43 @@ abstract class AgentConfig with AgentConfigMappable {
     }
   }
 
+  /// Returns all custom tools across the main agent and subagents, validating against duplicate conflicting names.
+  List<Tool> getAllCustomTools() {
+    final toolsList = <Tool>[];
+    final seenNames = <String, Tool>{};
+    for (final t in tools) {
+      final name = t.name;
+      if (seenNames.containsKey(name)) {
+        if (seenNames[name] != t) {
+          throw ArgumentError(
+            "Duplicate custom tool name '$name' detected across agent and subagent configurations.",
+          );
+        }
+      } else {
+        seenNames[name] = t;
+        toolsList.add(t);
+      }
+    }
+    for (final sub in subagents) {
+      for (final tool in sub.tools) {
+        if (tool is Tool) {
+          final name = tool.name;
+          if (seenNames.containsKey(name)) {
+            if (seenNames[name] != tool) {
+              throw ArgumentError(
+                "Duplicate custom tool name '$name' detected across agent and subagent '${sub.name}' configurations.",
+              );
+            }
+          } else {
+            seenNames[name] = tool;
+            toolsList.add(tool);
+          }
+        }
+      }
+    }
+    return toolsList;
+  }
+
   /// Creates the [ConnectionStrategy] for this configuration.
   ///
   /// Takes a [toolRunner] to handle tool executions and a [hookRunner] to

@@ -41,6 +41,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   final String? _configuredBinaryPath;
   final ToolRunner _toolRunner;
   final HookRunner _hookRunner;
+  final List<dynamic>? _tools;
   final List<ModelTarget>? _models;
   final dynamic _systemInstructions;
   final CapabilitiesConfig _capabilitiesConfig;
@@ -68,6 +69,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     String? binaryPath,
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
+    List<dynamic>? tools,
     List<ModelTarget>? models,
     required dynamic systemInstructions,
     required CapabilitiesConfig capabilitiesConfig,
@@ -85,13 +87,14 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   })  : _configuredBinaryPath = binaryPath,
         _toolRunner = toolRunner,
         _hookRunner = hookRunner,
+        _tools = tools,
         _models = models,
         _systemInstructions = systemInstructions,
         _capabilitiesConfig = capabilitiesConfig,
         _conversationId = conversationId,
         _sessionContinuationMode = sessionContinuationMode,
         _saveDir = saveDir,
-        _workspaces = workspaces,
+        _workspaces = normalizeWorkspacePaths(workspaces),
         _appDataDir = appDataDir,
         _skillsPaths = skillsPaths,
         _mcpServers = mcpServers ?? const [],
@@ -180,12 +183,15 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     } catch (e) {
       process.kill();
       final stderrText = await process.stderr.transform(utf8.decoder).join();
-      _logger.severe('Failed to handshake with localharness. Stderr: $stderrText');
-      throw Exception('Failed to handshake with localharness process. Stderr: $stderrText. Error: $e');
+      _logger
+          .severe('Failed to handshake with localharness. Stderr: $stderrText');
+      throw Exception(
+          'Failed to handshake with localharness process. Stderr: $stderrText. Error: $e');
     }
   }
 
-  Future<WebSocket> _connectWebSocketWithRetry(LocalHarnessProto outputConfig, Process process) async {
+  Future<WebSocket> _connectWebSocketWithRetry(
+      LocalHarnessProto outputConfig, Process process) async {
     int attempt = 0;
     const maxRetries = 5;
     Object? lastException;
@@ -210,32 +216,36 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         );
       }
       final delay = Duration(milliseconds: 100 * (1 << attempt));
-      _logger.warning('WebSocket connection failed. Retrying in ${delay.inMilliseconds}ms...');
+      _logger.warning(
+          'WebSocket connection failed. Retrying in ${delay.inMilliseconds}ms...');
       await Future.delayed(delay);
     }
     throw StateError('Unreachable');
   }
 
-  Future<({
-    List<Step> initialHistory,
-    Stream<dynamic> messageStream,
-    String? cascadeId,
-    UsageMetadata? cumulativeUsage,
-    Map<String, UsageMetadata>? trajectoryUsages,
-  })> _initializeHarnessSession(
+  Future<
+      ({
+        List<Step> initialHistory,
+        Stream<dynamic> messageStream,
+        String? cascadeId,
+        UsageMetadata? cumulativeUsage,
+        Map<String, UsageMetadata>? trajectoryUsages,
+      })> _initializeHarnessSession(
     WebSocket ws,
     Process process,
   ) async {
-    final initCompleter = Completer<({
-      List<Step> initialHistory,
-      String? cascadeId,
-      UsageMetadata? cumulativeUsage,
-      Map<String, UsageMetadata>? trajectoryUsages,
-    })>();
+    final initCompleter = Completer<
+        ({
+          List<Step> initialHistory,
+          String? cascadeId,
+          UsageMetadata? cumulativeUsage,
+          Map<String, UsageMetadata>? trajectoryUsages,
+        })>();
     final messageController = StreamController<dynamic>();
 
     ws.listen(
-      (message) => _handleInitMessage(message, initCompleter, messageController),
+      (message) =>
+          _handleInitMessage(message, initCompleter, messageController),
       onError: (err) {
         if (!initCompleter.isCompleted) initCompleter.completeError(err);
         messageController.addError(err);
@@ -268,32 +278,40 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     } catch (e) {
       process.kill();
       final stderrText = await process.stderr.transform(utf8.decoder).join();
-      _logger.severe('Failed to initialize conversation with localharness. Stderr: $stderrText');
-      throw Exception('Failed to initialize conversation with localharness process. Stderr: $stderrText. Error: $e');
+      _logger.severe(
+          'Failed to initialize conversation with localharness. Stderr: $stderrText');
+      throw Exception(
+          'Failed to initialize conversation with localharness process. Stderr: $stderrText. Error: $e');
     }
   }
 
   void _handleInitMessage(
     dynamic message,
-    Completer<({
-      List<Step> initialHistory,
-      String? cascadeId,
-      UsageMetadata? cumulativeUsage,
-      Map<String, UsageMetadata>? trajectoryUsages,
-    })> initCompleter,
+    Completer<
+            ({
+              List<Step> initialHistory,
+              String? cascadeId,
+              UsageMetadata? cumulativeUsage,
+              Map<String, UsageMetadata>? trajectoryUsages,
+            })>
+        initCompleter,
     StreamController<dynamic> messageController,
   ) {
     if (!initCompleter.isCompleted && message is String) {
       try {
         final parsed = jsonDecode(message);
         if (parsed is Map) {
-          final normalized = LocalConnection._normalizeJsonKeys(Map<String, dynamic>.from(parsed));
+          final normalized = LocalConnection._normalizeJsonKeys(
+              Map<String, dynamic>.from(parsed));
           if (normalized.containsKey('initialize_conversation_response')) {
-            final initResp = Map<String, dynamic>.from(normalized['initialize_conversation_response'] as Map);
+            final initResp = Map<String, dynamic>.from(
+                normalized['initialize_conversation_response'] as Map);
             final initialHistory = _parseInitialHistory(initResp);
             final cascadeId = initResp['cascade_id']?.toString();
             final cum = initResp['cumulative_usage'];
-            final cumUsage = cum is Map ? UsageMetadata.fromMap(Map<String, dynamic>.from(cum)) : null;
+            final cumUsage = cum is Map
+                ? UsageMetadata.fromMap(Map<String, dynamic>.from(cum))
+                : null;
             final traj = initResp['trajectory_usage'];
             final trajUsages = <String, UsageMetadata>{};
             if (traj is List) {
@@ -302,7 +320,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
                   final entryMap = Map<String, dynamic>.from(entry);
                   final trajId = entryMap['trajectory_id']?.toString() ?? '';
                   if (trajId.isNotEmpty && entryMap['usage'] is Map) {
-                    trajUsages[trajId] = UsageMetadata.fromMap(Map<String, dynamic>.from(entryMap['usage'] as Map));
+                    trajUsages[trajId] = UsageMetadata.fromMap(
+                        Map<String, dynamic>.from(entryMap['usage'] as Map));
                   }
                 }
               }
@@ -353,19 +372,57 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   Map<String, dynamic> buildHarnessConfigForTest() => _buildHarnessConfig();
 
   Map<String, dynamic> _buildHarnessConfig() {
-    final toolsProtos = _buildToolsProtos();
-    final systemInstructionsProto = _buildSystemInstructionsProto(_systemInstructions);
+    final allToolProtos = _buildToolsProtos();
+    final systemInstructionsProto =
+        _buildSystemInstructionsProto(_systemInstructions);
     final modelsProtos = _buildModelsProtos();
     final workspacesProto = _workspaces
-        .map((ws) => {'filesystem_workspace': {'directory': ws}})
+        .map((ws) => {
+              'filesystem_workspace': {'directory': ws}
+            })
         .toList();
+
+    List<Map<String, dynamic>> rootToolProtos;
+    if (_tools != null) {
+      rootToolProtos = [];
+      for (final tool in _tools!) {
+        if (tool is Tool) {
+          final found =
+              allToolProtos.where((t) => t['name'] == tool.name).firstOrNull;
+          rootToolProtos.add(found ??
+              <String, dynamic>{
+                'name': tool.name,
+                'description': tool.description,
+                'parameters_json_schema': jsonEncode(tool.schema),
+              });
+        } else if (tool is String) {
+          final found =
+              allToolProtos.where((t) => t['name'] == tool).firstOrNull;
+          rootToolProtos.add(found ?? <String, dynamic>{'name': tool});
+        }
+      }
+    } else {
+      final subagentToolNames = <String>{};
+      for (final sa in _subagents) {
+        for (final t in sa.tools) {
+          if (t is String) {
+            subagentToolNames.add(t);
+          } else if (t is Tool) {
+            subagentToolNames.add(t.name);
+          }
+        }
+      }
+      rootToolProtos = allToolProtos
+          .where((proto) => !subagentToolNames.contains(proto['name']))
+          .toList();
+    }
 
     final cfg = _capabilitiesConfig;
     final activeTools = _resolveActiveTools(cfg);
     final harnessSideTools = _buildHarnessSideTools(cfg, activeTools);
     final mcpServersProto = _buildMcpServersProto();
     final enabledHooks = _buildEnabledHooks();
-    final customAgentsProtos = _buildCustomAgentsProtos(toolsProtos);
+    final customAgentsProtos = _buildCustomAgentsProtos(allToolProtos);
 
     final sessionContinuationModeProto = switch (_sessionContinuationMode) {
       SessionContinuationMode.resume => 'RESUME',
@@ -381,7 +438,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       'cascade_id': _conversationId ?? '',
       'session_continuation_mode': sessionContinuationModeProto,
       'agent_behavior': cfg.agentBehavior.protoValue,
-      'tools': toolsProtos,
+      'tools': rootToolProtos,
       'system_instructions': systemInstructionsProto,
       'models': modelsProtos,
       'workspaces': workspacesProto,
@@ -402,8 +459,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   }
 
   List<Map<String, dynamic>> _buildToolsProtos() {
-    return _toolRunner.tools.values.map((toolFn) {
-      return {
+    return _toolRunner.tools.values.map<Map<String, dynamic>>((toolFn) {
+      return <String, dynamic>{
         'name': toolFn.name,
         'description': toolFn.description,
         'parameters_json_schema': jsonEncode(toolFn.schema),
@@ -492,7 +549,9 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   Set<BuiltinTools> _resolveActiveTools(CapabilitiesConfig cfg) {
     final allTools = BuiltinTools.values.toSet();
     if (cfg.enabledTools != null) return cfg.enabledTools!.toSet();
-    if (cfg.disabledTools != null) return allTools.difference(cfg.disabledTools!.toSet());
+    if (cfg.disabledTools != null) {
+      return allTools.difference(cfg.disabledTools!.toSet());
+    }
     return allTools;
   }
 
@@ -500,28 +559,40 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     CapabilitiesConfig cfg,
     Set<BuiltinTools> activeTools,
   ) {
-    final subagentsEnabled = cfg.enableSubagents && activeTools.contains(BuiltinTools.startSubagent);
+    final subagentsEnabled =
+        cfg.enableSubagents && activeTools.contains(BuiltinTools.startSubagent);
     return {
       'subagents': {
         'enabled': subagentsEnabled,
-        if (cfg.maxSubagentDepth != null) 'max_nesting_depth': cfg.maxSubagentDepth,
+        if (cfg.maxSubagentDepth != null)
+          'max_nesting_depth': cfg.maxSubagentDepth,
         if (cfg.allowedSubagents != null && cfg.allowedSubagents!.isNotEmpty)
           'allowed_subagents': cfg.allowedSubagents,
       },
       'find': {'enabled': activeTools.contains(BuiltinTools.findFile)},
-      'user_questions': {'enabled': activeTools.contains(BuiltinTools.askQuestion)},
+      'user_questions': {
+        'enabled': activeTools.contains(BuiltinTools.askQuestion)
+      },
       'run_command': _runCommandToolProto(
         activeTools.contains(BuiltinTools.runCommand),
         cfg.runCommandConfig,
       ),
       'file_edit': {'enabled': activeTools.contains(BuiltinTools.editFile)},
       'view_file': {'enabled': activeTools.contains(BuiltinTools.viewFile)},
-      'write_to_file': {'enabled': activeTools.contains(BuiltinTools.createFile)},
-      'grep_search': {'enabled': activeTools.contains(BuiltinTools.searchDirectory)},
+      'write_to_file': {
+        'enabled': activeTools.contains(BuiltinTools.createFile)
+      },
+      'grep_search': {
+        'enabled': activeTools.contains(BuiltinTools.searchDirectory)
+      },
       'list_dir': {'enabled': activeTools.contains(BuiltinTools.listDirectory)},
-      'generate_image': {'enabled': activeTools.contains(BuiltinTools.generateImage)},
+      'generate_image': {
+        'enabled': activeTools.contains(BuiltinTools.generateImage)
+      },
       'search_web': {'enabled': activeTools.contains(BuiltinTools.searchWeb)},
-      'read_url_content': {'enabled': activeTools.contains(BuiltinTools.readUrlContent)},
+      'read_url_content': {
+        'enabled': activeTools.contains(BuiltinTools.readUrlContent)
+      },
     };
   }
 
@@ -548,42 +619,78 @@ class LocalConnectionStrategy implements ConnectionStrategy {
 
   List<String> _buildEnabledHooks() {
     final enabled = <String>[];
-    if (_hookRunner.onSessionStartHooks.isNotEmpty) enabled.add('LIFECYCLE_HOOK_ON_SESSION_START');
-    if (_hookRunner.onSessionEndHooks.isNotEmpty) enabled.add('LIFECYCLE_HOOK_ON_SESSION_END');
-    if (_hookRunner.preTurnHooks.isNotEmpty) enabled.add('LIFECYCLE_HOOK_PRE_TURN');
-    if (_hookRunner.postTurnHooks.isNotEmpty) enabled.add('LIFECYCLE_HOOK_POST_TURN');
-    if (_hookRunner.preToolCallDecideHooks.isNotEmpty) enabled.add('LIFECYCLE_HOOK_PRE_TOOL');
-    if (_hookRunner.postToolCallHooks.isNotEmpty) enabled.add('LIFECYCLE_HOOK_POST_TOOL');
-    if (_hookRunner.onToolErrorHooks.isNotEmpty) enabled.add('LIFECYCLE_HOOK_ON_TOOL_ERROR');
+    if (_hookRunner.onSessionStartHooks.isNotEmpty) {
+      enabled.add('LIFECYCLE_HOOK_ON_SESSION_START');
+    }
+    if (_hookRunner.onSessionEndHooks.isNotEmpty) {
+      enabled.add('LIFECYCLE_HOOK_ON_SESSION_END');
+    }
+    if (_hookRunner.preTurnHooks.isNotEmpty) {
+      enabled.add('LIFECYCLE_HOOK_PRE_TURN');
+    }
+    if (_hookRunner.postTurnHooks.isNotEmpty) {
+      enabled.add('LIFECYCLE_HOOK_POST_TURN');
+    }
+    if (_hookRunner.preToolCallDecideHooks.isNotEmpty) {
+      enabled.add('LIFECYCLE_HOOK_PRE_TOOL');
+    }
+    if (_hookRunner.postToolCallHooks.isNotEmpty) {
+      enabled.add('LIFECYCLE_HOOK_POST_TOOL');
+    }
+    if (_hookRunner.onToolErrorHooks.isNotEmpty) {
+      enabled.add('LIFECYCLE_HOOK_ON_TOOL_ERROR');
+    }
+    if (_hookRunner.onCompactionHooks.isNotEmpty) {
+      enabled.add('LIFECYCLE_HOOK_ON_COMPACTION');
+    }
     return enabled;
   }
 
-  List<Map<String, dynamic>> _buildCustomAgentsProtos(List<Map<String, dynamic>> toolsProtos) {
+  List<Map<String, dynamic>> _buildCustomAgentsProtos(
+      List<Map<String, dynamic>> allToolProtos) {
     return _subagents.map((subagent) {
       final subCap = subagent.capabilities;
-      final activeSubTools = subCap?.enabledTools?.toSet() ?? BuiltinTools.readOnly().toSet();
-      final subagentCanSpawn = activeSubTools.contains(BuiltinTools.startSubagent);
+      final activeSubTools =
+          subCap?.enabledTools?.toSet() ?? BuiltinTools.readOnly().toSet();
+      final subagentCanSpawn =
+          activeSubTools.contains(BuiltinTools.startSubagent);
 
       final resolvedSubTools = <Map<String, dynamic>>[];
-      for (final toolName in subagent.tools) {
-        if (!toolsProtos.any((t) => t['name'] == toolName)) {
+      for (final tool in subagent.tools) {
+        if (tool is String) {
+          final found =
+              allToolProtos.where((t) => t['name'] == tool).firstOrNull;
+          resolvedSubTools.add(found ?? <String, dynamic>{'name': tool});
+        } else if (tool is Tool) {
+          final proto = <String, dynamic>{
+            'name': tool.name,
+            'description': tool.description,
+            'parameters_json_schema': jsonEncode(tool.schema),
+          };
+          allToolProtos.removeWhere((t) => t['name'] == tool.name);
+          allToolProtos.add(proto);
+          resolvedSubTools.add(proto);
+        } else {
           throw ArgumentError(
-            "Subagent tool '$toolName' is not registered on the main agent config. Any custom tools used by subagents must also be added to the main agent's tools list.",
+            "Invalid tool type in subagent '${subagent.name}' tools list: $tool",
           );
         }
-        resolvedSubTools.add(toolsProtos.firstWhere((t) => t['name'] == toolName));
       }
 
-      final subagentInstructionsProto = _buildSubagentSystemInstructions(subagent.systemInstructions);
+      final subagentInstructionsProto =
+          _buildSubagentSystemInstructions(subagent.systemInstructions);
 
       return {
         'name': subagent.name,
         'description': subagent.description,
-        if (subagentInstructionsProto != null) 'system_instructions': subagentInstructionsProto,
+        if (subagentInstructionsProto != null)
+          'system_instructions': subagentInstructionsProto,
+        'tools': resolvedSubTools,
         'harness_side_tools': {
           'subagents': {
             'enabled': subagentCanSpawn,
-            if (subCap?.allowedSubagents != null && subCap!.allowedSubagents!.isNotEmpty)
+            if (subCap?.allowedSubagents != null &&
+                subCap!.allowedSubagents!.isNotEmpty)
               'allowed_subagents': subCap.allowedSubagents,
           },
           'find': {'enabled': activeSubTools.contains(BuiltinTools.findFile)},
@@ -591,17 +698,33 @@ class LocalConnectionStrategy implements ConnectionStrategy {
             activeSubTools.contains(BuiltinTools.runCommand),
             subCap?.runCommandConfig,
           ),
-          'file_edit': {'enabled': activeSubTools.contains(BuiltinTools.editFile)},
-          'view_file': {'enabled': activeSubTools.contains(BuiltinTools.viewFile)},
-          'write_to_file': {'enabled': activeSubTools.contains(BuiltinTools.createFile)},
-          'grep_search': {'enabled': activeSubTools.contains(BuiltinTools.searchDirectory)},
-          'list_dir': {'enabled': activeSubTools.contains(BuiltinTools.listDirectory)},
-          'generate_image': {'enabled': activeSubTools.contains(BuiltinTools.generateImage)},
-          'search_web': {'enabled': activeSubTools.contains(BuiltinTools.searchWeb)},
-          'read_url_content': {'enabled': activeSubTools.contains(BuiltinTools.readUrlContent)},
+          'file_edit': {
+            'enabled': activeSubTools.contains(BuiltinTools.editFile)
+          },
+          'view_file': {
+            'enabled': activeSubTools.contains(BuiltinTools.viewFile)
+          },
+          'write_to_file': {
+            'enabled': activeSubTools.contains(BuiltinTools.createFile)
+          },
+          'grep_search': {
+            'enabled': activeSubTools.contains(BuiltinTools.searchDirectory)
+          },
+          'list_dir': {
+            'enabled': activeSubTools.contains(BuiltinTools.listDirectory)
+          },
+          'generate_image': {
+            'enabled': activeSubTools.contains(BuiltinTools.generateImage)
+          },
+          'search_web': {
+            'enabled': activeSubTools.contains(BuiltinTools.searchWeb)
+          },
+          'read_url_content': {
+            'enabled': activeSubTools.contains(BuiltinTools.readUrlContent)
+          },
         },
-        'tools': resolvedSubTools,
-        'agent_behavior': (subCap?.agentBehavior ?? AgentBehavior.autonomous).protoValue,
+        'agent_behavior':
+            (subCap?.agentBehavior ?? AgentBehavior.autonomous).protoValue,
       };
     }).toList();
   }
@@ -620,7 +743,9 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     if (instructions is List<SystemInstructionSection>) {
       return {
         'appended': {
-          'appended_sections': instructions.map((s) => {'title': s.title, 'content': s.content}).toList(),
+          'appended_sections': instructions
+              .map((s) => {'title': s.title, 'content': s.content})
+              .toList(),
         },
       };
     }
@@ -636,8 +761,11 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     if (instructions is TemplatedSystemInstructions) {
       return {
         'appended': {
-          if (instructions.identity != null) 'custom_identity': instructions.identity,
-          'appended_sections': instructions.sections.map((s) => {'title': s.title, 'content': s.content}).toList(),
+          if (instructions.identity != null)
+            'custom_identity': instructions.identity,
+          'appended_sections': instructions.sections
+              .map((s) => {'title': s.title, 'content': s.content})
+              .toList(),
         },
       };
     }
@@ -899,7 +1027,8 @@ class LocalConnection implements Connection {
     }
 
     if (normalizedEvent.containsKey('tool_call')) {
-      final tc = ToolCall.fromMap(Map<String, dynamic>.from(normalizedEvent['tool_call'] as Map));
+      final tc = ToolCall.fromMap(
+          Map<String, dynamic>.from(normalizedEvent['tool_call'] as Map));
       _logger.info('Tool call requested: ${tc.name}');
       await _handleToolCall(tc);
     }
@@ -925,7 +1054,8 @@ class LocalConnection implements Connection {
     if (rawUpdate is! Map) return;
     final usageUpdate = Map<String, dynamic>.from(rawUpdate);
     if (usageUpdate['total'] is Map) {
-      _cumulativeUsage = UsageMetadata.fromMap(Map<String, dynamic>.from(usageUpdate['total'] as Map));
+      _cumulativeUsage = UsageMetadata.fromMap(
+          Map<String, dynamic>.from(usageUpdate['total'] as Map));
     }
     if (usageUpdate['agents'] is List) {
       _parseTrajectoryUsages(usageUpdate['agents'] as List);
@@ -937,7 +1067,8 @@ class LocalConnection implements Connection {
     final stepJson = Map<String, dynamic>.from(rawStepJson);
     final step = Step.fromMap(stepJson);
 
-    final stepTrajectoryId = stepJson['trajectory_id']?.toString() ?? step.trajectoryId;
+    final stepTrajectoryId =
+        stepJson['trajectory_id']?.toString() ?? step.trajectoryId;
     if (mainTrajectoryId == null && stepTrajectoryId.isNotEmpty) {
       mainTrajectoryId = stepTrajectoryId;
     }
@@ -948,11 +1079,6 @@ class LocalConnection implements Connection {
 
     final stepForQueue = _filterHostHandledToolCalls(step);
     _safeAdd(stepForQueue);
-
-    if (step.type == StepType.compaction) {
-      final turnCtx = _hookRouter?.currentTurnContext ?? _hookRunner.currentTurnContext;
-      unawaited(_hookRunner.dispatchCompaction(turnCtx, step));
-    }
 
     _trackStepTransitions(stepJson, step);
 
@@ -979,7 +1105,8 @@ class LocalConnection implements Connection {
 
   void _trackStepTransitions(Map<String, dynamic> stepJson, Step step) {
     final trajectoryId = stepJson['trajectory_id']?.toString() ?? '';
-    final stepIndex = int.tryParse((stepJson['step_index'] ?? '0').toString()) ?? 0;
+    final stepIndex =
+        int.tryParse((stepJson['step_index'] ?? '0').toString()) ?? 0;
     final stepKey = '$trajectoryId:$stepIndex';
     final tracker = _stepTrackers.putIfAbsent(stepKey, () => _StepTracker());
     final stateStr = (stepJson['state'] ?? 'STATE_UNSPECIFIED').toString();
@@ -1012,13 +1139,15 @@ class LocalConnection implements Connection {
         trajectoryId.isNotEmpty &&
         trajectoryId != mainTrajectoryId;
 
-    if (update['stop_reason'] != null && update['stop_reason'].toString().isNotEmpty) {
+    if (update['stop_reason'] != null &&
+        update['stop_reason'].toString().isNotEmpty) {
       _turnStopReason = StopReason.fromString(update['stop_reason'].toString());
     }
 
     if (isSubagent) {
       if (update['error'] != null && update['error'].toString().isNotEmpty) {
-        _logger.info('Subagent trajectory failed with error: ${update['error']}');
+        _logger
+            .info('Subagent trajectory failed with error: ${update['error']}');
       }
       return;
     }
@@ -1044,7 +1173,8 @@ class LocalConnection implements Connection {
       return;
     }
     if (state == 'STATE_CANCELLED' || state == 'CANCELLED') {
-      final errMsg = (error != null && error.isNotEmpty) ? error : 'Turn cancelled';
+      final errMsg =
+          (error != null && error.isNotEmpty) ? error : 'Turn cancelled';
       _safeAddError(AntigravityExecutionException(errMsg));
       _idleState = true;
       _safeAdd(_createIdleSentinelStep());
@@ -1441,14 +1571,19 @@ dynamic extractToolResult(Map<String, dynamic> stepUpdate) {
   if (stepUpdate.containsKey('edit_file')) {
     return _extractEditFileResult(stepUpdate['edit_file'], stepUpdate['text']);
   }
-  if (stepUpdate.containsKey('generate_image') && stepUpdate['generate_image'] is Map) {
-    return GenerateImageResult.fromMap(Map<String, dynamic>.from(stepUpdate['generate_image'] as Map));
+  if (stepUpdate.containsKey('generate_image') &&
+      stepUpdate['generate_image'] is Map) {
+    return GenerateImageResult.fromMap(
+        Map<String, dynamic>.from(stepUpdate['generate_image'] as Map));
   }
   if (stepUpdate.containsKey('search_web') && stepUpdate['search_web'] is Map) {
-    return SearchWebResult.fromMap(Map<String, dynamic>.from(stepUpdate['search_web'] as Map));
+    return SearchWebResult.fromMap(
+        Map<String, dynamic>.from(stepUpdate['search_web'] as Map));
   }
-  if (stepUpdate.containsKey('read_url_content') && stepUpdate['read_url_content'] is Map) {
-    return ReadUrlContentResult.fromMap(Map<String, dynamic>.from(stepUpdate['read_url_content'] as Map));
+  if (stepUpdate.containsKey('read_url_content') &&
+      stepUpdate['read_url_content'] is Map) {
+    return ReadUrlContentResult.fromMap(
+        Map<String, dynamic>.from(stepUpdate['read_url_content'] as Map));
   }
   return null;
 }
@@ -1467,7 +1602,9 @@ ListDirectoryResult? _extractListDirectoryResult(dynamic ld) {
       return ListDirectoryEntry(
         name: (r['name'] ?? '').toString(),
         isDirectory: r['is_directory'] == true || r['isDirectory'] == true,
-        fileSize: int.tryParse((r['file_size'] ?? r['fileSize'] ?? '0').toString()) ?? 0,
+        fileSize:
+            int.tryParse((r['file_size'] ?? r['fileSize'] ?? '0').toString()) ??
+                0,
       );
     }
     return const ListDirectoryEntry();
@@ -1484,7 +1621,9 @@ FindFileResult? _extractFindFileResult(dynamic ff) {
 SearchDirectoryResult? _extractSearchDirectoryResult(dynamic sd) {
   return (sd is Map && sd.containsKey('num_results'))
       ? SearchDirectoryResult(
-          numResults: int.tryParse((sd['num_results'] ?? sd['numResults'] ?? '0').toString()) ?? 0,
+          numResults: int.tryParse(
+                  (sd['num_results'] ?? sd['numResults'] ?? '0').toString()) ??
+              0,
         )
       : null;
 }
@@ -1551,6 +1690,7 @@ class LocalOpenAIConnectionStrategy extends LocalConnectionStrategy {
     super.binaryPath,
     required super.toolRunner,
     required super.hookRunner,
+    super.tools,
     super.systemInstructions,
     required super.capabilitiesConfig,
     super.conversationId,
@@ -1618,6 +1758,7 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
     super.binaryPath,
     required super.toolRunner,
     required super.hookRunner,
+    super.tools,
     super.systemInstructions,
     required super.capabilitiesConfig,
     super.conversationId,
@@ -1654,7 +1795,8 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
 
     final actualPort = await _readLiteRTPort(_serverProcess!);
     final litertBaseUrl = 'http://127.0.0.1:$actualPort';
-    _logger.info('LiteRT Server started on port $actualPort. URL: $litertBaseUrl');
+    _logger
+        .info('LiteRT Server started on port $actualPort. URL: $litertBaseUrl');
 
     final client = HttpClient();
     try {
@@ -1673,7 +1815,8 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
     if (!dir.existsSync()) {
       dir.createSync(recursive: true);
     }
-    final scriptFile = File('${dir.path}${Platform.pathSeparator}litert_server.py');
+    final scriptFile =
+        File('${dir.path}${Platform.pathSeparator}litert_server.py');
     scriptFile.writeAsStringSync(litertServerPythonScript);
     return scriptFile;
   }
@@ -1691,7 +1834,10 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
       if (visionBackend != null) ...['--vision_backend', visionBackend!.name],
       '--port',
       port.toString(),
-      if (maxContextTokens != null) ...['--max_context_tokens', maxContextTokens!.toString()],
+      if (maxContextTokens != null) ...[
+        '--max_context_tokens',
+        maxContextTokens!.toString()
+      ],
     ];
 
     _logger.info('Starting LiteRT OpenAI server: python3 ${args.join(' ')}');
@@ -1702,7 +1848,10 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
     final portCompleter = Completer<int>();
     final portRegex = RegExp(r'^LITERT_SERVER_PORT:(\d+)$');
 
-    process.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
+    process.stdout
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
       _logger.fine('[LiteRT Server Stdout] $line');
       final match = portRegex.firstMatch(line);
       if (match != null && !portCompleter.isCompleted) {
@@ -1710,7 +1859,10 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
       }
     });
 
-    process.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
+    process.stderr
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
       _logger.warning('[LiteRT Server Stderr] $line');
     });
 
@@ -1718,14 +1870,17 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
       return await portCompleter.future.timeout(const Duration(seconds: 15));
     } catch (e) {
       process.kill();
-      throw Exception('Failed to receive port from LiteRT server process. Error: $e');
+      throw Exception(
+          'Failed to receive port from LiteRT server process. Error: $e');
     }
   }
 
-  Future<void> _waitForLiteRTHealth(HttpClient client, String litertBaseUrl) async {
+  Future<void> _waitForLiteRTHealth(
+      HttpClient client, String litertBaseUrl) async {
     for (var i = 0; i < 60; i++) {
       try {
-        final request = await client.getUrl(Uri.parse('$litertBaseUrl/v1/models'));
+        final request =
+            await client.getUrl(Uri.parse('$litertBaseUrl/v1/models'));
         final response = await request.close();
         if (response.statusCode == 200) return;
       } catch (_) {}
@@ -1744,7 +1899,8 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
           warmupTimeoutSeconds = scaled;
         }
       }
-      final request = await client.postUrl(Uri.parse('$litertBaseUrl/v1/chat/completions'));
+      final request =
+          await client.postUrl(Uri.parse('$litertBaseUrl/v1/chat/completions'));
       request.headers.contentType = ContentType.json;
       request.write(jsonEncode({
         'model': modelName,
@@ -1753,7 +1909,8 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
         ],
         'stream': false,
       }));
-      final response = await request.close().timeout(Duration(milliseconds: (warmupTimeoutSeconds * 1000).round()));
+      final response = await request.close().timeout(
+          Duration(milliseconds: (warmupTimeoutSeconds * 1000).round()));
       await response.drain();
     } catch (e) {
       _logger.warning('LiteRT warm-up request timed out or failed: $e');

@@ -183,16 +183,15 @@ class SubagentConfig with SubagentConfigMappable {
   /// Optional capability configuration controlling enabled/disabled tools for this subagent.
   final SubagentCapabilities? capabilities;
 
-  /// Optional list of additional custom tools (string names of tools registered
-  /// on the main agent) to enable.
-  final List<String> tools;
+  /// Optional list of additional custom tools (string names or [Tool] instances) to enable.
+  final List<dynamic> tools;
 
   SubagentConfig({
     required this.name,
     required this.description,
     this.systemInstructions,
     this.capabilities,
-    List<String>? tools,
+    List<dynamic>? tools,
   }) : tools = tools ?? [];
 
   static const fromMap = SubagentConfigMapper.fromMap;

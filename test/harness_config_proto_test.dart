@@ -1,3 +1,4 @@
+import 'package:antigravity/src/connections/connection.dart';
 import 'package:antigravity/src/connections/local/local_connection.dart';
 import 'package:antigravity/src/hooks/hooks.dart';
 import 'package:antigravity/src/tools/tool_runner.dart';
@@ -251,4 +252,135 @@ void main() {
       expect(subRunCmd['max_timeout_ms'], equals(30000));
     });
   });
+
+  group('workspace serialization in harness config', () {
+    test('normalizes relative workspace paths to absolute paths in proto', () {
+      final strategy = LocalConnectionStrategy(
+        toolRunner: ToolRunner(),
+        hookRunner: HookRunner(),
+        systemInstructions: null,
+        capabilitiesConfig: CapabilitiesConfig(),
+        workspaces: const ['.', './test'],
+        skillsPaths: const [],
+      );
+      final config = strategy.buildHarnessConfigForTest();
+      final workspaces = (config['workspaces'] as List)
+          .map((ws) => ws['filesystem_workspace']['directory'])
+          .toList();
+
+      expect(workspaces[0], isNot(equals('.')));
+      expect(workspaces[0], isNot(startsWith('./')));
+      expect(workspaces[1], isNot(startsWith('./')));
+    });
+  });
+
+  group('enabled_hooks proto configuration', () {
+    test('includes LIFECYCLE_HOOK_ON_COMPACTION when compaction hook is set',
+        () {
+      final runner = HookRunner(
+        onCompactionHooks: [_TestCompactionHook()],
+      );
+      final strategy = LocalConnectionStrategy(
+        toolRunner: ToolRunner(),
+        hookRunner: runner,
+        systemInstructions: null,
+        capabilitiesConfig: CapabilitiesConfig(),
+        workspaces: const [],
+        skillsPaths: const [],
+      );
+      final config = strategy.buildHarnessConfigForTest();
+      final enabledHooks = config['enabled_hooks'] as List<String>;
+
+      expect(enabledHooks, contains('LIFECYCLE_HOOK_ON_COMPACTION'));
+    });
+  });
+
+  group('subagent custom tools scoping in harness config', () {
+    test('subagent custom tools are resolved and scoped properly', () {
+      final rootTool = Tool(
+        name: 'root_calc',
+        description: 'Calculates root stuff',
+        schema: const {},
+        handler: (args, ctx) async => 'root_result',
+      );
+      final subTool = Tool(
+        name: 'sub_fetch',
+        description: 'Fetches sub stuff',
+        schema: const {},
+        handler: (args, ctx) async => 'sub_result',
+      );
+
+      final toolRunner = ToolRunner(tools: [rootTool, subTool]);
+      final strategy = LocalConnectionStrategy(
+        toolRunner: toolRunner,
+        hookRunner: HookRunner(),
+        tools: [rootTool],
+        systemInstructions: null,
+        capabilitiesConfig: CapabilitiesConfig(),
+        workspaces: const [],
+        skillsPaths: const [],
+        subagents: [
+          SubagentConfig(
+            name: 'fetcher',
+            description: 'Fetcher agent',
+            tools: [subTool],
+          ),
+        ],
+      );
+
+      final config = strategy.buildHarnessConfigForTest();
+      final rootTools = config['tools'] as List<Map<String, dynamic>>;
+      expect(rootTools.map((t) => t['name']), contains('root_calc'));
+      expect(rootTools.map((t) => t['name']), isNot(contains('sub_fetch')));
+
+      final subagents = config['custom_subagents'] as List;
+      expect(subagents, hasLength(1));
+      final subagentProto = subagents.first as Map<String, dynamic>;
+      final subagentTools =
+          subagentProto['tools'] as List<Map<String, dynamic>>;
+      expect(subagentTools.map((t) => t['name']), contains('sub_fetch'));
+    });
+  });
+
+  group('debug_config serialization in harness config', () {
+    // Regression guard: the debug_config emission was once silently dropped
+    // from _buildHarnessConfig and no test caught it, because existing
+    // coverage only asserted the debugConfig getter forwarded correctly.
+    test('emits debug_config in the harness config when a DebugConfig is set',
+        () {
+      final strategy = LocalConnectionStrategy(
+        toolRunner: ToolRunner(),
+        hookRunner: HookRunner(),
+        systemInstructions: null,
+        capabilitiesConfig: CapabilitiesConfig(),
+        workspaces: const [],
+        skillsPaths: const [],
+        debugConfig: DebugConfig(loggingLevel: 'INFO'),
+      );
+
+      final config = strategy.buildHarnessConfigForTest();
+      expect(config.containsKey('debug_config'), isTrue,
+          reason: 'debug_config must reach localharness');
+      expect(config['debug_config'], isNotEmpty);
+    });
+
+    test('omits debug_config when none is configured', () {
+      final strategy = LocalConnectionStrategy(
+        toolRunner: ToolRunner(),
+        hookRunner: HookRunner(),
+        systemInstructions: null,
+        capabilitiesConfig: CapabilitiesConfig(),
+        workspaces: const [],
+        skillsPaths: const [],
+      );
+
+      final config = strategy.buildHarnessConfigForTest();
+      expect(config.containsKey('debug_config'), isFalse);
+    });
+  });
+}
+
+class _TestCompactionHook extends OnCompactionHook {
+  @override
+  Future<void> run(HookContext context, Step data) async {}
 }

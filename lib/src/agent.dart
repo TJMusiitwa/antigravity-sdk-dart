@@ -94,7 +94,7 @@ class Agent {
         );
       }
 
-      final allTools = List<Tool>.from(_config.tools);
+      final allTools = _config.getAllCustomTools();
 
       _toolRunner = ToolRunner(tools: allTools);
 
