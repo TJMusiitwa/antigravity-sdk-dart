@@ -102,6 +102,17 @@ String _guessMimeType(String path) {
   return mime;
 }
 
+({String mime, Uint8List data}) _readFileAndMime(dynamic fileOrPath) {
+  final path = fileOrPath is File ? fileOrPath.path : fileOrPath as String;
+  final file = File(path);
+  if (!file.existsSync()) {
+    throw FileSystemException("File not found", path);
+  }
+  final mime = _guessMimeType(path);
+  final data = file.readAsBytesSync();
+  return (mime: mime, data: data);
+}
+
 sealed class MediaContent {
   final String mimeType;
   final String description;
@@ -136,13 +147,9 @@ sealed class MediaContent {
   }
 
   static MediaContent fromFile(dynamic fileOrPath, {String description = ''}) {
-    final path = fileOrPath is File ? fileOrPath.path : fileOrPath as String;
-    final file = File(path);
-    if (!file.existsSync()) {
-      throw FileSystemException("File not found", path);
-    }
-    final mime = _guessMimeType(path);
-    final data = file.readAsBytesSync();
+    final fileData = _readFileAndMime(fileOrPath);
+    final mime = fileData.mime;
+    final data = fileData.data;
 
     if (supportedImageMimes.contains(mime)) {
       return Image(mimeType: mime, description: description, data: data);
@@ -171,18 +178,16 @@ class Image extends MediaContent {
   }
 
   factory Image.fromFile(dynamic fileOrPath, {String description = ''}) {
-    final path = fileOrPath is File ? fileOrPath.path : fileOrPath as String;
-    final file = File(path);
-    if (!file.existsSync()) {
-      throw FileSystemException("File not found", path);
-    }
-    final mime = _guessMimeType(path);
-    if (!supportedImageMimes.contains(mime)) {
+    final fileData = _readFileAndMime(fileOrPath);
+    if (!supportedImageMimes.contains(fileData.mime)) {
       throw AntigravityValidationException(
-          "Unsupported Image MIME type: '$mime'");
+          "Unsupported Image MIME type: '${fileData.mime}'");
     }
-    final data = file.readAsBytesSync();
-    return Image(mimeType: mime, description: description, data: data);
+    return Image(
+      mimeType: fileData.mime,
+      description: description,
+      data: fileData.data,
+    );
   }
 }
 
@@ -199,18 +204,16 @@ class Document extends MediaContent {
   }
 
   factory Document.fromFile(dynamic fileOrPath, {String description = ''}) {
-    final path = fileOrPath is File ? fileOrPath.path : fileOrPath as String;
-    final file = File(path);
-    if (!file.existsSync()) {
-      throw FileSystemException("File not found", path);
-    }
-    final mime = _guessMimeType(path);
-    if (!supportedDocumentMimes.contains(mime)) {
+    final fileData = _readFileAndMime(fileOrPath);
+    if (!supportedDocumentMimes.contains(fileData.mime)) {
       throw AntigravityValidationException(
-          "Unsupported Document MIME type: '$mime'");
+          "Unsupported Document MIME type: '${fileData.mime}'");
     }
-    final data = file.readAsBytesSync();
-    return Document(mimeType: mime, description: description, data: data);
+    return Document(
+      mimeType: fileData.mime,
+      description: description,
+      data: fileData.data,
+    );
   }
 }
 
@@ -227,18 +230,16 @@ class Audio extends MediaContent {
   }
 
   factory Audio.fromFile(dynamic fileOrPath, {String description = ''}) {
-    final path = fileOrPath is File ? fileOrPath.path : fileOrPath as String;
-    final file = File(path);
-    if (!file.existsSync()) {
-      throw FileSystemException("File not found", path);
-    }
-    final mime = _guessMimeType(path);
-    if (!supportedAudioMimes.contains(mime)) {
+    final fileData = _readFileAndMime(fileOrPath);
+    if (!supportedAudioMimes.contains(fileData.mime)) {
       throw AntigravityValidationException(
-          "Unsupported Audio MIME type: '$mime'");
+          "Unsupported Audio MIME type: '${fileData.mime}'");
     }
-    final data = file.readAsBytesSync();
-    return Audio(mimeType: mime, description: description, data: data);
+    return Audio(
+      mimeType: fileData.mime,
+      description: description,
+      data: fileData.data,
+    );
   }
 }
 
@@ -255,18 +256,16 @@ class Video extends MediaContent {
   }
 
   factory Video.fromFile(dynamic fileOrPath, {String description = ''}) {
-    final path = fileOrPath is File ? fileOrPath.path : fileOrPath as String;
-    final file = File(path);
-    if (!file.existsSync()) {
-      throw FileSystemException("File not found", path);
-    }
-    final mime = _guessMimeType(path);
-    if (!supportedVideoMimes.contains(mime)) {
+    final fileData = _readFileAndMime(fileOrPath);
+    if (!supportedVideoMimes.contains(fileData.mime)) {
       throw AntigravityValidationException(
-          "Unsupported Video MIME type: '$mime'");
+          "Unsupported Video MIME type: '${fileData.mime}'");
     }
-    final data = file.readAsBytesSync();
-    return Video(mimeType: mime, description: description, data: data);
+    return Video(
+      mimeType: fileData.mime,
+      description: description,
+      data: fileData.data,
+    );
   }
 }
 

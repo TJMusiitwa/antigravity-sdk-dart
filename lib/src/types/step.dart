@@ -4,6 +4,7 @@ import 'package:dart_mappable/dart_mappable.dart';
 import 'package:logging/logging.dart';
 
 import '../models.dart';
+import '../utils/string_utils.dart';
 import 'tool_call.dart';
 
 part 'step.mapper.dart';
@@ -594,10 +595,7 @@ class Step with StepMappable {
     return path;
   }
 
-  static String _toSnakeCase(String camel) {
-    final exp = RegExp('(?<=[a-z0-9])[A-Z]');
-    return camel.replaceAllMapped(exp, (m) => '_${m.group(0)}').toLowerCase();
-  }
+  static String _toSnakeCase(String camel) => toSnakeCase(camel);
 
   static String _toCamelCase(String snake) {
     final exp = RegExp('_(.)');

@@ -12,6 +12,7 @@ import '../../tools/schema_utils.dart';
 import '../../tools/tool_runner.dart';
 import '../../types.dart';
 import '../../utils/binary_discovery.dart';
+import '../../utils/string_utils.dart';
 import '../../version.dart';
 import '../connection.dart';
 import 'hook_router.dart';
@@ -178,17 +179,21 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     await process.stdin.flush();
   }
 
+  Future<Never> _failWithProcessStderr(
+      Process process, String message, Object? error) async {
+    process.kill();
+    final stderrText = await process.stderr.transform(utf8.decoder).join();
+    _logger.severe('$message. Stderr: $stderrText');
+    throw Exception('$message process. Stderr: $stderrText. Error: $error');
+  }
+
   Future<LocalHarnessProto> _readHandshakeOutputConfig(Process process) async {
     try {
       final reader = HandshakeReader();
       return await reader.read(process.stdout);
     } catch (e) {
-      process.kill();
-      final stderrText = await process.stderr.transform(utf8.decoder).join();
-      _logger
-          .severe('Failed to handshake with localharness. Stderr: $stderrText');
-      throw Exception(
-          'Failed to handshake with localharness process. Stderr: $stderrText. Error: $e');
+      await _failWithProcessStderr(
+          process, 'Failed to handshake with localharness', e);
     }
   }
 
@@ -278,12 +283,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         trajectoryUsages: sessionData.trajectoryUsages,
       );
     } catch (e) {
-      process.kill();
-      final stderrText = await process.stderr.transform(utf8.decoder).join();
-      _logger.severe(
-          'Failed to initialize conversation with localharness. Stderr: $stderrText');
-      throw Exception(
-          'Failed to initialize conversation with localharness process. Stderr: $stderrText. Error: $e');
+      await _failWithProcessStderr(
+          process, 'Failed to initialize conversation with localharness', e);
     }
   }
 
@@ -471,20 +472,23 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         .toList();
   }
 
+  static Map<String, dynamic> _toolToProto(Tool tool) {
+    return <String, dynamic>{
+      'name': tool.name,
+      'description': tool.description,
+      'parameters_json_schema': jsonEncode(normalizeSchema(
+          tool.schema.isEmpty
+              ? {'type': 'object', 'properties': <String, dynamic>{}}
+              : tool.schema)),
+    };
+  }
+
   Map<String, dynamic> _resolveSingleToolProto(
       Object tool, List<Map<String, dynamic>> allToolProtos) {
     if (tool is Tool) {
       final found =
           allToolProtos.where((t) => t['name'] == tool.name).firstOrNull;
-      return found ??
-          <String, dynamic>{
-            'name': tool.name,
-            'description': tool.description,
-            'parameters_json_schema': jsonEncode(normalizeSchema(
-                tool.schema.isEmpty
-                    ? {'type': 'object', 'properties': <String, dynamic>{}}
-                    : tool.schema)),
-          };
+      return found ?? _toolToProto(tool);
     } else if (tool is String) {
       final found = allToolProtos.where((t) => t['name'] == tool).firstOrNull;
       return found ?? <String, dynamic>{'name': tool};
@@ -494,14 +498,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
 
   List<Map<String, dynamic>> _buildToolsProtos() {
     return _toolRunner.tools.values.map<Map<String, dynamic>>((toolFn) {
-      return <String, dynamic>{
-        'name': toolFn.name,
-        'description': toolFn.description,
-        'parameters_json_schema': jsonEncode(normalizeSchema(
-            toolFn.schema.isEmpty
-                ? {'type': 'object', 'properties': <String, dynamic>{}}
-                : toolFn.schema)),
-      };
+      return _toolToProto(toolFn);
     }).toList();
   }
 
@@ -758,14 +755,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         final found = allToolProtos.where((t) => t['name'] == tool).firstOrNull;
         resolvedSubTools.add(found ?? <String, dynamic>{'name': tool});
       } else if (tool is Tool) {
-        final proto = <String, dynamic>{
-          'name': tool.name,
-          'description': tool.description,
-          'parameters_json_schema': jsonEncode(normalizeSchema(
-              tool.schema.isEmpty
-                  ? {'type': 'object', 'properties': <String, dynamic>{}}
-                  : tool.schema)),
-        };
+        final proto = _toolToProto(tool);
         allToolProtos.removeWhere((t) => t['name'] == tool.name);
         allToolProtos.add(proto);
         resolvedSubTools.add(proto);
@@ -1590,10 +1580,7 @@ class LocalConnection implements Connection {
     return result;
   }
 
-  static String _toSnakeCase(String camel) {
-    final exp = RegExp('(?<=[a-z0-9])[A-Z]');
-    return camel.replaceAllMapped(exp, (m) => '_${m.group(0)}').toLowerCase();
-  }
+  static String _toSnakeCase(String camel) => toSnakeCase(camel);
 }
 
 class _StepTracker {

@@ -90,9 +90,11 @@ List<Policy> _mcpPolicies(
 /// Creates an APPROVE policy.
 ///
 /// [tool] can be either a [String] tool name, or an [McpServerConfig] to allow tools on that MCP server.
-dynamic allow(
+dynamic _createPolicy(
+  Decision decision,
   dynamic tool, {
   List<String>? mcpTools,
+  FutureOr<bool> Function(ToolCall toolCall)? handler,
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
 }) {
@@ -105,17 +107,19 @@ dynamic allow(
       }
       return Policy(
         tool: s,
-        decision: Decision.approve,
+        decision: decision,
         when: when,
+        askUser: handler,
         name: name,
       );
     case McpServerConfig mcp:
       return _mcpPolicies(
-        Decision.approve,
+        decision,
         mcp,
         mcpTools,
         when: when,
         name: name,
+        handler: handler,
       );
     default:
       throw ArgumentError(
@@ -123,6 +127,23 @@ dynamic allow(
       );
   }
 }
+
+/// Creates an APPROVE policy.
+///
+/// [tool] can be either a [String] tool name, or an [McpServerConfig] to allow tools on that MCP server.
+dynamic allow(
+  dynamic tool, {
+  List<String>? mcpTools,
+  FutureOr<bool> Function(ToolCall toolCall)? when,
+  String name = '',
+}) =>
+    _createPolicy(
+      Decision.approve,
+      tool,
+      mcpTools: mcpTools,
+      when: when,
+      name: name,
+    );
 
 /// Creates a DENY policy.
 ///
@@ -132,23 +153,14 @@ dynamic deny(
   List<String>? mcpTools,
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
-}) {
-  switch (tool) {
-    case String s:
-      if (mcpTools != null) {
-        throw ArgumentError(
-          'mcpTools cannot be specified when tool is a String.',
-        );
-      }
-      return Policy(tool: s, decision: Decision.deny, when: when, name: name);
-    case McpServerConfig mcp:
-      return _mcpPolicies(Decision.deny, mcp, mcpTools, when: when, name: name);
-    default:
-      throw ArgumentError(
-        'Expected String or McpServerConfig, got ${tool.runtimeType}',
-      );
-  }
-}
+}) =>
+    _createPolicy(
+      Decision.deny,
+      tool,
+      mcpTools: mcpTools,
+      when: when,
+      name: name,
+    );
 
 /// Creates an ASK_USER policy.
 ///
@@ -165,36 +177,15 @@ dynamic askUser(
   FutureOr<bool> Function(ToolCall toolCall)? handler,
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
-}) {
-  switch (tool) {
-    case String s:
-      if (mcpTools != null) {
-        throw ArgumentError(
-          'mcpTools cannot be specified when tool is a String.',
-        );
-      }
-      return Policy(
-        tool: s,
-        decision: Decision.askUser,
-        when: when,
-        askUser: handler,
-        name: name,
-      );
-    case McpServerConfig mcp:
-      return _mcpPolicies(
-        Decision.askUser,
-        mcp,
-        mcpTools,
-        when: when,
-        name: name,
-        handler: handler,
-      );
-    default:
-      throw ArgumentError(
-        'Expected String or McpServerConfig, got ${tool.runtimeType}',
-      );
-  }
-}
+}) =>
+    _createPolicy(
+      Decision.askUser,
+      tool,
+      mcpTools: mcpTools,
+      handler: handler,
+      when: when,
+      name: name,
+    );
 
 /// Creates a policy that approves all tool calls without confirmation.
 Policy allowAll() => allow('*', name: 'allow_all');
