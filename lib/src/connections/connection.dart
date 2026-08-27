@@ -134,33 +134,28 @@ abstract class AgentConfig with AgentConfigMappable {
   List<Tool> getAllCustomTools() {
     final toolsList = <Tool>[];
     final seenNames = <String, Tool>{};
-    for (final t in tools) {
-      final name = t.name;
-      if (seenNames.containsKey(name)) {
-        if (seenNames[name] != t) {
+
+    void register(Tool tool, String source) {
+      final existing = seenNames[tool.name];
+      if (existing != null) {
+        if (existing != tool) {
           throw ArgumentError(
-            "Duplicate custom tool name '$name' detected across agent and subagent configurations.",
+            "Duplicate custom tool name '${tool.name}' detected across $source.",
           );
         }
-      } else {
-        seenNames[name] = t;
-        toolsList.add(t);
+        return;
       }
+      seenNames[tool.name] = tool;
+      toolsList.add(tool);
+    }
+
+    for (final t in tools) {
+      register(t, 'agent and subagent configurations');
     }
     for (final sub in subagents) {
       for (final tool in sub.tools) {
         if (tool is Tool) {
-          final name = tool.name;
-          if (seenNames.containsKey(name)) {
-            if (seenNames[name] != tool) {
-              throw ArgumentError(
-                "Duplicate custom tool name '$name' detected across agent and subagent '${sub.name}' configurations.",
-              );
-            }
-          } else {
-            seenNames[name] = tool;
-            toolsList.add(tool);
-          }
+          register(tool, "agent and subagent '${sub.name}' configurations");
         }
       }
     }

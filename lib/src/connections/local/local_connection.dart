@@ -299,57 +299,79 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         initCompleter,
     StreamController<dynamic> messageController,
   ) {
-    if (!initCompleter.isCompleted && message is String) {
-      try {
-        final parsed = jsonDecode(message);
-        if (parsed is Map) {
-          final normalized = LocalConnection._normalizeJsonKeys(
-              Map<String, dynamic>.from(parsed));
-          if (normalized.containsKey('initialize_conversation_response')) {
-            final initResp = Map<String, dynamic>.from(
-                normalized['initialize_conversation_response'] as Map);
-            final initialHistory = _parseInitialHistory(initResp);
-            final cascadeId = initResp['cascade_id']?.toString();
-            final cum = initResp['cumulative_usage'];
-            final cumUsage = cum is Map
-                ? UsageMetadata.fromMap(Map<String, dynamic>.from(cum))
-                : null;
-            final traj = initResp['trajectory_usage'];
-            final trajUsages = <String, UsageMetadata>{};
-            if (traj is List) {
-              for (final entry in traj) {
-                if (entry is Map) {
-                  final entryMap = Map<String, dynamic>.from(entry);
-                  final trajId = entryMap['trajectory_id']?.toString() ?? '';
-                  if (trajId.isNotEmpty && entryMap['usage'] is Map) {
-                    trajUsages[trajId] = UsageMetadata.fromMap(
-                        Map<String, dynamic>.from(entryMap['usage'] as Map));
-                  }
-                }
-              }
-            }
-            initCompleter.complete((
-              initialHistory: initialHistory,
-              cascadeId: cascadeId,
-              cumulativeUsage: cumUsage,
-              trajectoryUsages: trajUsages.isNotEmpty ? trajUsages : null,
-            ));
-            return;
-          }
-        }
-      } catch (e) {
-        initCompleter.completeError(e);
+    if (initCompleter.isCompleted || message is! String) {
+      messageController.add(message);
+      return;
+    }
+
+    try {
+      final initData = _tryParseInitResponse(message);
+      if (initData != null) {
+        initCompleter.complete(initData);
+        return;
       }
-      if (!initCompleter.isCompleted) {
-        initCompleter.complete((
-          initialHistory: <Step>[],
-          cascadeId: null,
-          cumulativeUsage: null,
-          trajectoryUsages: null,
-        ));
-      }
+    } catch (e) {
+      initCompleter.completeError(e);
+    }
+
+    if (!initCompleter.isCompleted) {
+      initCompleter.complete((
+        initialHistory: <Step>[],
+        cascadeId: null,
+        cumulativeUsage: null,
+        trajectoryUsages: null,
+      ));
     }
     messageController.add(message);
+  }
+
+  ({
+    List<Step> initialHistory,
+    String? cascadeId,
+    UsageMetadata? cumulativeUsage,
+    Map<String, UsageMetadata>? trajectoryUsages,
+  })? _tryParseInitResponse(String message) {
+    final parsed = jsonDecode(message);
+    if (parsed is! Map) return null;
+
+    final normalized =
+        LocalConnection._normalizeJsonKeys(Map<String, dynamic>.from(parsed));
+    final rawInitResp = normalized['initialize_conversation_response'];
+    if (rawInitResp is! Map) return null;
+
+    final initResp = Map<String, dynamic>.from(rawInitResp);
+    final initialHistory = _parseInitialHistory(initResp);
+    final cascadeId = initResp['cascade_id']?.toString();
+    final cum = initResp['cumulative_usage'];
+    final cumUsage = cum is Map
+        ? UsageMetadata.fromMap(Map<String, dynamic>.from(cum))
+        : null;
+    final trajUsages = _parseTrajectoryUsages(initResp['trajectory_usage']);
+
+    return (
+      initialHistory: initialHistory,
+      cascadeId: cascadeId,
+      cumulativeUsage: cumUsage,
+      trajectoryUsages: trajUsages.isNotEmpty ? trajUsages : null,
+    );
+  }
+
+  Map<String, UsageMetadata> _parseTrajectoryUsages(dynamic traj) {
+    final usages = <String, UsageMetadata>{};
+    if (traj is! List) return usages;
+
+    for (final entry in traj) {
+      if (entry is Map) {
+        final entryMap = Map<String, dynamic>.from(entry);
+        final trajId = entryMap['trajectory_id']?.toString() ?? '';
+        final usage = entryMap['usage'];
+        if (trajId.isNotEmpty && usage is Map) {
+          usages[trajId] =
+              UsageMetadata.fromMap(Map<String, dynamic>.from(usage));
+        }
+      }
+    }
+    return usages;
   }
 
   List<Step> _parseInitialHistory(Map<String, dynamic> initResp) {
@@ -383,44 +405,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
               'filesystem_workspace': {'directory': ws}
             })
         .toList();
-
-    List<Map<String, dynamic>> rootToolProtos;
-    if (_tools != null) {
-      rootToolProtos = [];
-      for (final tool in _tools!) {
-        if (tool is Tool) {
-          final found =
-              allToolProtos.where((t) => t['name'] == tool.name).firstOrNull;
-          rootToolProtos.add(found ??
-              <String, dynamic>{
-                'name': tool.name,
-                'description': tool.description,
-                'parameters_json_schema': jsonEncode(normalizeSchema(
-                    tool.schema.isEmpty
-                        ? {'type': 'object', 'properties': <String, dynamic>{}}
-                        : tool.schema)),
-              });
-        } else if (tool is String) {
-          final found =
-              allToolProtos.where((t) => t['name'] == tool).firstOrNull;
-          rootToolProtos.add(found ?? <String, dynamic>{'name': tool});
-        }
-      }
-    } else {
-      final subagentToolNames = <String>{};
-      for (final sa in _subagents) {
-        for (final t in sa.tools) {
-          if (t is String) {
-            subagentToolNames.add(t);
-          } else if (t is Tool) {
-            subagentToolNames.add(t.name);
-          }
-        }
-      }
-      rootToolProtos = allToolProtos
-          .where((proto) => !subagentToolNames.contains(proto['name']))
-          .toList();
-    }
+    final rootToolProtos = _resolveRootToolProtos(allToolProtos);
 
     final cfg = _capabilitiesConfig;
     final activeTools = _resolveActiveTools(cfg);
@@ -461,6 +446,50 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       if (debugConfigMap != null && debugConfigMap.isNotEmpty)
         'debug_config': debugConfigMap,
     };
+  }
+
+  List<Map<String, dynamic>> _resolveRootToolProtos(
+      List<Map<String, dynamic>> allToolProtos) {
+    if (_tools != null) {
+      return _tools!
+          .map((tool) => _resolveSingleToolProto(tool, allToolProtos))
+          .toList();
+    }
+
+    final subagentToolNames = <String>{};
+    for (final sa in _subagents) {
+      for (final t in sa.tools) {
+        if (t is String) {
+          subagentToolNames.add(t);
+        } else if (t is Tool) {
+          subagentToolNames.add(t.name);
+        }
+      }
+    }
+    return allToolProtos
+        .where((proto) => !subagentToolNames.contains(proto['name']))
+        .toList();
+  }
+
+  Map<String, dynamic> _resolveSingleToolProto(
+      Object tool, List<Map<String, dynamic>> allToolProtos) {
+    if (tool is Tool) {
+      final found =
+          allToolProtos.where((t) => t['name'] == tool.name).firstOrNull;
+      return found ??
+          <String, dynamic>{
+            'name': tool.name,
+            'description': tool.description,
+            'parameters_json_schema': jsonEncode(normalizeSchema(
+                tool.schema.isEmpty
+                    ? {'type': 'object', 'properties': <String, dynamic>{}}
+                    : tool.schema)),
+          };
+    } else if (tool is String) {
+      final found = allToolProtos.where((t) => t['name'] == tool).firstOrNull;
+      return found ?? <String, dynamic>{'name': tool};
+    }
+    throw ArgumentError('Invalid tool type: $tool');
   }
 
   List<Map<String, dynamic>> _buildToolsProtos() {
@@ -666,30 +695,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       final subagentCanSpawn =
           activeSubTools.contains(BuiltinTools.startSubagent);
 
-      final resolvedSubTools = <Map<String, dynamic>>[];
-      for (final tool in subagent.tools) {
-        if (tool is String) {
-          final found =
-              allToolProtos.where((t) => t['name'] == tool).firstOrNull;
-          resolvedSubTools.add(found ?? <String, dynamic>{'name': tool});
-        } else if (tool is Tool) {
-          final proto = <String, dynamic>{
-            'name': tool.name,
-            'description': tool.description,
-            'parameters_json_schema': jsonEncode(normalizeSchema(
-                tool.schema.isEmpty
-                    ? {'type': 'object', 'properties': <String, dynamic>{}}
-                    : tool.schema)),
-          };
-          allToolProtos.removeWhere((t) => t['name'] == tool.name);
-          allToolProtos.add(proto);
-          resolvedSubTools.add(proto);
-        } else {
-          throw ArgumentError(
-            "Invalid tool type in subagent '${subagent.name}' tools list: $tool",
-          );
-        }
-      }
+      final resolvedSubTools =
+          _resolveSubagentToolProtos(subagent, allToolProtos);
 
       final subagentInstructionsProto =
           _buildSubagentSystemInstructions(subagent.systemInstructions);
@@ -741,6 +748,34 @@ class LocalConnectionStrategy implements ConnectionStrategy {
             (subCap?.agentBehavior ?? AgentBehavior.autonomous).protoValue,
       };
     }).toList();
+  }
+
+  List<Map<String, dynamic>> _resolveSubagentToolProtos(
+      SubagentConfig subagent, List<Map<String, dynamic>> allToolProtos) {
+    final resolvedSubTools = <Map<String, dynamic>>[];
+    for (final tool in subagent.tools) {
+      if (tool is String) {
+        final found = allToolProtos.where((t) => t['name'] == tool).firstOrNull;
+        resolvedSubTools.add(found ?? <String, dynamic>{'name': tool});
+      } else if (tool is Tool) {
+        final proto = <String, dynamic>{
+          'name': tool.name,
+          'description': tool.description,
+          'parameters_json_schema': jsonEncode(normalizeSchema(
+              tool.schema.isEmpty
+                  ? {'type': 'object', 'properties': <String, dynamic>{}}
+                  : tool.schema)),
+        };
+        allToolProtos.removeWhere((t) => t['name'] == tool.name);
+        allToolProtos.add(proto);
+        resolvedSubTools.add(proto);
+      } else {
+        throw ArgumentError(
+          "Invalid tool type in subagent '${subagent.name}' tools list: $tool",
+        );
+      }
+    }
+    return resolvedSubTools;
   }
 
   Map<String, dynamic>? _buildSubagentSystemInstructions(dynamic instructions) {

@@ -45,44 +45,39 @@ const Set<String> _uppercaseTypes = {
 /// Converts uppercase GenAI/Protobuf type names to lowercase strings, converts
 /// snake_case JSON Schema keywords to camelCase (e.g. `any_of` -> `anyOf`),
 /// and preserves literal values (`enum`, `const`, `default`).
-dynamic normalizeSchema(dynamic schema) {
-  if (schema is Map) {
-    final normalized = <String, dynamic>{};
-    for (final entry in schema.entries) {
-      final rawKey = entry.key.toString();
-      final k = _schemaKeywordMap[rawKey] ?? rawKey;
-      final v = entry.value;
+dynamic normalizeSchema(dynamic schema) => switch (schema) {
+      Map() => _normalizeMap(schema),
+      List() => schema.map(normalizeSchema).toList(),
+      String s when _uppercaseTypes.contains(s) => s.toLowerCase(),
+      _ => schema,
+    };
 
-      if (k == 'type') {
-        if (v is String) {
-          normalized[k] = v.toLowerCase();
-        } else if (v is List) {
-          normalized[k] = v.map((item) => normalizeSchema(item)).toList();
-        } else {
-          normalized[k] = normalizeSchema(v);
-        }
-      } else if (k == 'properties' ||
-          k == 'patternProperties' ||
-          k == r'$defs' ||
-          k == 'definitions') {
-        if (v is Map) {
-          normalized[k] = v.map(
-            (pk, pv) => MapEntry(pk.toString(), normalizeSchema(pv)),
-          );
-        } else {
-          normalized[k] = normalizeSchema(v);
-        }
-      } else if (k == 'enum' || k == 'const' || k == 'default') {
-        normalized[k] = v;
-      } else {
-        normalized[k] = normalizeSchema(v);
-      }
-    }
-    return normalized;
-  } else if (schema is List) {
-    return schema.map((item) => normalizeSchema(item)).toList();
-  } else if (schema is String && _uppercaseTypes.contains(schema)) {
-    return schema.toLowerCase();
+Map<String, dynamic> _normalizeMap(Map schema) {
+  final normalized = <String, dynamic>{};
+  for (final entry in schema.entries) {
+    final rawKey = entry.key.toString();
+    final k = _schemaKeywordMap[rawKey] ?? rawKey;
+    normalized[k] = _normalizeEntryValue(k, entry.value);
   }
-  return schema;
+  return normalized;
 }
+
+dynamic _normalizeEntryValue(String key, dynamic value) => switch (key) {
+      'type' => switch (value) {
+          String s => s.toLowerCase(),
+          List l => l.map(normalizeSchema).toList(),
+          _ => normalizeSchema(value),
+        },
+      'properties' ||
+      'patternProperties' ||
+      r'$defs' ||
+      'definitions' =>
+        switch (value) {
+          Map m => m.map(
+              (pk, pv) => MapEntry(pk.toString(), normalizeSchema(pv)),
+            ),
+          _ => normalizeSchema(value),
+        },
+      'enum' || 'const' || 'default' => value,
+      _ => normalizeSchema(value),
+    };
