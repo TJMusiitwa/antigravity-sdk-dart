@@ -191,7 +191,10 @@ Future<void> main() async {
       LogInteraction(),
     ],
     tools: [greetTool, brokenToolWrapper],
-    capabilities: CapabilitiesConfig(enableSubagents: true),
+    capabilities: CapabilitiesConfig(
+      agentBehavior: AgentBehavior.interactive,
+      enableSubagents: true,
+    ),
   );
 
   final agent = Agent(config);

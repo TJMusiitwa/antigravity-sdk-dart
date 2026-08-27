@@ -88,12 +88,16 @@ class StdinInteractionHook extends OnInteractionHook {
 // ---------------------------------------------------------------------------
 
 Future<void> main() async {
-  // Default config enables all tools, including ask_question.
+  // Configure interactive agent behavior to enable interactive tools like
+  // ASK_QUESTION.
   final config = LocalAgentConfig(
     systemInstructions:
         'When you need clarification or more information from the user to '
         'fulfill a request, you should use the `ask_question` tool to prompt them.',
     hooks: [StdinInteractionHook()],
+    capabilities: CapabilitiesConfig(
+      agentBehavior: AgentBehavior.interactive,
+    ),
   );
 
   final agent = Agent(config);

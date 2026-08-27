@@ -192,6 +192,11 @@ List<policy_module.Policy> _upgradePoliciesList(
 }
 
 /// Runs an interactive CLI loop for debugging and development.
+///
+/// Constructs and runs the agent within an interactive session, registering an
+/// [AskQuestionHook], upgrading command confirmation policies to ASK_USER, and
+/// ensuring `agentBehavior` is set to [AgentBehavior.interactive] so the user can
+/// answer prompts from the model.
 Future<void> runInteractiveLoop(
   AgentConfig config, {
   Agent Function(AgentConfig config)? agentFactory,
@@ -202,9 +207,16 @@ Future<void> runInteractiveLoop(
   }
 
   final policiesList = _upgradePoliciesList(config.policies);
+  var capabilities = config.capabilities;
+  if (capabilities.agentBehavior != AgentBehavior.interactive) {
+    capabilities = capabilities.copyWith(
+      agentBehavior: AgentBehavior.interactive,
+    );
+  }
   final upgradedConfig = config.copyWith(
     hooks: hooksList,
     policies: policiesList,
+    capabilities: capabilities,
   );
 
   final agent = agentFactory != null
