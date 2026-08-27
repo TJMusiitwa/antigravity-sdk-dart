@@ -256,6 +256,13 @@ class ToolResultMapper extends ClassMapperBase<ToolResult> {
     key: r'step_id',
     opt: true,
   );
+  static String? _$serverName(ToolResult v) => v.serverName;
+  static const Field<ToolResult, String> _f$serverName = Field(
+    'serverName',
+    _$serverName,
+    key: r'server_name',
+    opt: true,
+  );
   static dynamic _$result(ToolResult v) => v.result;
   static const Field<ToolResult, dynamic> _f$result = Field(
     'result',
@@ -282,6 +289,7 @@ class ToolResultMapper extends ClassMapperBase<ToolResult> {
     #id: _f$id,
     #callId: _f$callId,
     #stepId: _f$stepId,
+    #serverName: _f$serverName,
     #result: _f$result,
     #error: _f$error,
     #exception: _f$exception,
@@ -295,6 +303,7 @@ class ToolResultMapper extends ClassMapperBase<ToolResult> {
       id: data.dec(_f$id),
       callId: data.dec(_f$callId),
       stepId: data.dec(_f$stepId),
+      serverName: data.dec(_f$serverName),
       result: data.dec(_f$result),
       error: data.dec(_f$error),
       exception: data.dec(_f$exception),
@@ -369,6 +378,7 @@ abstract class ToolResultCopyWith<$R, $In extends ToolResult, $Out>
     String? id,
     String? callId,
     String? stepId,
+    String? serverName,
     dynamic result,
     String? error,
     Exception? exception,
@@ -391,6 +401,7 @@ class _ToolResultCopyWithImpl<$R, $Out>
     Object? id = $none,
     Object? callId = $none,
     Object? stepId = $none,
+    Object? serverName = $none,
     Object? result = $none,
     Object? error = $none,
     Object? exception = $none,
@@ -401,6 +412,7 @@ class _ToolResultCopyWithImpl<$R, $Out>
           if (id != $none) #id: id,
           if (callId != $none) #callId: callId,
           if (stepId != $none) #stepId: stepId,
+          if (serverName != $none) #serverName: serverName,
           if (result != $none) #result: result,
           if (error != $none) #error: error,
           if (exception != $none) #exception: exception,
@@ -412,6 +424,7 @@ class _ToolResultCopyWithImpl<$R, $Out>
         id: data.get(#id, or: $value.id),
         callId: data.get(#callId, or: $value.callId),
         stepId: data.get(#stepId, or: $value.stepId),
+        serverName: data.get(#serverName, or: $value.serverName),
         result: data.get(#result, or: $value.result),
         error: data.get(#error, or: $value.error),
         exception: data.get(#exception, or: $value.exception),

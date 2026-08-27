@@ -88,15 +88,33 @@ class ToolRunner {
         final tool = _tools[tc.name];
         if (tool == null) {
           return ToolResult(
-            name: tc.name,
             id: tc.id,
+            callId: tc.callId,
+            stepId: tc.stepId,
+            serverName: tc.serverName,
+            name: tc.name,
             error: "Unknown tool: '${tc.name}'",
           );
         }
         final result = await tool.handler(tc.args, _context);
-        return ToolResult(name: tc.name, id: tc.id, result: result);
+        return ToolResult(
+          id: tc.id,
+          callId: tc.callId,
+          stepId: tc.stepId,
+          serverName: tc.serverName,
+          name: tc.name,
+          result: result,
+        );
       } catch (e) {
-        return ToolResult(name: tc.name, id: tc.id, error: e.toString());
+        return ToolResult(
+          id: tc.id,
+          callId: tc.callId,
+          stepId: tc.stepId,
+          serverName: tc.serverName,
+          name: tc.name,
+          error: e.toString(),
+          exception: e is Exception ? e : Exception(e.toString()),
+        );
       }
     });
     return await Future.wait(futures);

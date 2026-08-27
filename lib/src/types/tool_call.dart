@@ -21,6 +21,7 @@ class ToolCall with ToolCallMappable {
   @MappableField(key: 'canonical_path')
   final String? canonicalPath;
 
+  /// The server name (e.g. MCP server name) associated with this tool call.
   @MappableField(key: 'server_name')
   final String? serverName;
 
@@ -45,6 +46,7 @@ class ToolCall with ToolCallMappable {
     }
     return ToolCallMapper.fromMap(map);
   }
+
   factory ToolCall.fromJson(String json) => ToolCallMapper.fromJson(json);
 }
 
@@ -85,6 +87,10 @@ class ToolResult with ToolResultMappable {
   @MappableField(key: 'step_id')
   final String? stepId;
 
+  /// The server name (e.g. MCP server name) associated with this tool result.
+  @MappableField(key: 'server_name')
+  final String? serverName;
+
   final String name;
   final dynamic result;
   final String? error;
@@ -97,6 +103,7 @@ class ToolResult with ToolResultMappable {
     this.id,
     this.callId,
     this.stepId,
+    this.serverName,
     this.result,
     this.error,
     this.exception,
