@@ -1729,8 +1729,14 @@ void main() {
       );
       expect(custom.enableDaemons, isTrue);
       expect(custom.timeoutSeconds, equals(300.0));
-      expect(custom.toMap(),
-          equals({'enable_daemons': true, 'timeout_seconds': 300.0}));
+      expect(
+        custom.toMap(),
+        equals({
+          'enable_daemons': true,
+          'timeout_seconds': 300.0,
+          'enable_sandbox': false,
+        }),
+      );
 
       final fromMap = RunCommandConfig.fromMap({
         'enable_daemons': true,

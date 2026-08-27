@@ -182,11 +182,20 @@ class RunCommandConfigMapper extends ClassMapperBase<RunCommandConfig> {
     key: r'timeout_seconds',
     opt: true,
   );
+  static bool _$enableSandbox(RunCommandConfig v) => v.enableSandbox;
+  static const Field<RunCommandConfig, bool> _f$enableSandbox = Field(
+    'enableSandbox',
+    _$enableSandbox,
+    key: r'enable_sandbox',
+    opt: true,
+    def: false,
+  );
 
   @override
   final MappableFields<RunCommandConfig> fields = const {
     #enableDaemons: _f$enableDaemons,
     #timeoutSeconds: _f$timeoutSeconds,
+    #enableSandbox: _f$enableSandbox,
   };
   @override
   final bool ignoreNull = true;
@@ -195,6 +204,7 @@ class RunCommandConfigMapper extends ClassMapperBase<RunCommandConfig> {
     return RunCommandConfig(
       enableDaemons: data.dec(_f$enableDaemons),
       timeoutSeconds: data.dec(_f$timeoutSeconds),
+      enableSandbox: data.dec(_f$enableSandbox),
     );
   }
 
@@ -263,7 +273,7 @@ extension RunCommandConfigValueCopy<$R, $Out>
 /// @nodoc
 abstract class RunCommandConfigCopyWith<$R, $In extends RunCommandConfig, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
-  $R call({bool? enableDaemons, double? timeoutSeconds});
+  $R call({bool? enableDaemons, double? timeoutSeconds, bool? enableSandbox});
   RunCommandConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
   );
@@ -279,16 +289,23 @@ class _RunCommandConfigCopyWithImpl<$R, $Out>
   late final ClassMapperBase<RunCommandConfig> $mapper =
       RunCommandConfigMapper.ensureInitialized();
   @override
-  $R call({bool? enableDaemons, Object? timeoutSeconds = $none}) => $apply(
+  $R call({
+    bool? enableDaemons,
+    Object? timeoutSeconds = $none,
+    bool? enableSandbox,
+  }) =>
+      $apply(
         FieldCopyWithData({
           if (enableDaemons != null) #enableDaemons: enableDaemons,
           if (timeoutSeconds != $none) #timeoutSeconds: timeoutSeconds,
+          if (enableSandbox != null) #enableSandbox: enableSandbox,
         }),
       );
   @override
   RunCommandConfig $make(CopyWithData data) => RunCommandConfig(
         enableDaemons: data.get(#enableDaemons, or: $value.enableDaemons),
         timeoutSeconds: data.get(#timeoutSeconds, or: $value.timeoutSeconds),
+        enableSandbox: data.get(#enableSandbox, or: $value.enableSandbox),
       );
 
   @override

@@ -134,9 +134,16 @@ class RunCommandConfig with RunCommandConfigMappable {
   /// When null, the default timeout (10 minutes) is used. Defaults to null.
   final double? timeoutSeconds;
 
+  /// When true, terminal commands (run_command) are executed inside the
+  /// OS-level sandbox (exebox). Forwarded to the harness/cortex, which
+  /// enforces the sandbox at command execution time. Has no effect on
+  /// platforms/environments where the sandbox is unavailable. Defaults to false.
+  final bool enableSandbox;
+
   RunCommandConfig({
     this.enableDaemons = false,
     this.timeoutSeconds,
+    this.enableSandbox = false,
   }) {
     if (timeoutSeconds != null && timeoutSeconds! <= 0) {
       throw AntigravityValidationException(
