@@ -70,6 +70,17 @@ class MockOnToolErrorHook extends OnToolErrorHook {
   }
 }
 
+class MockOnCompactionHook extends OnCompactionHook {
+  bool called = false;
+  Step? receivedStep;
+
+  @override
+  Future<void> run(HookContext context, Step data) async {
+    called = true;
+    receivedStep = data;
+  }
+}
+
 void main() {
   group('HookRouter', () {
     test('handles session start and end hooks', () async {
@@ -374,6 +385,40 @@ void main() {
       expect(toolError.receivedError, isA<ToolExecutionException>());
       final err = toolError.receivedError as ToolExecutionException;
       expect(err.stepId, equals('traj_err:8'));
+    });
+
+    test('handles compaction hook', () async {
+      final compactionHook = MockOnCompactionHook();
+      final runner = HookRunner(
+        onCompactionHooks: [compactionHook],
+      );
+      final sentEvents = <Map<String, dynamic>>[];
+      final router = HookRouter(runner, (evt) async {
+        sentEvents.add(evt);
+      });
+
+      await router.handle({
+        'request_id': 'req-compaction',
+        'type': 'LIFECYCLE_HOOK_ON_COMPACTION',
+        'on_compaction_args': {
+          'trajectory_id': 'traj_compact',
+          'step_index': 12,
+          'summary': 'Compacted 10 earlier steps into summary',
+        },
+      });
+
+      expect(compactionHook.called, isTrue);
+      expect(compactionHook.receivedStep, isNotNull);
+      expect(compactionHook.receivedStep!.id, equals('traj_compact:12'));
+      expect(compactionHook.receivedStep!.type, equals(StepType.compaction));
+      expect(compactionHook.receivedStep!.content,
+          equals('Compacted 10 earlier steps into summary'));
+      expect(compactionHook.receivedStep!.trajectoryId, equals('traj_compact'));
+      expect(compactionHook.receivedStep!.stepIndex, equals(12));
+
+      final resp = sentEvents.last['call_hook_response'];
+      expect(resp['request_id'], equals('req-compaction'));
+      expect(resp['empty_result'], isNotNull);
     });
   });
 }

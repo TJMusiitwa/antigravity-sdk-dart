@@ -300,6 +300,184 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('AgentConfig.getAllCustomTools collects root and subagent tools', () {
+      final fakeStrategy = FakeConnectionStrategy();
+      final t1 = Tool(
+        name: 'tool_one',
+        description: 'First tool',
+        schema: const {},
+        handler: (args, ctx) async => 'res1',
+      );
+      final t2 = Tool(
+        name: 'tool_two',
+        description: 'Second tool',
+        schema: const {},
+        handler: (args, ctx) async => 'res2',
+      );
+      final config = FakeAgentConfig(
+        fakeStrategy,
+        tools: [t1],
+        subagents: [
+          SubagentConfig(
+            name: 'sub1',
+            description: 'Subagent 1',
+            tools: [t2],
+          ),
+        ],
+      );
+
+      final allTools = config.getAllCustomTools();
+      expect(allTools, hasLength(2));
+      expect(
+          allTools.map((t) => t.name), containsAll(['tool_one', 'tool_two']));
+    });
+
+    test('AgentConfig.getAllCustomTools throws on duplicate conflicting tools',
+        () {
+      final fakeStrategy = FakeConnectionStrategy();
+      final t1 = Tool(
+        name: 'conflict_tool',
+        description: 'First tool',
+        schema: const {},
+        handler: (args, ctx) async => 'res1',
+      );
+      final t2 = Tool(
+        name: 'conflict_tool',
+        description: 'Different tool with same name',
+        schema: const {},
+        handler: (args, ctx) async => 'res2',
+      );
+      final config = FakeAgentConfig(
+        fakeStrategy,
+        tools: [t1],
+        subagents: [
+          SubagentConfig(
+            name: 'sub1',
+            description: 'Subagent 1',
+            tools: [t2],
+          ),
+        ],
+      );
+
+      expect(() => config.getAllCustomTools(), throwsArgumentError);
+    });
+
+    test(
+        'Conversation deduplicates compactionIndices for wire-format steps without id field',
+        () {
+      // Wire frames carry trajectory_id and step_index, but NO id field.
+      final wireStep1Active = Step.fromMap({
+        'trajectory_id': 'traj-main',
+        'step_index': 5,
+        'type': 'COMPACTION',
+        'status': 'ACTIVE',
+        'content': 'Compacting...',
+      });
+      final wireStep1Done = Step.fromMap({
+        'trajectory_id': 'traj-main',
+        'step_index': 5,
+        'type': 'COMPACTION',
+        'status': 'DONE',
+        'content': 'Compacted 10 steps into summary',
+      });
+      final wireStep2Done = Step.fromMap({
+        'trajectory_id': 'traj-main',
+        'step_index': 12,
+        'type': 'COMPACTION',
+        'status': 'DONE',
+        'content': 'Compacted 20 steps into summary',
+      });
+
+      final conn = FakeConnection();
+      conn.initialHistory
+          .addAll([wireStep1Active, wireStep1Done, wireStep2Done]);
+      final conv = Conversation(conn);
+
+      expect(conv.compactionIndices, equals([0, 2]));
+    });
+
+    test(
+        'Conversation deduplicates streaming compaction steps with makeStepId fallback',
+        () async {
+      final conn = FakeConnection();
+      conn.autoRespond = false;
+      final conv = Conversation(conn);
+
+      final response = await conv.chat('start');
+
+      // Emit two wire-format compaction step updates (ACTIVE then DONE) for the same step index
+      conn._stepController.add(Step.fromMap({
+        'trajectory_id': 'traj-live',
+        'step_index': 3,
+        'type': 'COMPACTION',
+        'status': 'ACTIVE',
+        'content': 'Compacting...',
+      }));
+      conn._stepController.add(Step.fromMap({
+        'trajectory_id': 'traj-live',
+        'step_index': 3,
+        'type': 'COMPACTION',
+        'status': 'DONE',
+        'content': 'Compacted steps into summary',
+      }));
+      conn._stepController.add(Step(
+        id: 'finish_step',
+        stepIndex: 4,
+        type: StepType.finish,
+        source: StepSource.system,
+        target: StepTarget.environment,
+        status: StepStatus.done,
+        content: 'Finished',
+      ));
+
+      await response.chunks.drain();
+
+      // Only one compaction index should be recorded
+      expect(conv.compactionIndices, hasLength(1));
+      expect(conv.history[conv.compactionIndices.first].stepIndex, equals(3));
+    });
+
+    test(
+        'Conversation dedups a streaming compaction duplicate separated by another compaction',
+        () async {
+      // Discriminating case: the previous implementation compared only against
+      // _compactionIndices.last, so in the sequence A, B, A the second A was
+      // checked against B and slipped through. Set-based dedup catches it.
+      Step compaction(String traj, int idx, String status) => Step.fromMap({
+            'trajectory_id': traj,
+            'step_index': idx,
+            'type': 'COMPACTION',
+            'status': status,
+            'content': 'compaction $traj:$idx $status',
+          });
+
+      final conn = FakeConnection();
+      conn.autoRespond = false;
+      final conv = Conversation(conn);
+      final response = await conv.chat('start');
+
+      conn._stepController.add(compaction('traj-live', 3, 'ACTIVE')); // A
+      conn._stepController.add(compaction('traj-live', 9, 'DONE')); // B
+      conn._stepController.add(compaction('traj-live', 3, 'DONE')); // A again
+      conn._stepController.add(Step(
+        id: 'finish_step',
+        stepIndex: 10,
+        type: StepType.finish,
+        source: StepSource.system,
+        target: StepTarget.environment,
+        status: StepStatus.done,
+        content: 'Finished',
+      ));
+
+      await response.chunks.drain();
+
+      // Two distinct compactions (3 and 9); the repeat of 3 must not re-index.
+      expect(conv.compactionIndices, hasLength(2));
+      final indexedStepIndices =
+          conv.compactionIndices.map((i) => conv.history[i].stepIndex).toList();
+      expect(indexedStepIndices, equals([3, 9]));
+    });
   });
 }
 
@@ -311,6 +489,7 @@ class FakeConnection implements Connection {
   final _stepController = StreamController<Step>.broadcast();
   bool _idle = true;
   bool _isClosed = false;
+  bool autoRespond = true;
   final List<Step> _initialHistory = [];
 
   @override
@@ -337,6 +516,7 @@ class FakeConnection implements Connection {
     Map<String, dynamic>? kwargs,
   }) async {
     _idle = false;
+    if (!autoRespond) return;
     // Simulate async events from WebSocket
     scheduleMicrotask(() {
       if (_isClosed) return;
@@ -442,6 +622,7 @@ class FakeAgentConfig extends AgentConfig {
     super.policies,
     super.hooks,
     super.triggers,
+    super.subagents,
     super.responseSchema,
   });
 

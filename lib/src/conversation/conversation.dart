@@ -15,13 +15,21 @@ class Conversation {
   int? maxHistorySize;
   UsageMetadata _cumulativeUsage = _zeroUsage();
 
+  /// Compaction keys already counted in [_compactionIndices].
+  ///
+  /// Deliberate Dart-side safeguard with no Python SDK counterpart: the Python
+  /// SDK appends compaction indices unconditionally and relies on the harness
+  /// emitting one COMPACTION step per event. This guard keeps the count correct
+  /// if the harness emits successive ACTIVE/DONE updates for the same step.
+  final Set<String> _seenCompactionKeys = <String>{};
+
   /// Creates a new [Conversation] on the given underlying connection.
   Conversation(this._connection, {HookRunner? hookRunner})
       : _hookRunner = hookRunner {
     _history.addAll(_connection.initialHistory);
     for (var i = 0; i < _connection.initialHistory.length; i++) {
       final step = _connection.initialHistory[i];
-      if (step.type == StepType.compaction) {
+      if (step.type == StepType.compaction && _isNewCompaction(step)) {
         _compactionIndices.add(i);
       }
       if (step.usageMetadata != null) {
@@ -122,10 +130,12 @@ class Conversation {
 
   static void validatePrompt(dynamic prompt) {
     if (prompt == null) {
-      throw AntigravityValidationException("chat() requires non-empty message content. Got null.");
+      throw AntigravityValidationException(
+          "chat() requires non-empty message content. Got null.");
     }
     if (prompt is String && prompt.trim().isEmpty) {
-      throw AntigravityValidationException("chat() requires a non-empty message string. Got: '$prompt'");
+      throw AntigravityValidationException(
+          "chat() requires a non-empty message string. Got: '$prompt'");
     }
     if (prompt is Iterable) {
       _validateIterablePrompt(prompt);
@@ -134,7 +144,8 @@ class Conversation {
 
   static void _validateIterablePrompt(Iterable prompt) {
     if (prompt.isEmpty) {
-      throw AntigravityValidationException("chat() requires non-empty message content. Got an empty list.");
+      throw AntigravityValidationException(
+          "chat() requires non-empty message content. Got an empty list.");
     }
     final hasContent = prompt.any((item) {
       if (item is String) return item.trim().isNotEmpty;
@@ -142,7 +153,8 @@ class Conversation {
       return item != null;
     });
     if (!hasContent) {
-      throw AntigravityValidationException("chat() requires non-empty message content. Got: $prompt");
+      throw AntigravityValidationException(
+          "chat() requires non-empty message content. Got: $prompt");
     }
   }
 
@@ -186,7 +198,8 @@ class Conversation {
     final res = await _hookRunner!.dispatchPreTurn(prompt);
     if (res.allow) return null;
 
-    final message = res.message.isNotEmpty ? res.message : 'Turn execution denied by hook.';
+    final message =
+        res.message.isNotEmpty ? res.message : 'Turn execution denied by hook.';
     _logger.warning("Turn denied by hook: $message");
 
     final canceledStep = Step(
@@ -232,7 +245,8 @@ class Conversation {
     StreamSubscription subscription,
   ) {
     if (step.id == 'idle_sentinel') {
-      _finalizeTurn(subscription, controller, _history.isEmpty ? '' : _history.last.content);
+      _finalizeTurn(subscription, controller,
+          _history.isEmpty ? '' : _history.last.content);
       return;
     }
 
@@ -244,9 +258,22 @@ class Conversation {
     }
   }
 
+  /// Identity of a compaction step: its wire `id`, else `trajectoryId:stepIndex`.
+  static String? _compactionKey(Step step) => step.id.isNotEmpty
+      ? step.id
+      : makeStepId(step.trajectoryId, step.stepIndex);
+
+  /// Whether [step] is a compaction not yet counted. Steps with no derivable
+  /// key cannot be de-duplicated and are always treated as new.
+  bool _isNewCompaction(Step step) {
+    final key = _compactionKey(step);
+    if (key == null || key.isEmpty) return true;
+    return _seenCompactionKeys.add(key);
+  }
+
   void _recordHistoryStep(Step step) {
     _history.add(step);
-    if (step.type == StepType.compaction) {
+    if (step.type == StepType.compaction && _isNewCompaction(step)) {
       _compactionIndices.add(_history.length - 1);
     }
     _enforceMaxHistory();
@@ -265,10 +292,12 @@ class Conversation {
 
     if (isModel && isTargetUser) {
       if (step.thinkingDelta.isNotEmpty) {
-        controller.add(Thought(stepIndex: step.stepIndex, text: step.thinkingDelta));
+        controller
+            .add(Thought(stepIndex: step.stepIndex, text: step.thinkingDelta));
       }
       if (step.contentDelta.isNotEmpty) {
-        controller.add(Text(stepIndex: step.stepIndex, text: step.contentDelta));
+        controller
+            .add(Text(stepIndex: step.stepIndex, text: step.contentDelta));
       }
     }
 

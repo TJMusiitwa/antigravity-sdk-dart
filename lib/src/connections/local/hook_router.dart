@@ -108,7 +108,9 @@ class HookRouter {
   }
 
   MediaContent? _parseMediaPart(dynamic media) {
-    if (media is! Map || !media.containsKey('mime_type') || !media.containsKey('data')) {
+    if (media is! Map ||
+        !media.containsKey('mime_type') ||
+        !media.containsKey('data')) {
       return null;
     }
     final mimeType = media['mime_type'].toString();
@@ -160,10 +162,41 @@ class HookRouter {
         await _handlePostTool(req, response);
       case 'LIFECYCLE_HOOK_ON_TOOL_ERROR' || 'ON_TOOL_ERROR':
         await _handleOnToolError(req, response);
+      case 'LIFECYCLE_HOOK_ON_COMPACTION' || 'ON_COMPACTION':
+        await _handleOnCompaction(req, response);
       default:
         _logger.warning('Unknown hook received: $hookType');
         response['empty_result'] = {};
     }
+  }
+
+  Future<void> _handleOnCompaction(
+    Map<String, dynamic> req,
+    Map<String, dynamic> response,
+  ) async {
+    final args = req['on_compaction_args'] as Map? ?? {};
+    final trajectoryId = args['trajectory_id']?.toString() ?? '';
+    final stepIndex = int.tryParse((args['step_index'] ?? '0').toString()) ?? 0;
+    final summary = args['summary']?.toString();
+    final stepId =
+        makeStepId(trajectoryId, stepIndex) ?? '$trajectoryId:$stepIndex';
+
+    final stepObj = Step(
+      id: stepId,
+      type: StepType.compaction,
+      status: StepStatus.done,
+      source: StepSource.system,
+      target: StepTarget.user,
+      content: (summary != null && summary.isNotEmpty)
+          ? summary
+          : 'Context compaction',
+      trajectoryId: trajectoryId,
+      stepIndex: stepIndex,
+    );
+
+    final turnCtx = _currentTurnContext ?? _hookRunner.currentTurnContext;
+    await _hookRunner.dispatchCompaction(turnCtx, stepObj);
+    response['empty_result'] = {};
   }
 
   Future<void> _handlePreTurn(
@@ -175,7 +208,8 @@ class HookRouter {
     if (args is Map && args['user_input'] is Map) {
       userInputMap = Map<String, dynamic>.from(args['user_input'] as Map);
     }
-    final userInput = userInputMap != null ? _fromProtoUserInput(userInputMap) : '';
+    final userInput =
+        userInputMap != null ? _fromProtoUserInput(userInputMap) : '';
     final res = await _hookRunner.dispatchPreTurn(userInput);
     _currentTurnContext = _hookRunner.currentTurnContext;
 
@@ -193,7 +227,8 @@ class HookRouter {
     var responseText = '';
     final args = req['post_turn_args'];
     if (args is Map) {
-      responseText = (args['response_text'] ?? args['responseText'] ?? '').toString();
+      responseText =
+          (args['response_text'] ?? args['responseText'] ?? '').toString();
     }
     final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
     await _hookRunner.dispatchPostTurn(turnCtx, responseText);
@@ -229,7 +264,8 @@ class HookRouter {
 
     if (ptaRaw is Map) {
       final pta = ptaRaw;
-      final rawToolName = (pta['tool_name'] ?? pta['toolName'] ?? '').toString();
+      final rawToolName =
+          (pta['tool_name'] ?? pta['toolName'] ?? '').toString();
       toolName = _protoFieldToSdkName[rawToolName] ?? rawToolName;
       args = _extractToolCallArguments(pta);
       serverName = (pta['server_name'] ?? pta['serverName'])?.toString();
@@ -285,12 +321,14 @@ class HookRouter {
 
     final args = req['post_tool_args'];
     if (args is Map) {
-      final rawToolName = (args['tool_name'] ?? args['toolName'] ?? '').toString();
+      final rawToolName =
+          (args['tool_name'] ?? args['toolName'] ?? '').toString();
       toolName = _protoFieldToSdkName[rawToolName] ?? rawToolName;
       callId = _extractCallId(args);
       stepId = _extractStepId(args);
 
-      final hasError = args.containsKey('error') && args['error'].toString().isNotEmpty;
+      final hasError =
+          args.containsKey('error') && args['error'].toString().isNotEmpty;
       if (hasError) {
         errorStr = args['error'].toString();
       } else {
@@ -298,7 +336,8 @@ class HookRouter {
       }
 
       if (args['step_update'] is Map && _resultExtractor != null) {
-        final stepUpdate = Map<String, dynamic>.from(args['step_update'] as Map);
+        final stepUpdate =
+            Map<String, dynamic>.from(args['step_update'] as Map);
         final extracted = _resultExtractor!(stepUpdate);
         if (extracted != null) {
           resultVal = extracted;
@@ -334,7 +373,8 @@ class HookRouter {
             stepId: null,
           );
 
-    final toolName = _protoFieldToSdkName[extracted.rawToolName] ?? extracted.rawToolName;
+    final toolName =
+        _protoFieldToSdkName[extracted.rawToolName] ?? extracted.rawToolName;
     final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
     await _hookRunner.dispatchOnToolError(
       turnCtx,
