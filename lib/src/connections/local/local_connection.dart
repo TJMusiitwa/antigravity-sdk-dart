@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:web_socket_channel/status.dart' as status;
 
 import '../../hooks/hooks.dart';
+import '../../tools/schema_utils.dart';
 import '../../tools/tool_runner.dart';
 import '../../types.dart';
 import '../../utils/binary_discovery.dart';
@@ -24,8 +25,8 @@ final _logger = Logger('antigravity.connection.local');
 /// Builds the `run_command` harness-side tool proto map.
 ///
 /// [enabled] reflects whether the builtin run_command tool is active. When
-/// [cfg] is null the upstream defaults are emitted (daemons disabled and a
-/// `max_timeout_ms` of 0, which the harness reads as "use the default
+/// [cfg] is null the upstream defaults are emitted (daemons disabled, sandbox
+/// disabled, and a `max_timeout_ms` of 0, which the harness reads as "use the default
 /// timeout"), matching `RunCommandToolConfig` in the Python SDK.
 Map<String, dynamic> _runCommandToolProto(bool enabled, RunCommandConfig? cfg) {
   final timeoutSeconds = cfg?.timeoutSeconds;
@@ -34,6 +35,7 @@ Map<String, dynamic> _runCommandToolProto(bool enabled, RunCommandConfig? cfg) {
     'enable_daemon_commands': cfg?.enableDaemons ?? false,
     'max_timeout_ms':
         timeoutSeconds != null ? (timeoutSeconds * 1000).round() : 0,
+    'enable_sandbox': cfg?.enableSandbox ?? false,
   };
 }
 
@@ -393,7 +395,10 @@ class LocalConnectionStrategy implements ConnectionStrategy {
               <String, dynamic>{
                 'name': tool.name,
                 'description': tool.description,
-                'parameters_json_schema': jsonEncode(tool.schema),
+                'parameters_json_schema': jsonEncode(normalizeSchema(
+                    tool.schema.isEmpty
+                        ? {'type': 'object', 'properties': <String, dynamic>{}}
+                        : tool.schema)),
               });
         } else if (tool is String) {
           final found =
@@ -463,7 +468,10 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       return <String, dynamic>{
         'name': toolFn.name,
         'description': toolFn.description,
-        'parameters_json_schema': jsonEncode(toolFn.schema),
+        'parameters_json_schema': jsonEncode(normalizeSchema(
+            toolFn.schema.isEmpty
+                ? {'type': 'object', 'properties': <String, dynamic>{}}
+                : toolFn.schema)),
       };
     }).toList();
   }
@@ -643,6 +651,9 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     if (_hookRunner.onCompactionHooks.isNotEmpty) {
       enabled.add('LIFECYCLE_HOOK_ON_COMPACTION');
     }
+    if (_hookRunner.stopHooks.isNotEmpty) {
+      enabled.add('LIFECYCLE_HOOK_STOP');
+    }
     return enabled;
   }
 
@@ -665,7 +676,10 @@ class LocalConnectionStrategy implements ConnectionStrategy {
           final proto = <String, dynamic>{
             'name': tool.name,
             'description': tool.description,
-            'parameters_json_schema': jsonEncode(tool.schema),
+            'parameters_json_schema': jsonEncode(normalizeSchema(
+                tool.schema.isEmpty
+                    ? {'type': 'object', 'properties': <String, dynamic>{}}
+                    : tool.schema)),
           };
           allToolProtos.removeWhere((t) => t['name'] == tool.name);
           allToolProtos.add(proto);
@@ -1325,8 +1339,11 @@ class LocalConnection implements Connection {
             await _hookRunner.dispatchOnToolError(ctx, exception);
         if (recoveryVal != null) {
           result = ToolResult(
-            id: toolCall.id,
-            name: toolCall.name,
+            id: effectiveToolCall.id,
+            callId: effectiveToolCall.callId,
+            stepId: effectiveToolCall.stepId,
+            serverName: effectiveToolCall.serverName,
+            name: effectiveToolCall.name,
             result: recoveryVal,
           );
         }
@@ -1338,8 +1355,12 @@ class LocalConnection implements Connection {
       await sendToolResults([
         ToolResult(
           id: toolCall.id,
+          callId: toolCall.callId,
+          stepId: toolCall.stepId,
+          serverName: toolCall.serverName,
           name: toolCall.name,
           error: 'Internal SDK tool call processing error: $e',
+          exception: e is Exception ? e : Exception(e.toString()),
         ),
       ]);
     }
