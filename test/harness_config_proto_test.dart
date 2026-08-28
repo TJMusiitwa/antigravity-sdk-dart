@@ -251,6 +251,20 @@ void main() {
       expect(subRunCmd['enable_daemon_commands'], isTrue);
       expect(subRunCmd['max_timeout_ms'], equals(30000));
     });
+
+    test('omits enable_sandbox from run_command wire proto', () {
+      final config = buildStrategy(
+        capabilitiesConfig: CapabilitiesConfig(
+          runCommandConfig: RunCommandConfig(
+            enableSandbox: true,
+          ),
+        ),
+      ).buildHarnessConfigForTest();
+      final runCmd = (config['harness_side_tools'] as Map)['run_command']
+          as Map<String, dynamic>;
+
+      expect(runCmd.containsKey('enable_sandbox'), isFalse);
+    });
   });
 
   group('workspace serialization in harness config', () {
@@ -342,12 +356,12 @@ void main() {
     });
   });
 
-  group('debug_config serialization in harness config', () {
-    // Regression guard: the debug_config emission was once silently dropped
-    // from _buildHarnessConfig and no test caught it, because existing
-    // coverage only asserted the debugConfig getter forwarded correctly.
-    test('emits debug_config in the harness config when a DebugConfig is set',
-        () {
+  group('debug_config client-side scoping', () {
+    // Regression guard: DebugConfig is client-side only (for logging levels
+    // and tracing). The localharness HarnessConfig proto does not define
+    // debug_config; emitting it causes localharness protojson unmarshaling to
+    // fail with `unknown field "debug_config"`.
+    test('omits debug_config from harness config even when configured', () {
       final strategy = LocalConnectionStrategy(
         toolRunner: ToolRunner(),
         hookRunner: HookRunner(),
@@ -359,9 +373,7 @@ void main() {
       );
 
       final config = strategy.buildHarnessConfigForTest();
-      expect(config.containsKey('debug_config'), isTrue,
-          reason: 'debug_config must reach localharness');
-      expect(config['debug_config'], isNotEmpty);
+      expect(config.containsKey('debug_config'), isFalse);
     });
 
     test('omits debug_config when none is configured', () {

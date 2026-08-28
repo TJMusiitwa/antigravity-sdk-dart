@@ -36,7 +36,6 @@ Map<String, dynamic> _runCommandToolProto(bool enabled, RunCommandConfig? cfg) {
     'enable_daemon_commands': cfg?.enableDaemons ?? false,
     'max_timeout_ms':
         timeoutSeconds != null ? (timeoutSeconds * 1000).round() : 0,
-    'enable_sandbox': cfg?.enableSandbox ?? false,
   };
 }
 
@@ -259,12 +258,11 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       },
       onDone: () {
         if (!initCompleter.isCompleted) {
-          initCompleter.complete((
-            initialHistory: <Step>[],
-            cascadeId: null,
-            cumulativeUsage: null,
-            trajectoryUsages: null,
-          ));
+          initCompleter.completeError(
+            AntigravityConnectionException(
+              'WebSocket closed prematurely before receiving initialization response from localharness.',
+            ),
+          );
         }
         messageController.close();
       },
@@ -423,7 +421,6 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     };
 
     final retryConfigMap = _retryConfig?.toMap();
-    final debugConfigMap = _debugConfig?.toMap();
 
     return {
       'cascade_id': _conversationId ?? '',
@@ -444,8 +441,6 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       if (customAgentsProtos.isNotEmpty) 'custom_subagents': customAgentsProtos,
       if (retryConfigMap != null && retryConfigMap.isNotEmpty)
         'retry_config': retryConfigMap,
-      if (debugConfigMap != null && debugConfigMap.isNotEmpty)
-        'debug_config': debugConfigMap,
     };
   }
 
@@ -676,9 +671,6 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     }
     if (_hookRunner.onCompactionHooks.isNotEmpty) {
       enabled.add('LIFECYCLE_HOOK_ON_COMPACTION');
-    }
-    if (_hookRunner.stopHooks.isNotEmpty) {
-      enabled.add('LIFECYCLE_HOOK_STOP');
     }
     return enabled;
   }
@@ -1025,6 +1017,9 @@ class LocalConnection implements Connection {
             ),
           );
         }
+        if (!_stepController.isClosed) {
+          _stepController.close();
+        }
       },
       onDone: () {
         if (!_disconnecting) {
@@ -1035,6 +1030,9 @@ class LocalConnection implements Connection {
               'WebSocket connection closed prematurely.\nStderr tail:\n$stderrTail',
             ),
           );
+        }
+        if (!_stepController.isClosed) {
+          _stepController.close();
         }
       },
       cancelOnError: true,
