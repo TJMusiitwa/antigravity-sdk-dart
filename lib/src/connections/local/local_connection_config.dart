@@ -108,6 +108,7 @@ abstract class BaseLocalAgentConfig extends AgentConfig
     super.debugConfig,
     super.retryConfig,
     super.budgetConfig,
+    super.compactionConfig,
   }) : super(
           capabilities: capabilities ?? CapabilitiesConfig(),
           tools: tools ?? const [],
@@ -215,6 +216,7 @@ class LocalAgentConfig extends BaseLocalAgentConfig
     super.debugConfig,
     super.retryConfig,
     super.budgetConfig,
+    super.compactionConfig,
     this.model,
     this.models,
     this.apiKey,
@@ -301,6 +303,12 @@ class LocalAgentConfig extends BaseLocalAgentConfig
   }
 
   @override
+  LocalAgentConfig lightweight() => copyWith(
+        compactionConfig: lightweightCompactionConfig(),
+        capabilities: lightweightCapabilities(),
+      );
+
+  @override
   ConnectionStrategy createStrategy({
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
@@ -327,6 +335,7 @@ class LocalAgentConfig extends BaseLocalAgentConfig
       debugConfig: debugConfig,
       retryConfig: retryConfig,
       budgetConfig: budgetConfig,
+      compactionConfig: effectiveCompactionConfig,
     );
   }
 }
@@ -362,7 +371,14 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
     super.debugConfig,
     super.retryConfig,
     super.budgetConfig,
+    super.compactionConfig,
   });
+
+  @override
+  LocalOpenAIAgentConfig lightweight() => copyWith(
+        compactionConfig: lightweightCompactionConfig(),
+        capabilities: lightweightCapabilities(),
+      );
 
   @override
   ConnectionStrategy createStrategy({
@@ -405,6 +421,7 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
       debugConfig: debugConfig,
       retryConfig: retryConfig,
       budgetConfig: budgetConfig,
+      compactionConfig: effectiveCompactionConfig,
     );
   }
 }
@@ -446,6 +463,10 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
   final bool downloadIfMissing;
 
   /// Maximum sequence length/context window for the LiteRT runner.
+  @Deprecated(
+    'Use compactionConfig: CompactionConfig(maxContextTokens: ...) instead. '
+    'The context ceiling is now part of the shared compaction policy.',
+  )
   final int? maxContextTokens;
 
   LiteRTAgentConfig({
@@ -476,7 +497,37 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
     super.debugConfig,
     super.retryConfig,
     super.budgetConfig,
+    super.compactionConfig,
   });
+
+  /// Folds the deprecated [maxContextTokens] into the shared compaction policy
+  /// so the LiteRT runner and the harness read a single source of truth.
+  @override
+  CompactionConfig? get effectiveCompactionConfig {
+    final base = super.effectiveCompactionConfig;
+    // ignore: deprecated_member_use_from_same_package
+    final legacyCeiling = maxContextTokens;
+    if (legacyCeiling == null) return base;
+    if (base == null) {
+      return CompactionConfig(maxContextTokens: legacyCeiling);
+    }
+    if (base.maxContextTokens != null) return base;
+    return CompactionConfig(
+      checkpointIntervalTokens: base.checkpointIntervalTokens,
+      maxContextTokens: legacyCeiling,
+    );
+  }
+
+  /// The context-window ceiling handed to the LiteRT runner, resolved from
+  /// [compactionConfig] and falling back to the deprecated [maxContextTokens].
+  int? get effectiveMaxContextTokens =>
+      effectiveCompactionConfig?.maxContextTokens;
+
+  @override
+  LiteRTAgentConfig lightweight() => copyWith(
+        compactionConfig: lightweightCompactionConfig(),
+        capabilities: lightweightCapabilities(),
+      );
 
   @override
   ConnectionStrategy createStrategy({
@@ -495,7 +546,7 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
       visionBackend: visionBackend,
       port: port,
       downloadIfMissing: downloadIfMissing,
-      maxContextTokens: maxContextTokens,
+      maxContextTokens: effectiveMaxContextTokens,
       toolRunner: toolRunner,
       hookRunner: hookRunner,
       tools: tools,
@@ -512,6 +563,7 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
       debugConfig: debugConfig,
       retryConfig: retryConfig,
       budgetConfig: budgetConfig,
+      compactionConfig: effectiveCompactionConfig,
     );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dart_mappable/dart_mappable.dart';
 import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
 
 import '../hooks/hooks.dart';
 import '../hooks/policy.dart';
@@ -81,6 +82,9 @@ abstract class AgentConfig with AgentConfigMappable {
   /// Optional budget configuration for session-level caps on model/tool calls and tokens.
   final BudgetConfig? budgetConfig;
 
+  /// Optional compaction policy overriding capability-level compaction settings.
+  final CompactionConfig? compactionConfig;
+
   AgentConfig({
     this.systemInstructions,
     CapabilitiesConfig? capabilities,
@@ -100,6 +104,7 @@ abstract class AgentConfig with AgentConfigMappable {
     this.debugConfig,
     this.retryConfig,
     this.budgetConfig,
+    this.compactionConfig,
   })  : capabilities = capabilities ??
             CapabilitiesConfig(enabledTools: BuiltinTools.readOnly()),
         tools = tools ?? const [],
@@ -128,6 +133,80 @@ abstract class AgentConfig with AgentConfigMappable {
         'conversationId must be specified when sessionContinuationMode is RESUME',
       );
     }
+  }
+
+  /// Returns the effective compaction configuration, resolving the legacy
+  /// [CapabilitiesConfig.compactionThreshold] when no [compactionConfig] is set.
+  CompactionConfig? get effectiveCompactionConfig {
+    if (compactionConfig != null) return compactionConfig;
+    // ignore: deprecated_member_use_from_same_package
+    final threshold = capabilities.compactionThreshold;
+    if (threshold != null) {
+      return CompactionConfig(checkpointIntervalTokens: threshold);
+    }
+    return null;
+  }
+
+  /// The compaction checkpoint interval applied by [lightweight], in tokens.
+  static const int lightweightCheckpointIntervalTokens = 65536;
+
+  /// Returns a copy of this configuration optimised for lightweight, low-cost execution.
+  ///
+  /// Presets applied:
+  /// - `capabilities.enabledTools` restricted to [BuiltinTools.minimal]
+  /// - `capabilities.agentBehavior` set to [AgentBehavior.minimal]
+  /// - `capabilities.enableSubagents` set to `false`
+  /// - `compactionConfig.checkpointIntervalTokens` set to
+  ///   [lightweightCheckpointIntervalTokens] (64 Ki tokens)
+  ///
+  /// Explicitly configured capabilities that remain meaningful under these
+  /// presets are preserved; see [lightweightCapabilities].
+  AgentConfig lightweight();
+
+  /// Builds the [CapabilitiesConfig] that [lightweight] applies.
+  ///
+  /// The presets act as defaults rather than a wholesale replacement, mirroring
+  /// the upstream Python SDK, which merges the caller's explicitly-set
+  /// capability fields over the preset values:
+  /// - A caller-provided [CapabilitiesConfig.enabledTools] allowlist wins over
+  ///   [BuiltinTools.minimal].
+  /// - Otherwise a caller-provided [CapabilitiesConfig.disabledTools] list is
+  ///   subtracted from [BuiltinTools.minimal], since the two are mutually
+  ///   exclusive and only an allowlist can be emitted.
+  /// - [CapabilitiesConfig.runCommandConfig] and
+  ///   [CapabilitiesConfig.finishToolSchemaJson] are carried over verbatim.
+  ///
+  /// Unlike Python, Dart cannot distinguish an explicitly-set value from a
+  /// default on non-nullable fields, so [CapabilitiesConfig.agentBehavior] and
+  /// [CapabilitiesConfig.enableSubagents] always take the preset. Subagent
+  /// scoping (`maxSubagentDepth`, `allowedSubagents`) is intentionally dropped:
+  /// both are rejected by [CapabilitiesConfig] once subagents are disabled.
+  @protected
+  CapabilitiesConfig lightweightCapabilities() {
+    final minimalTools = BuiltinTools.minimal();
+    final disabled = capabilities.disabledTools;
+    final enabledTools = capabilities.enabledTools ??
+        (disabled == null
+            ? minimalTools
+            : minimalTools.where((t) => !disabled.contains(t)).toList());
+
+    return CapabilitiesConfig(
+      enabledTools: enabledTools,
+      agentBehavior: AgentBehavior.minimal,
+      enableSubagents: false,
+      runCommandConfig: capabilities.runCommandConfig,
+      finishToolSchemaJson: capabilities.finishToolSchemaJson,
+    );
+  }
+
+  /// Builds the [CompactionConfig] that [lightweight] applies, preserving any
+  /// caller-provided [compactionConfig].
+  @protected
+  CompactionConfig lightweightCompactionConfig() {
+    return compactionConfig ??
+        CompactionConfig(
+          checkpointIntervalTokens: lightweightCheckpointIntervalTokens,
+        );
   }
 
   /// Returns all custom tools across the main agent and subagents, validating against duplicate conflicting names.

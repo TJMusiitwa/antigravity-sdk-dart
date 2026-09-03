@@ -30,6 +30,7 @@ class AgentConfigMapper extends ClassMapperBase<AgentConfig> {
       DebugConfigMapper.ensureInitialized();
       RetryConfigMapper.ensureInitialized();
       BudgetConfigMapper.ensureInitialized();
+      CompactionConfigMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -149,6 +150,13 @@ class AgentConfigMapper extends ClassMapperBase<AgentConfig> {
     _$budgetConfig,
     opt: true,
   );
+  static CompactionConfig? _$compactionConfig(AgentConfig v) =>
+      v.compactionConfig;
+  static const Field<AgentConfig, CompactionConfig> _f$compactionConfig = Field(
+    'compactionConfig',
+    _$compactionConfig,
+    opt: true,
+  );
 
   @override
   final MappableFields<AgentConfig> fields = const {
@@ -170,6 +178,7 @@ class AgentConfigMapper extends ClassMapperBase<AgentConfig> {
     #debugConfig: _f$debugConfig,
     #retryConfig: _f$retryConfig,
     #budgetConfig: _f$budgetConfig,
+    #compactionConfig: _f$compactionConfig,
   };
 
   static AgentConfig _instantiate(DecodingData data) {
@@ -218,6 +227,8 @@ abstract class AgentConfigCopyWith<$R, $In extends AgentConfig, $Out>
   DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig;
   RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig;
   BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig;
+  CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
+      get compactionConfig;
   $R call({
     dynamic systemInstructions,
     CapabilitiesConfig? capabilities,
@@ -237,6 +248,7 @@ abstract class AgentConfigCopyWith<$R, $In extends AgentConfig, $Out>
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
     BudgetConfig? budgetConfig,
+    CompactionConfig? compactionConfig,
   });
   AgentConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
 }
