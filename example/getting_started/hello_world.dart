@@ -33,7 +33,7 @@ import 'package:antigravity/antigravity.dart';
 
 Future<void> main() async {
   // To explicitly set the model, pass it to LocalAgentConfig:
-  // final config = LocalAgentConfig(model: 'gemini-3.5-flash');
+  // final config = LocalAgentConfig(model: 'gemini-3.8-flash');
   final config = LocalAgentConfig();
 
   final agent = Agent(config);

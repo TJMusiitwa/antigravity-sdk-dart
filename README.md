@@ -189,7 +189,10 @@ The [`example/`](example/) directory contains high-fidelity ports of every scrip
 | `example/getting_started/persona_config.dart`    | Configures Custom and Templated system instructions |
 | `example/getting_started/subagents.dart`         | Dynamic self-delegation, static subagents, and nested subagent hierarchies |
 | `example/getting_started/cancellation.dart`      | Cancels an in-flight turn and catches cancellation errors |
-| `example/getting_started/budget_limits.dart`     | Enforces session budget caps and inspects turn stop reasons |
+| `example/getting_started/budget_limits.dart`     | Enforces session budget caps, inspects turn stop reasons, and scopes budgets forward on resume |
+| `example/getting_started/compaction.dart`        | Configures context compaction checkpoints and the context-window ceiling |
+| `example/getting_started/sandboxing.dart`        | Runs terminal commands inside the opt-in OS-level sandbox |
+| `example/getting_started/vertex.dart`            | Authenticates through Vertex AI Express and Standard modes |
 
 ### Deep Dives
 | File | Focus Concept |
