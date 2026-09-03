@@ -30,9 +30,9 @@
 ///
 /// Criteria for correct script performance:
 ///   1. The script exits cleanly with exit code 0 (no unhandled exceptions).
-///   2. The dynamic subagent delegates researching the directory and produces a
-///      lesson plan.
-///   3. The 'code_reviewer' subagent audits target_code.dart, producing warnings
+///   2. The dynamic subagent delegates researching the bundled
+///      example/resources/ directory and produces a lesson plan.
+///   3. The 'code_reviewer' subagent audits mcp_server.dart, producing warnings
 ///      prefixed with '[AUDIT_WARNING]'.
 ///   4. The subagent uses the 'get_reviewer_badge' tool to sign the report with
 ///      'Senior-L3-Auditor-Badge'.
@@ -51,6 +51,11 @@ import 'dart:io';
 
 import 'package:antigravity/antigravity.dart';
 import 'package:path/path.dart' as p;
+
+/// The bundled `example/resources/` directory, shared by all three demos as
+/// the agent workspace so no temporary fixtures are needed.
+final Directory _resourcesDir = Directory(
+    p.normalize(Platform.script.resolve('../resources').toFilePath()));
 
 bool _subagentActive = false;
 
@@ -110,8 +115,11 @@ final getRootAdminSecret = Tool(
 
 Future<void> runDynamicSubagent() async {
   print('\n=== Dynamic Subagent (Self Clone) ===');
+  // Subagents are enabled by default, so no CapabilitiesConfig is needed here.
+  // The bundled example resources are exposed as the agent's workspace so the
+  // subagent has concrete files to read.
   final config = LocalAgentConfig(
-    capabilities: CapabilitiesConfig(enableSubagents: true),
+    workspaces: [_resourcesDir.path],
     hooks: [LogPreToolHook(), LogPostToolHook()],
   );
 
@@ -119,8 +127,8 @@ Future<void> runDynamicSubagent() async {
   await agent.start();
   try {
     const prompt =
-        'Use a subagent to research the Google Antigravity SDK examples in the parent'
-        ' directory. Delegate the task of listing and reading the files to the'
+        'Use a subagent to research the Google Antigravity SDK example resources'
+        ' in the workspace. Delegate the task of listing and reading the files to the'
         ' subagent, and then generate a lesson plan for me to learn more based'
         ' on its findings.';
     print('  User: $prompt');
@@ -135,165 +143,127 @@ Future<void> runDynamicSubagent() async {
 
 Future<void> runCustomStaticSubagent() async {
   print('\n=== Custom Static Subagent ===');
-  final tempDir = await Directory.systemTemp.createTemp('subagent_custom_');
+  // The reviewer audits a real bundled example file rather than a synthetic
+  // fixture written to a temporary directory.
+  const targetFileName = 'mcp_server.dart';
+
+  final reviewerSubagent = SubagentConfig(
+    name: 'code_reviewer',
+    description: 'Audits source code files and reports missing docstrings.',
+    systemInstructions:
+        'You are a code reviewer. Read dart files in the workspace and '
+        'check if all function declarations have docstrings. For each '
+        'function that is missing a docstring, output a warning prefixed '
+        "with '[AUDIT_WARNING]'. "
+        'CRITICAL: Every warning you output MUST start with '
+        "'[AUDIT_WARNING]'. Use the 'get_reviewer_badge' tool to sign "
+        'your final audit report with your official badge name. '
+        'Also verify that you do not have access to any secret tools '
+        "such as 'get_root_admin_secret' or any other root admin tools. "
+        'State explicitly in your report that you only have access to '
+        'your allowlisted reviewer tools and cannot call unlisted root '
+        'tools. Output your report directly in your final response. Do not '
+        'use the send_message tool to deliver it.',
+    tools: ['get_reviewer_badge'],
+  );
+
+  final config = LocalAgentConfig(
+    subagents: [reviewerSubagent],
+    workspaces: [_resourcesDir.path],
+    tools: [getReviewerBadge, getRootAdminSecret],
+    hooks: [LogPreToolHook(), LogPostToolHook()],
+  );
+
+  final agent = Agent(config);
+  await agent.start();
   try {
-    final workspaceDir = Directory(p.join(tempDir.path, 'workspace'));
-    await workspaceDir.create(recursive: true);
+    const prompt =
+        "Ask the 'code_reviewer' subagent to review $targetFileName, sign"
+        ' the report with their reviewer badge name, and verify whether they'
+        " have access to the 'get_root_admin_secret' tool. Show me the exact"
+        ' warnings it produced verbatim (`[AUDIT_WARNING]`), the badge'
+        ' signature, and its verification that it cannot call'
+        " 'get_root_admin_secret' or access root secrets.";
+    print('  User: $prompt');
 
-    final targetFile = File(p.join(workspaceDir.path, 'target_code.dart'));
-    await targetFile.writeAsString('''
-void hello() {
-  print('hello');
-}
+    final response = await agent.chat(prompt);
+    final responseText = await response.text();
+    print('\n  Agent:\n$responseText');
 
-/// Adds two numbers.
-int add(int a, int b) {
-  return a + b;
-}
-''');
-
-    final reviewerSubagent = SubagentConfig(
-      name: 'code_reviewer',
-      description: 'Audits source code files and reports missing docstrings.',
-      systemInstructions:
-          'You are a code reviewer. Read dart files in the workspace and '
-          'check if all function declarations have docstrings. For each '
-          'function that is missing a docstring, output a warning prefixed '
-          "with '[AUDIT_WARNING]'. "
-          'CRITICAL: Every warning you output MUST start with '
-          "'[AUDIT_WARNING]'. Use the 'get_reviewer_badge' tool to sign "
-          'your final audit report with your official badge name. '
-          'Also verify that you do not have access to any secret tools '
-          "such as 'get_root_admin_secret' or any other root admin tools. "
-          'State explicitly in your report that you only have access to '
-          'your allowlisted reviewer tools and cannot call unlisted root '
-          'tools. Output your report directly in your final response. Do not '
-          'use the send_message tool to deliver it.',
-      tools: ['get_reviewer_badge'],
+    print('\n  === Verification Results ===');
+    final hasWarning = responseText.contains('[AUDIT_WARNING]');
+    print(
+      "  ${hasWarning ? '[PASS]' : '[FAIL]'} Custom system prompt '[AUDIT_WARNING]' prefix check",
     );
-
-    final config = LocalAgentConfig(
-      subagents: [reviewerSubagent],
-      workspaces: [workspaceDir.path],
-      tools: [getReviewerBadge, getRootAdminSecret],
-      hooks: [LogPreToolHook(), LogPostToolHook()],
+    final hasBadge = responseText.contains('Senior-L3-Auditor-Badge');
+    print(
+      "  ${hasBadge ? '[PASS]' : '[FAIL]'} Allowlisted tool access ('Senior-L3-Auditor-Badge' signature) check",
     );
-
-    final agent = Agent(config);
-    await agent.start();
-    try {
-      final prompt =
-          "Ask the 'code_reviewer' subagent to review ${p.basename(targetFile.path)}, sign"
-          ' the report with their reviewer badge name, and verify whether they'
-          " have access to the 'get_root_admin_secret' tool. Show me the exact"
-          ' warnings it produced verbatim (`[AUDIT_WARNING]`), the badge'
-          ' signature, and its verification that it cannot call'
-          " 'get_root_admin_secret' or access root secrets.";
-      print('  User: $prompt');
-
-      final response = await agent.chat(prompt);
-      final responseText = await response.text();
-      print('\n  Agent:\n$responseText');
-
-      print('\n  === Verification Results ===');
-      final hasWarning = responseText.contains('[AUDIT_WARNING]');
-      print(
-        "  ${hasWarning ? '[PASS]' : '[FAIL]'} Custom system prompt '[AUDIT_WARNING]' prefix check",
-      );
-      final hasBadge = responseText.contains('Senior-L3-Auditor-Badge');
-      print(
-        "  ${hasBadge ? '[PASS]' : '[FAIL]'} Allowlisted tool access ('Senior-L3-Auditor-Badge' signature) check",
-      );
-      final noSecret =
-          !responseText.contains('SUPER_SECRET_ROOT_PASSWORD_12345');
-      print(
-        "  ${noSecret ? '[PASS]' : '[FAIL]'} Root secret isolation check (get_root_admin_secret not called)",
-      );
-    } finally {
-      await agent.stop();
-    }
+    final noSecret = !responseText.contains('SUPER_SECRET_ROOT_PASSWORD_12345');
+    print(
+      "  ${noSecret ? '[PASS]' : '[FAIL]'} Root secret isolation check (get_root_admin_secret not called)",
+    );
   } finally {
-    if (await tempDir.exists()) {
-      await tempDir.delete(recursive: true);
-    }
+    await agent.stop();
   }
 }
 
 Future<void> runNestedSubagentHierarchy() async {
   print('\n=== Hierarchical Nested Subagents ===');
-  final tempDir = await Directory.systemTemp.createTemp('subagent_nested_');
+  // Tier 3 (leaf): A fact-checker that can read files but cannot spawn further subagents
+  final factChecker = SubagentConfig(
+    name: 'fact_checker',
+    description:
+        'Reads specific files and verifies factual claims. Reports findings back to the caller.',
+    capabilities: SubagentCapabilities(
+      enabledTools: [BuiltinTools.viewFile, BuiltinTools.findFile],
+    ),
+  );
+
+  // Tier 2 (middle): A lead researcher that can delegate to fact_checker
+  final leadResearcher = SubagentConfig(
+    name: 'lead_researcher',
+    description:
+        "Researches a topic by reading files and delegating fact-checking to the 'fact_checker' subagent.",
+    capabilities: SubagentCapabilities(
+      enabledTools: [
+        BuiltinTools.viewFile,
+        BuiltinTools.findFile,
+        BuiltinTools.listDirectory,
+        BuiltinTools.startSubagent,
+      ],
+      allowedSubagents: ['fact_checker'],
+    ),
+  );
+
+  // Tier 1 (root): The main agent with a session-wide depth ceiling
+  final config = LocalAgentConfig(
+    subagents: [leadResearcher, factChecker],
+    workspaces: [_resourcesDir.path],
+    capabilities: CapabilitiesConfig(
+      maxSubagentDepth: 3,
+      allowedSubagents: ['lead_researcher'],
+    ),
+    hooks: [LogPreToolHook(), LogPostToolHook()],
+  );
+
+  final agent = Agent(config);
+  await agent.start();
   try {
-    final workspaceDir = Directory(p.join(tempDir.path, 'workspace'));
-    await workspaceDir.create(recursive: true);
+    const prompt =
+        "Use the 'lead_researcher' subagent to investigate the MCP server"
+        ' and sample document in the workspace. The lead_researcher should'
+        ' delegate fact-checking of specific claims (such as the secret'
+        " number in sample_doc.txt or math operations in mcp_server.dart) to"
+        " 'fact_checker'. Give me a summary of the server architecture and"
+        ' verified facts.';
+    print('  User: $prompt');
 
-    final designFile = File(p.join(workspaceDir.path, 'design.md'));
-    await designFile.writeAsString('''# Widget Design
-
-The widget uses a pub/sub architecture with at-least-once delivery.
-Messages are persisted to a WAL before acknowledgement.
-''');
-
-    final perfFile = File(p.join(workspaceDir.path, 'perf_data.txt'));
-    await perfFile.writeAsString('p50: 12ms, p99: 145ms, error_rate: 0.02%\n');
-
-    // Tier 3 (leaf): A fact-checker that can read files but cannot spawn further subagents
-    final factChecker = SubagentConfig(
-      name: 'fact_checker',
-      description:
-          'Reads specific files and verifies factual claims. Reports findings back to the caller.',
-      capabilities: SubagentCapabilities(
-        enabledTools: [BuiltinTools.viewFile, BuiltinTools.findFile],
-      ),
-    );
-
-    // Tier 2 (middle): A lead researcher that can delegate to fact_checker
-    final leadResearcher = SubagentConfig(
-      name: 'lead_researcher',
-      description:
-          "Researches a topic by reading files and delegating fact-checking to the 'fact_checker' subagent.",
-      capabilities: SubagentCapabilities(
-        enabledTools: [
-          BuiltinTools.viewFile,
-          BuiltinTools.findFile,
-          BuiltinTools.listDirectory,
-          BuiltinTools.startSubagent,
-        ],
-        allowedSubagents: ['fact_checker'],
-      ),
-    );
-
-    // Tier 1 (root): The main agent with a session-wide depth ceiling
-    final config = LocalAgentConfig(
-      subagents: [leadResearcher, factChecker],
-      workspaces: [workspaceDir.path],
-      capabilities: CapabilitiesConfig(
-        enableSubagents: true,
-        maxSubagentDepth: 3,
-        allowedSubagents: ['lead_researcher'],
-      ),
-      hooks: [LogPreToolHook(), LogPostToolHook()],
-    );
-
-    final agent = Agent(config);
-    await agent.start();
-    try {
-      const prompt =
-          "Use the 'lead_researcher' subagent to investigate the design and"
-          ' performance data in the workspace. The lead_researcher should'
-          " delegate fact-checking of specific claims to 'fact_checker'."
-          ' Give me a summary of the architecture and performance profile.';
-      print('  User: $prompt');
-
-      final response = await agent.chat(prompt);
-      final responseText = await response.text();
-      print('\n  Agent:\n$responseText');
-    } finally {
-      await agent.stop();
-    }
+    final response = await agent.chat(prompt);
+    final responseText = await response.text();
+    print('\n  Agent:\n$responseText');
   } finally {
-    if (await tempDir.exists()) {
-      await tempDir.delete(recursive: true);
-    }
+    await agent.stop();
   }
 }
 

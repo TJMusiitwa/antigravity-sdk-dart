@@ -1,5 +1,6 @@
 import 'package:antigravity/src/connections/connection.dart';
 import 'package:antigravity/src/connections/local/local_connection.dart';
+import 'package:antigravity/src/connections/local/local_connection_config.dart';
 import 'package:antigravity/src/hooks/hooks.dart';
 import 'package:antigravity/src/tools/tool_runner.dart';
 import 'package:antigravity/src/types.dart';
@@ -13,6 +14,8 @@ void main() {
     RetryConfig? retryConfig,
     List<SubagentConfig>? subagents,
     CapabilitiesConfig? capabilitiesConfig,
+    CompactionConfig? compactionConfig,
+    BudgetConfig? budgetConfig,
   }) {
     return LocalConnectionStrategy(
       toolRunner: ToolRunner(),
@@ -23,6 +26,8 @@ void main() {
       skillsPaths: const [],
       subagents: subagents,
       retryConfig: retryConfig,
+      compactionConfig: compactionConfig,
+      budgetConfig: budgetConfig,
     );
   }
 
@@ -252,7 +257,7 @@ void main() {
       expect(subRunCmd['max_timeout_ms'], equals(30000));
     });
 
-    test('omits enable_sandbox from run_command wire proto', () {
+    test('includes enable_sandbox in run_command wire proto', () {
       final config = buildStrategy(
         capabilitiesConfig: CapabilitiesConfig(
           runCommandConfig: RunCommandConfig(
@@ -263,7 +268,29 @@ void main() {
       final runCmd = (config['harness_side_tools'] as Map)['run_command']
           as Map<String, dynamic>;
 
-      expect(runCmd.containsKey('enable_sandbox'), isFalse);
+      expect(runCmd['enable_sandbox'], isTrue);
+    });
+
+    test('enable_sandbox defaults to false when RunCommandConfig is not set',
+        () {
+      final config = buildStrategy().buildHarnessConfigForTest();
+      final runCmd = (config['harness_side_tools'] as Map)['run_command']
+          as Map<String, dynamic>;
+
+      expect(runCmd['enable_sandbox'], isFalse);
+    });
+
+    test('enable_sandbox is false when RunCommandConfig.enableSandbox is false',
+        () {
+      final config = buildStrategy(
+        capabilitiesConfig: CapabilitiesConfig(
+          runCommandConfig: RunCommandConfig(enableSandbox: false),
+        ),
+      ).buildHarnessConfigForTest();
+      final runCmd = (config['harness_side_tools'] as Map)['run_command']
+          as Map<String, dynamic>;
+
+      expect(runCmd['enable_sandbox'], isFalse);
     });
   });
 
@@ -388,6 +415,209 @@ void main() {
 
       final config = strategy.buildHarnessConfigForTest();
       expect(config.containsKey('debug_config'), isFalse);
+    });
+  });
+
+  group('compaction wire proto', () {
+    test('compaction_config is emitted when CompactionConfig is set', () {
+      final config = buildStrategy(
+        compactionConfig: CompactionConfig(checkpointIntervalTokens: 40000),
+      ).buildHarnessConfigForTest();
+
+      final compaction = config['compaction_config'] as Map<String, dynamic>;
+      expect(compaction['checkpoint_interval_tokens'], equals(40000));
+      expect(compaction.containsKey('max_context_tokens'), isFalse);
+      expect(config['compaction_threshold'], equals(40000));
+    });
+
+    test('compaction_config includes max_context_tokens when set', () {
+      final config = buildStrategy(
+        compactionConfig: CompactionConfig(
+          checkpointIntervalTokens: 40000,
+          maxContextTokens: 100000,
+        ),
+      ).buildHarnessConfigForTest();
+
+      final compaction = config['compaction_config'] as Map<String, dynamic>;
+      expect(compaction['max_context_tokens'], equals(100000));
+    });
+
+    test(
+        'compaction_threshold uses the legacy value when CompactionConfig is absent',
+        () {
+      final config = buildStrategy(
+        capabilitiesConfig: CapabilitiesConfig(compactionThreshold: 1234),
+      ).buildHarnessConfigForTest();
+
+      expect(config['compaction_threshold'], equals(1234));
+      expect(
+        (config['compaction_config'] as Map)['checkpoint_interval_tokens'],
+        equals(1234),
+      );
+    });
+
+    test('compaction_config is omitted when nothing is configured', () {
+      final config = buildStrategy().buildHarnessConfigForTest();
+
+      expect(config.containsKey('compaction_config'), isFalse);
+      expect(config['compaction_threshold'], equals(0));
+    });
+  });
+
+  group('budget_config wire proto', () {
+    test('budget_config is omitted when no limits are set', () {
+      final config = buildStrategy(
+        budgetConfig: BudgetConfig(),
+      ).buildHarnessConfigForTest();
+
+      expect(config.containsKey('budget_config'), isFalse);
+    });
+
+    test('budget_config scope defaults to LIFETIME', () {
+      final config = buildStrategy(
+        budgetConfig: BudgetConfig(maxModelCalls: 3),
+      ).buildHarnessConfigForTest();
+
+      final budget = config['budget_config'] as Map<String, dynamic>;
+      expect(budget['max_model_calls'], equals(3));
+      expect(budget['scope'], equals('BUDGET_SCOPE_LIFETIME'));
+    });
+
+    test('budget_config includes a forward-looking scope', () {
+      final config = buildStrategy(
+        budgetConfig: BudgetConfig(
+          maxTotalTokens: 5000,
+          scope: BudgetScope.forwardLooking,
+        ),
+      ).buildHarnessConfigForTest();
+
+      final budget = config['budget_config'] as Map<String, dynamic>;
+      expect(budget['max_total_tokens'], equals(5000));
+      expect(budget['scope'], equals('BUDGET_SCOPE_FORWARD_LOOKING'));
+    });
+  });
+
+  group('agent_behavior wire proto', () {
+    test('AGENT_BEHAVIOR_MINIMAL is emitted for AgentBehavior.minimal', () {
+      final config = buildStrategy(
+        capabilitiesConfig:
+            CapabilitiesConfig(agentBehavior: AgentBehavior.minimal),
+      ).buildHarnessConfigForTest();
+
+      expect(config['agent_behavior'], equals('AGENT_BEHAVIOR_MINIMAL'));
+    });
+  });
+
+  group('LocalAgentConfig.lightweight()', () {
+    test('restricts enabled tools to the minimal set', () {
+      final config = LocalAgentConfig().lightweight();
+
+      expect(config.capabilities.enabledTools, equals(BuiltinTools.minimal()));
+    });
+
+    test('disables subagents', () {
+      final config = LocalAgentConfig().lightweight();
+
+      expect(config.capabilities.enableSubagents, isFalse);
+    });
+
+    test('sets AgentBehavior.minimal', () {
+      final config = LocalAgentConfig().lightweight();
+
+      expect(config.capabilities.agentBehavior, equals(AgentBehavior.minimal));
+    });
+
+    test('sets checkpointIntervalTokens to 65536', () {
+      final config = LocalAgentConfig().lightweight();
+
+      expect(
+        config.compactionConfig?.checkpointIntervalTokens,
+        equals(65536),
+      );
+      expect(
+        config.effectiveCompactionConfig?.checkpointIntervalTokens,
+        equals(65536),
+      );
+    });
+
+    test('preserves unrelated configuration', () {
+      final config =
+          LocalAgentConfig(systemInstructions: 'stay brief').lightweight();
+
+      expect(config.systemInstructions, equals('stay brief'));
+    });
+
+    test('keeps a caller-provided enabledTools allowlist', () {
+      final config = LocalAgentConfig(
+        capabilities: CapabilitiesConfig(
+          enabledTools: [BuiltinTools.viewFile, BuiltinTools.finish],
+        ),
+      ).lightweight();
+
+      expect(
+        config.capabilities.enabledTools,
+        equals([BuiltinTools.viewFile, BuiltinTools.finish]),
+      );
+    });
+
+    test('subtracts caller-provided disabledTools from the minimal set', () {
+      final config = LocalAgentConfig(
+        capabilities: CapabilitiesConfig(
+          disabledTools: [BuiltinTools.runCommand],
+        ),
+      ).lightweight();
+
+      expect(
+        config.capabilities.enabledTools,
+        equals(BuiltinTools.minimal()
+            .where((t) => t != BuiltinTools.runCommand)
+            .toList()),
+      );
+      // enabledTools and disabledTools are mutually exclusive, so only the
+      // resolved allowlist survives.
+      expect(config.capabilities.disabledTools, isNull);
+    });
+
+    test('carries over runCommandConfig and finishToolSchemaJson', () {
+      final config = LocalAgentConfig(
+        capabilities: CapabilitiesConfig(
+          runCommandConfig: RunCommandConfig(enableSandbox: true),
+          finishToolSchemaJson: '{"type":"object"}',
+        ),
+      ).lightweight();
+
+      expect(config.capabilities.runCommandConfig?.enableSandbox, isTrue);
+      expect(
+        config.capabilities.finishToolSchemaJson,
+        equals('{"type":"object"}'),
+      );
+    });
+
+    test('keeps a caller-provided compactionConfig', () {
+      final config = LocalAgentConfig(
+        compactionConfig: CompactionConfig(checkpointIntervalTokens: 1024),
+      ).lightweight();
+
+      expect(
+        config.compactionConfig?.checkpointIntervalTokens,
+        equals(1024),
+      );
+    });
+
+    test('the resolved capabilities reach the wire proto', () {
+      final config = LocalAgentConfig().lightweight();
+      final strategy = config.createStrategy(
+        toolRunner: ToolRunner(),
+        hookRunner: HookRunner(),
+      ) as LocalConnectionStrategy;
+      final harnessConfig = strategy.buildHarnessConfigForTest();
+
+      expect(harnessConfig['agent_behavior'], equals('AGENT_BEHAVIOR_MINIMAL'));
+      expect(
+        (harnessConfig['compaction_config']
+            as Map)['checkpoint_interval_tokens'],
+        equals(65536),
+      );
     });
   });
 }

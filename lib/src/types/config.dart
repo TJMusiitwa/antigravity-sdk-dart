@@ -69,6 +69,29 @@ const int _maxInt32 = 2147483647;
 const int _maxInt64 = 9223372036854775807; // 0x7FFFFFFFFFFFFFFF
 
 /// Configuration for session-level budget limits and caps.
+/// Controls which tokens count toward the budget limit.
+@MappableEnum()
+enum BudgetScope {
+  /// Counts all tokens since session start. (Default)
+  @MappableValue('LIFETIME')
+  lifetime('LIFETIME'),
+
+  /// Counts only future tokens from this point onwards.
+  @MappableValue('FORWARD_LOOKING')
+  forwardLooking('FORWARD_LOOKING');
+
+  final String value;
+  const BudgetScope(this.value);
+
+  /// Returns the protobuf enum string for this scope.
+  ///
+  /// The `localharness` enum is nested inside `BudgetConfig` and its values
+  /// carry a `BUDGET_SCOPE_` prefix, so the bare [value] is not a valid wire
+  /// value. Note this differs from [SessionContinuationMode], whose proto
+  /// values are unprefixed.
+  String get protoValue => 'BUDGET_SCOPE_$value';
+}
+
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class BudgetConfig with BudgetConfigMappable {
   /// Maximum number of model invocations (reasoning steps / generator calls) permitted across the session.
@@ -86,7 +109,11 @@ class BudgetConfig with BudgetConfigMappable {
   /// Maximum total net tokens permitted across the session (net uncached input tokens + output tokens).
   final int? maxTotalTokens;
 
+  /// Determines whether the budget applies over the session lifetime or only forward.
+  final BudgetScope scope;
+
   BudgetConfig({
+    this.scope = BudgetScope.lifetime,
     this.maxModelCalls,
     this.maxToolCalls,
     this.maxInputTokens,

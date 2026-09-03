@@ -127,6 +127,8 @@ class AgentBehaviorMapper extends EnumMapper<AgentBehavior> {
         return AgentBehavior.autonomous;
       case r'interactive':
         return AgentBehavior.interactive;
+      case 'minimal':
+        return AgentBehavior.minimal;
       default:
         return AgentBehavior.values[0];
     }
@@ -139,6 +141,8 @@ class AgentBehaviorMapper extends EnumMapper<AgentBehavior> {
         return r'autonomous';
       case AgentBehavior.interactive:
         return r'interactive';
+      case AgentBehavior.minimal:
+        return 'minimal';
     }
   }
 }
@@ -146,9 +150,9 @@ class AgentBehaviorMapper extends EnumMapper<AgentBehavior> {
 /// @nodoc
 
 extension AgentBehaviorMapperExtension on AgentBehavior {
-  String toValue() {
+  dynamic toValue() {
     AgentBehaviorMapper.ensureInitialized();
-    return MapperContainer.globals.toValue<AgentBehavior>(this) as String;
+    return MapperContainer.globals.toValue<AgentBehavior>(this);
   }
 }
 

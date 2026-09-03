@@ -11,7 +11,7 @@ part 'models.mapper.dart';
 // =============================================================================
 
 /// Default generative text model used when no model target is explicitly specified.
-const String defaultModel = 'gemini-3.7-flash';
+const String defaultModel = 'gemini-3.8-flash';
 
 /// Default image generation model used by built-in image creation tools.
 const String defaultImageGenerationModel = 'gemini-3.1-flash-lite-image';

@@ -67,6 +67,18 @@ enum BuiltinTools {
     ];
   }
 
+  /// A minimal set of tools sufficient for basic file and command work.
+  static List<BuiltinTools> minimal() {
+    return [
+      runCommand,
+      viewFile,
+      createFile,
+      editFile,
+      listDirectory,
+      searchDirectory,
+    ];
+  }
+
   static List<BuiltinTools> fileTools() {
     return [viewFile, createFile, editFile];
   }
@@ -80,7 +92,11 @@ enum BuiltinTools {
 @MappableEnum(defaultValue: AgentBehavior.autonomous)
 enum AgentBehavior {
   autonomous('autonomous'),
-  interactive('interactive');
+  interactive('interactive'),
+
+  /// Minimal behavior: reduced tool surface and low-overhead execution.
+  @MappableValue('minimal')
+  minimal('minimal');
 
   final String value;
   const AgentBehavior(this.value);
@@ -174,6 +190,7 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
   final List<BuiltinTools>? disabledTools;
 
   /// Maximum message compaction threshold before historical turns are summarized.
+  @Deprecated('Use CompactionConfig directly on AgentConfig instead')
   final int? compactionThreshold;
 
   /// Custom finish tool JSON schema definition.
@@ -212,6 +229,13 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
     if (enabledTools != null && disabledTools != null) {
       throw AntigravityValidationException(
         'enabledTools and disabledTools are mutually exclusive.',
+      );
+    }
+    // ignore: deprecated_member_use_from_same_package
+    final threshold = compactionThreshold;
+    if (threshold != null && threshold <= 0) {
+      throw AntigravityValidationException(
+        'compactionThreshold must be greater than 0, got $threshold',
       );
     }
     if (maxSubagentDepth != null && maxSubagentDepth! < 1) {

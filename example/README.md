@@ -187,8 +187,32 @@ dart run example/getting_started/hello_world.dart
 
 ### 20. Budget Limits (`budget_limits.dart`)
 * **Focus**: Session budget caps and stop reason inspection.
-* **Details**: Demonstrates configuring session-level caps using `BudgetConfig` across 5 operational limits (`maxModelCalls`, `maxToolCalls`, `maxInputTokens`, `maxOutputTokens`, `maxTotalTokens`) and inspecting `response.stopReason`.
+* **Details**: Demonstrates configuring session-level caps using `BudgetConfig` across 5 operational limits (`maxModelCalls`, `maxToolCalls`, `maxInputTokens`, `maxOutputTokens`, `maxTotalTokens`) and inspecting `response.stopReason`. Also shows `BudgetScope.forwardLooking`, which scopes a budget to future turns only when resuming a saved session.
 * **Run Command**:
   ```bash
   dart run example/getting_started/budget_limits.dart
+  ```
+
+### 21. Compaction (`compaction.dart`)
+* **Focus**: Context compaction policy.
+* **Details**: Demonstrates `CompactionConfig`, setting `checkpointIntervalTokens` (how much history accumulates before a background summary is prepared) and `maxContextTokens` (the hard context-window ceiling).
+* **Run Command**:
+  ```bash
+  dart run example/getting_started/compaction.dart
+  ```
+
+### 22. Sandboxing (`sandboxing.dart`)
+* **Focus**: OS-level sandboxing of terminal commands.
+* **Details**: Demonstrates the opt-in `RunCommandConfig(enableSandbox: true)`, which confines `run_command` execution to the agent's workspace independently of policies. Includes an escape probe that writes outside the workspace, and warns if the sandbox is unavailable in the current environment.
+* **Run Command**:
+  ```bash
+  dart run example/getting_started/sandboxing.dart
+  ```
+
+### 23. Vertex AI (`vertex.dart`)
+* **Focus**: Vertex AI authentication modes.
+* **Details**: Demonstrates Express Mode (`VERTEX_API_KEY`) and Standard Mode (`GOOGLE_CLOUD_PROJECT` / `GOOGLE_CLOUD_LOCATION` with Application Default Credentials), including mutual-exclusivity validation.
+* **Run Command**:
+  ```bash
+  VERTEX_API_KEY=your-key dart run example/getting_started/vertex.dart
   ```

@@ -21,6 +21,8 @@
 /// 3. Limiting net uncached input tokens ([BudgetConfig.maxInputTokens])
 /// 4. Limiting cumulative output tokens ([BudgetConfig.maxOutputTokens])
 /// 5. Limiting cumulative total tokens ([BudgetConfig.maxTotalTokens])
+/// 6. Scoping a budget to future turns only on a resumed session
+///    ([BudgetScope.forwardLooking])
 ///
 /// To run:
 ///   dart run example/getting_started/budget_limits.dart
@@ -30,6 +32,8 @@
 ///   2. Each budget dial triggers its corresponding [StopReason] when exhausted.
 // ignore_for_file: avoid_print
 library;
+
+import 'dart:io';
 
 import 'package:antigravity/antigravity.dart';
 
@@ -250,6 +254,74 @@ Future<void> demoMaxTotalTokens() async {
 }
 
 // ---------------------------------------------------------------------------
+// 6. Forward-Looking Budget Scope on Resume (BudgetScope.forwardLooking)
+// ---------------------------------------------------------------------------
+Future<void> demoForwardLookingResume() async {
+  print('\n${'=' * 60}');
+  print('6. Testing BudgetScope.forwardLooking on a resumed session');
+  print('=' * 60);
+
+  final saveDir =
+      await Directory.systemTemp.createTemp('forward_looking_demo_');
+  try {
+    // Session 1: a lifetime-scoped budget of one model call, which the first
+    // turn consumes entirely.
+    final config1 = LocalAgentConfig(
+      saveDir: saveDir.path,
+      budgetConfig: BudgetConfig(maxModelCalls: 1),
+    );
+
+    final agent1 = Agent(config1);
+    await agent1.start();
+    String? conversationId;
+    try {
+      print('Session 1: Asking the first question...');
+      final res = await agent1.chat(
+        'What is the capital of France? Reply with just the city.',
+      );
+      print('  Agent response: ${(await res.text()).trim()}');
+      print('  Session 1 stop reason: ${res.stopReason}');
+      conversationId = agent1.conversationId;
+    } finally {
+      await agent1.stop();
+    }
+
+    // Session 2: resuming the same conversation. With the default LIFETIME
+    // scope the already-consumed model call would immediately exhaust the
+    // budget; FORWARD_LOOKING counts only the tokens and calls made from this
+    // point onwards, so the resumed turn is allowed to run.
+    final config2 = LocalAgentConfig(
+      conversationId: conversationId,
+      saveDir: saveDir.path,
+      sessionContinuationMode: SessionContinuationMode.createOrResume,
+      budgetConfig: BudgetConfig(
+        maxModelCalls: 1,
+        scope: BudgetScope.forwardLooking,
+      ),
+    );
+
+    final agent2 = Agent(config2);
+    await agent2.start();
+    try {
+      print('\nSession 2 (resumed, forward-looking budget): Asking again...');
+      final res = await agent2.chat(
+        'What is the capital of Germany? Reply with just the city.',
+      );
+      print('  Agent response: ${(await res.text()).trim()}');
+      print('  Session 2 stop reason: ${res.stopReason}');
+      print(
+        '  [Forward-Looking] The resumed turn ran despite the prior session '
+        'having consumed the lifetime budget.',
+      );
+    } finally {
+      await agent2.stop();
+    }
+  } finally {
+    await saveDir.delete(recursive: true);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main Runner
 // ---------------------------------------------------------------------------
 Future<void> main() async {
@@ -259,7 +331,8 @@ Future<void> main() async {
   await demoMaxInputTokens();
   await demoMaxOutputTokens();
   await demoMaxTotalTokens();
+  await demoForwardLookingResume();
   print('\n${'=' * 60}');
-  print('🎉 All 5 budget enforcement dials verified successfully end-to-end!');
+  print('🎉 All 6 budget enforcement dials verified successfully end-to-end!');
   print('=' * 60);
 }

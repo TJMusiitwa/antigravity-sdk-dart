@@ -10,6 +10,56 @@ part of 'config.dart';
 
 /// @nodoc
 
+class BudgetScopeMapper extends EnumMapper<BudgetScope> {
+  BudgetScopeMapper._();
+
+  static BudgetScopeMapper? _instance;
+  static BudgetScopeMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(_instance = BudgetScopeMapper._());
+    }
+    return _instance!;
+  }
+
+  static BudgetScope fromValue(dynamic value) {
+    ensureInitialized();
+    return MapperContainer.globals.fromValue(value);
+  }
+
+  @override
+  BudgetScope decode(dynamic value) {
+    switch (value) {
+      case 'LIFETIME':
+        return BudgetScope.lifetime;
+      case 'FORWARD_LOOKING':
+        return BudgetScope.forwardLooking;
+      default:
+        throw MapperException.unknownEnumValue(value);
+    }
+  }
+
+  @override
+  dynamic encode(BudgetScope self) {
+    switch (self) {
+      case BudgetScope.lifetime:
+        return 'LIFETIME';
+      case BudgetScope.forwardLooking:
+        return 'FORWARD_LOOKING';
+    }
+  }
+}
+
+/// @nodoc
+
+extension BudgetScopeMapperExtension on BudgetScope {
+  dynamic toValue() {
+    BudgetScopeMapper.ensureInitialized();
+    return MapperContainer.globals.toValue<BudgetScope>(this);
+  }
+}
+
+/// @nodoc
+
 class StopReasonMapper extends EnumMapper<StopReason> {
   StopReasonMapper._();
 
@@ -402,6 +452,7 @@ class BudgetConfigMapper extends ClassMapperBase<BudgetConfig> {
   static BudgetConfigMapper ensureInitialized() {
     if (_instance == null) {
       MapperContainer.globals.use(_instance = BudgetConfigMapper._());
+      BudgetScopeMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -409,6 +460,13 @@ class BudgetConfigMapper extends ClassMapperBase<BudgetConfig> {
   @override
   final String id = 'BudgetConfig';
 
+  static BudgetScope _$scope(BudgetConfig v) => v.scope;
+  static const Field<BudgetConfig, BudgetScope> _f$scope = Field(
+    'scope',
+    _$scope,
+    opt: true,
+    def: BudgetScope.lifetime,
+  );
   static int? _$maxModelCalls(BudgetConfig v) => v.maxModelCalls;
   static const Field<BudgetConfig, int> _f$maxModelCalls = Field(
     'maxModelCalls',
@@ -447,6 +505,7 @@ class BudgetConfigMapper extends ClassMapperBase<BudgetConfig> {
 
   @override
   final MappableFields<BudgetConfig> fields = const {
+    #scope: _f$scope,
     #maxModelCalls: _f$maxModelCalls,
     #maxToolCalls: _f$maxToolCalls,
     #maxInputTokens: _f$maxInputTokens,
@@ -458,6 +517,7 @@ class BudgetConfigMapper extends ClassMapperBase<BudgetConfig> {
 
   static BudgetConfig _instantiate(DecodingData data) {
     return BudgetConfig(
+      scope: data.dec(_f$scope),
       maxModelCalls: data.dec(_f$maxModelCalls),
       maxToolCalls: data.dec(_f$maxToolCalls),
       maxInputTokens: data.dec(_f$maxInputTokens),
@@ -532,6 +592,7 @@ extension BudgetConfigValueCopy<$R, $Out>
 abstract class BudgetConfigCopyWith<$R, $In extends BudgetConfig, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   $R call({
+    BudgetScope? scope,
     int? maxModelCalls,
     int? maxToolCalls,
     int? maxInputTokens,
@@ -552,6 +613,7 @@ class _BudgetConfigCopyWithImpl<$R, $Out>
       BudgetConfigMapper.ensureInitialized();
   @override
   $R call({
+    BudgetScope? scope,
     Object? maxModelCalls = $none,
     Object? maxToolCalls = $none,
     Object? maxInputTokens = $none,
@@ -560,6 +622,7 @@ class _BudgetConfigCopyWithImpl<$R, $Out>
   }) =>
       $apply(
         FieldCopyWithData({
+          if (scope != null) #scope: scope,
           if (maxModelCalls != $none) #maxModelCalls: maxModelCalls,
           if (maxToolCalls != $none) #maxToolCalls: maxToolCalls,
           if (maxInputTokens != $none) #maxInputTokens: maxInputTokens,
@@ -569,6 +632,7 @@ class _BudgetConfigCopyWithImpl<$R, $Out>
       );
   @override
   BudgetConfig $make(CopyWithData data) => BudgetConfig(
+        scope: data.get(#scope, or: $value.scope),
         maxModelCalls: data.get(#maxModelCalls, or: $value.maxModelCalls),
         maxToolCalls: data.get(#maxToolCalls, or: $value.maxToolCalls),
         maxInputTokens: data.get(#maxInputTokens, or: $value.maxInputTokens),

@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:test/test.dart';
+
 import 'package:antigravity/antigravity.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('Agent & Conversation Mocked Tests', () {
@@ -632,6 +633,9 @@ class FakeAgentConfig extends AgentConfig {
     required HookRunner hookRunner,
   }) =>
       strategy;
+
+  @override
+  AgentConfig lightweight() => throw UnimplementedError();
 
   @override
   String toJson() => throw UnimplementedError();

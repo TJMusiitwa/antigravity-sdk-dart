@@ -2,6 +2,7 @@ export 'models.dart';
 export 'types/capabilities.dart';
 export 'types/chat_response.dart';
 export 'types/chunks.dart';
+export 'types/compaction.dart';
 export 'types/config.dart';
 export 'types/content.dart';
 export 'types/exceptions.dart';

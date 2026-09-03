@@ -11,7 +11,7 @@ class HarnessDownloader {
   static final Logger _logger = Logger('HarnessDownloader');
 
   /// Fallback version of google-antigravity to query if PyPI's latest resolution fails.
-  static const String defaultVersion = '0.1.15';
+  static const String defaultVersion = '0.1.16';
 
   /// Detects the current CPU architecture.
   static Future<String> getProcessorArchitecture() async {

@@ -1,3 +1,41 @@
+# 0.13.0
+
+* **Sync with Python SDK v0.1.16**:
+  - **Context Compaction Policy (`CompactionConfig`)**:
+    - Added `CompactionConfig` in `types/compaction.dart`, exposing `checkpointIntervalTokens` (tokens of history per compaction checkpoint) and `maxContextTokens` (hard context-window ceiling), with validation that both are positive and that `checkpointIntervalTokens <= maxContextTokens`.
+    - Retained the deprecated `compactionThreshold` alias, which maps to `checkpoint_interval_tokens` on the wire and raises on conflicting values.
+    - Added `AgentConfig.compactionConfig` and `AgentConfig.effectiveCompactionConfig`, which resolves the legacy `CapabilitiesConfig.compactionThreshold` when no `CompactionConfig` is set.
+    - Emitted `compaction_config` over the wire (alongside the legacy `compaction_threshold`) and deprecated `CapabilitiesConfig.compactionThreshold`, which now also rejects non-positive values (matching the upstream `gt=0` constraint).
+  - **Lightweight Configuration Preset (`lightweight()`)**:
+    - Added `AgentConfig.lightweight()`, implemented on `LocalAgentConfig`, `LocalOpenAIAgentConfig`, and `LiteRTAgentConfig` with covariant return types. It returns a copy restricted to `BuiltinTools.minimal()`, with `AgentBehavior.minimal`, subagents disabled, and a 64 Ki-token compaction checkpoint interval (`AgentConfig.lightweightCheckpointIntervalTokens`).
+    - The presets act as defaults rather than a wholesale replacement, mirroring upstream: a caller-provided `enabledTools` allowlist wins, a caller-provided `disabledTools` list is subtracted from `BuiltinTools.minimal()`, and `runCommandConfig`, `finishToolSchemaJson`, and `compactionConfig` are carried over. Resolution lives in the shared `AgentConfig.lightweightCapabilities()` and `AgentConfig.lightweightCompactionConfig()` helpers.
+    - Divergence from Python: `agentBehavior` and `enableSubagents` always take the preset, because Dart cannot distinguish an explicitly-set value from a default on a non-nullable field (Pydantic's `model_fields_set` has no equivalent). Subagent scoping (`maxSubagentDepth`, `allowedSubagents`) is intentionally dropped, since `CapabilitiesConfig` rejects both once subagents are disabled.
+    - Added `BuiltinTools.minimal()` (`run_command`, `view_file`, `create_file`, `edit_file`, `list_directory`, `search_directory`) and the `AgentBehavior.minimal` variant (`AGENT_BEHAVIOR_MINIMAL` on the wire).
+  - **Budget Scope (`BudgetScope`)**:
+    - Added the `BudgetScope` enum (`LIFETIME`, `FORWARD_LOOKING`) and `BudgetConfig.scope` (defaults to `BudgetScope.lifetime`), letting a resumed session budget only the calls and tokens made from that point onwards.
+    - `budget_config` is now emitted only when at least one limit is set, and always carries an explicit `scope`.
+  - **Terminal Command Sandbox on the Wire**:
+    - `enable_sandbox` is now emitted in the `harness_side_tools.run_command` proto, so `RunCommandConfig.enableSandbox` reaches the harness.
+  - **LiteRT Context Ceiling Consolidation**:
+    - Deprecated `LiteRTAgentConfig.maxContextTokens` in favour of `compactionConfig.maxContextTokens`, mirroring upstream's removal of the standalone field. `LiteRTAgentConfig.effectiveCompactionConfig` folds the legacy value into the shared compaction policy and `effectiveMaxContextTokens` exposes the resolved ceiling, so the LiteRT runner and the harness now read one source of truth. Dart keeps the field deprecated rather than removing it outright, matching how `compactionThreshold` is handled.
+    - All three local configs now hand `effectiveCompactionConfig` to their strategy, matching upstream; the strategy retains its own capability fallback for directly-constructed strategies.
+  - **Conversation History Seeding**:
+    - `Conversation` (and `Conversation.create`) now accept `history` to pre-seed steps and `maxHistorySize` as a constructor parameter; compaction indices and cumulative usage are computed over the combined history. (`history` already existed upstream in v0.1.15 and was only documented in v0.1.16; it was previously missing in Dart.)
+  - **Step Usage Metadata Deprecation**:
+    - Deprecated `Step.usageMetadata` in favour of `ChatResponse.usageMetadata` for per-turn usage and `Conversation.cumulativeUsage` for the session total. The field remains on the wire and is still read internally.
+  - **Default Model**:
+    - Updated `defaultModel` to `gemini-3.8-flash`.
+  - **Harness Downloader Default Version**:
+    - Updated default upstream `localharness` binary download version in `HarnessDownloader` to `0.1.16`.
+  - **Not ported (no Dart counterpart)**:
+    - Upstream's `ToolRunner` support for callable-class and dataclass tools relies on Python reflection (`typing.get_type_hints` over `__call__`); Dart tools are explicit `Tool(name:, schema:, handler:)` values with nothing to introspect.
+    - Upstream's new `struct_converter` and the dependent `event_processor` branch convert `genai.Content` and proto-message tool results into `google.protobuf.Struct`. Dart has no `genai` dependency and tool results are plain Dart values, so the existing media extraction path already covers this.
+    - Vertex AI Express Mode (`vertex: true` with `apiKey`) already shipped in Dart 0.10.0.
+  - **Examples**:
+    - Added `example/getting_started/compaction.dart`, `example/getting_started/sandboxing.dart`, and `example/getting_started/vertex.dart` (Express and Standard Vertex AI modes, configured via `Platform.environment` rather than an argument parser, matching existing Dart examples).
+    - Added a `BudgetScope.forwardLooking` session-resume demo to `example/getting_started/budget_limits.dart`.
+    - `example/getting_started/subagents.dart` now relies on subagents being enabled by default and exposes `example/resources/` as the workspace for all three demos, replacing the temporary directories and synthetic `target_code.dart` / `design.md` / `perf_data.txt` fixtures. The static reviewer audits the bundled `mcp_server.dart`, and the nested hierarchy fact-checks `mcp_server.dart` and `sample_doc.txt`.
+
 # 0.12.0
 
 * **Sync with Python SDK v0.1.15**:

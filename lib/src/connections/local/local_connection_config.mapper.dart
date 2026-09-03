@@ -81,6 +81,7 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
       DebugConfigMapper.ensureInitialized();
       RetryConfigMapper.ensureInitialized();
       BudgetConfigMapper.ensureInitialized();
+      CompactionConfigMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -192,6 +193,14 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
   static BudgetConfig? _$budgetConfig(BaseLocalAgentConfig v) => v.budgetConfig;
   static const Field<BaseLocalAgentConfig, BudgetConfig> _f$budgetConfig =
       Field('budgetConfig', _$budgetConfig, opt: true);
+  static CompactionConfig? _$compactionConfig(BaseLocalAgentConfig v) =>
+      v.compactionConfig;
+  static const Field<BaseLocalAgentConfig, CompactionConfig>
+      _f$compactionConfig = Field(
+    'compactionConfig',
+    _$compactionConfig,
+    opt: true,
+  );
 
   @override
   final MappableFields<BaseLocalAgentConfig> fields = const {
@@ -213,6 +222,7 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
     #debugConfig: _f$debugConfig,
     #retryConfig: _f$retryConfig,
     #budgetConfig: _f$budgetConfig,
+    #compactionConfig: _f$compactionConfig,
   };
 
   static BaseLocalAgentConfig _instantiate(DecodingData data) {
@@ -269,6 +279,9 @@ abstract class BaseLocalAgentConfigCopyWith<
   @override
   BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig;
   @override
+  CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
+      get compactionConfig;
+  @override
   $R call({
     dynamic systemInstructions,
     CapabilitiesConfig? capabilities,
@@ -288,6 +301,7 @@ abstract class BaseLocalAgentConfigCopyWith<
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
     BudgetConfig? budgetConfig,
+    CompactionConfig? compactionConfig,
   });
   BaseLocalAgentConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -316,6 +330,7 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
       DebugConfigMapper.ensureInitialized();
       RetryConfigMapper.ensureInitialized();
       BudgetConfigMapper.ensureInitialized();
+      CompactionConfigMapper.ensureInitialized();
       ModelTargetMapper.ensureInitialized();
     }
     return _instance!;
@@ -432,6 +447,10 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
     _$budgetConfig,
     opt: true,
   );
+  static CompactionConfig? _$compactionConfig(LocalAgentConfig v) =>
+      v.compactionConfig;
+  static const Field<LocalAgentConfig, CompactionConfig> _f$compactionConfig =
+      Field('compactionConfig', _$compactionConfig, opt: true);
   static dynamic _$model(LocalAgentConfig v) => v.model;
   static const Field<LocalAgentConfig, dynamic> _f$model = Field(
     'model',
@@ -495,6 +514,7 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
     #debugConfig: _f$debugConfig,
     #retryConfig: _f$retryConfig,
     #budgetConfig: _f$budgetConfig,
+    #compactionConfig: _f$compactionConfig,
     #model: _f$model,
     #models: _f$models,
     #apiKey: _f$apiKey,
@@ -524,6 +544,7 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
       debugConfig: data.dec(_f$debugConfig),
       retryConfig: data.dec(_f$retryConfig),
       budgetConfig: data.dec(_f$budgetConfig),
+      compactionConfig: data.dec(_f$compactionConfig),
       model: data.dec(_f$model),
       models: data.dec(_f$models),
       apiKey: data.dec(_f$apiKey),
@@ -631,6 +652,9 @@ abstract class LocalAgentConfigCopyWith<$R, $In extends LocalAgentConfig, $Out>
   RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig;
   @override
   BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig;
+  @override
+  CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
+      get compactionConfig;
   ListCopyWith<$R, ModelTarget,
       ModelTargetCopyWith<$R, ModelTarget, ModelTarget>>? get models;
   @override
@@ -653,6 +677,7 @@ abstract class LocalAgentConfigCopyWith<$R, $In extends LocalAgentConfig, $Out>
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
     BudgetConfig? budgetConfig,
+    CompactionConfig? compactionConfig,
     dynamic model,
     List<ModelTarget>? models,
     String? apiKey,
@@ -752,6 +777,11 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
   BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig =>
       $value.budgetConfig?.copyWith.$chain((v) => call(budgetConfig: v));
   @override
+  CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
+      get compactionConfig => $value.compactionConfig?.copyWith.$chain(
+            (v) => call(compactionConfig: v),
+          );
+  @override
   ListCopyWith<$R, ModelTarget,
           ModelTargetCopyWith<$R, ModelTarget, ModelTarget>>?
       get models => $value.models != null
@@ -781,6 +811,7 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
     Object? debugConfig = $none,
     Object? retryConfig = $none,
     Object? budgetConfig = $none,
+    Object? compactionConfig = $none,
     Object? model = $none,
     Object? models = $none,
     Object? apiKey = $none,
@@ -811,6 +842,7 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
           if (debugConfig != $none) #debugConfig: debugConfig,
           if (retryConfig != $none) #retryConfig: retryConfig,
           if (budgetConfig != $none) #budgetConfig: budgetConfig,
+          if (compactionConfig != $none) #compactionConfig: compactionConfig,
           if (model != $none) #model: model,
           if (models != $none) #models: models,
           if (apiKey != $none) #apiKey: apiKey,
@@ -846,6 +878,8 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
         debugConfig: data.get(#debugConfig, or: $value.debugConfig),
         retryConfig: data.get(#retryConfig, or: $value.retryConfig),
         budgetConfig: data.get(#budgetConfig, or: $value.budgetConfig),
+        compactionConfig:
+            data.get(#compactionConfig, or: $value.compactionConfig),
         model: data.get(#model, or: $value.model),
         models: data.get(#models, or: $value.models),
         apiKey: data.get(#apiKey, or: $value.apiKey),
@@ -879,6 +913,7 @@ class LocalOpenAIAgentConfigMapper
       DebugConfigMapper.ensureInitialized();
       RetryConfigMapper.ensureInitialized();
       BudgetConfigMapper.ensureInitialized();
+      CompactionConfigMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -991,6 +1026,14 @@ class LocalOpenAIAgentConfigMapper
       v.budgetConfig;
   static const Field<LocalOpenAIAgentConfig, BudgetConfig> _f$budgetConfig =
       Field('budgetConfig', _$budgetConfig, opt: true);
+  static CompactionConfig? _$compactionConfig(LocalOpenAIAgentConfig v) =>
+      v.compactionConfig;
+  static const Field<LocalOpenAIAgentConfig, CompactionConfig>
+      _f$compactionConfig = Field(
+    'compactionConfig',
+    _$compactionConfig,
+    opt: true,
+  );
 
   @override
   final MappableFields<LocalOpenAIAgentConfig> fields = const {
@@ -1014,6 +1057,7 @@ class LocalOpenAIAgentConfigMapper
     #debugConfig: _f$debugConfig,
     #retryConfig: _f$retryConfig,
     #budgetConfig: _f$budgetConfig,
+    #compactionConfig: _f$compactionConfig,
   };
 
   static LocalOpenAIAgentConfig _instantiate(DecodingData data) {
@@ -1038,6 +1082,7 @@ class LocalOpenAIAgentConfigMapper
       debugConfig: data.dec(_f$debugConfig),
       retryConfig: data.dec(_f$retryConfig),
       budgetConfig: data.dec(_f$budgetConfig),
+      compactionConfig: data.dec(_f$compactionConfig),
     );
   }
 
@@ -1141,6 +1186,9 @@ abstract class LocalOpenAIAgentConfigCopyWith<
   @override
   BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig;
   @override
+  CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
+      get compactionConfig;
+  @override
   $R call({
     dynamic model,
     String? baseUrl,
@@ -1162,6 +1210,7 @@ abstract class LocalOpenAIAgentConfigCopyWith<
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
     BudgetConfig? budgetConfig,
+    CompactionConfig? compactionConfig,
   });
   LocalOpenAIAgentConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -1255,6 +1304,11 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
   BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig =>
       $value.budgetConfig?.copyWith.$chain((v) => call(budgetConfig: v));
   @override
+  CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
+      get compactionConfig => $value.compactionConfig?.copyWith.$chain(
+            (v) => call(compactionConfig: v),
+          );
+  @override
   $R call({
     Object? model = $none,
     Object? baseUrl = $none,
@@ -1276,6 +1330,7 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
     Object? debugConfig = $none,
     Object? retryConfig = $none,
     Object? budgetConfig = $none,
+    Object? compactionConfig = $none,
   }) =>
       $apply(
         FieldCopyWithData({
@@ -1301,6 +1356,7 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
           if (debugConfig != $none) #debugConfig: debugConfig,
           if (retryConfig != $none) #retryConfig: retryConfig,
           if (budgetConfig != $none) #budgetConfig: budgetConfig,
+          if (compactionConfig != $none) #compactionConfig: compactionConfig,
         }),
       );
   @override
@@ -1331,6 +1387,8 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
         debugConfig: data.get(#debugConfig, or: $value.debugConfig),
         retryConfig: data.get(#retryConfig, or: $value.retryConfig),
         budgetConfig: data.get(#budgetConfig, or: $value.budgetConfig),
+        compactionConfig:
+            data.get(#compactionConfig, or: $value.compactionConfig),
       );
 
   @override
@@ -1356,6 +1414,7 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
       DebugConfigMapper.ensureInitialized();
       RetryConfigMapper.ensureInitialized();
       BudgetConfigMapper.ensureInitialized();
+      CompactionConfigMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -1531,6 +1590,10 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
     _$budgetConfig,
     opt: true,
   );
+  static CompactionConfig? _$compactionConfig(LiteRTAgentConfig v) =>
+      v.compactionConfig;
+  static const Field<LiteRTAgentConfig, CompactionConfig> _f$compactionConfig =
+      Field('compactionConfig', _$compactionConfig, opt: true);
 
   @override
   final MappableFields<LiteRTAgentConfig> fields = const {
@@ -1561,6 +1624,7 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
     #debugConfig: _f$debugConfig,
     #retryConfig: _f$retryConfig,
     #budgetConfig: _f$budgetConfig,
+    #compactionConfig: _f$compactionConfig,
   };
 
   static LiteRTAgentConfig _instantiate(DecodingData data) {
@@ -1592,6 +1656,7 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
       debugConfig: data.dec(_f$debugConfig),
       retryConfig: data.dec(_f$retryConfig),
       budgetConfig: data.dec(_f$budgetConfig),
+      compactionConfig: data.dec(_f$compactionConfig),
     );
   }
 
@@ -1695,6 +1760,9 @@ abstract class LiteRTAgentConfigCopyWith<$R, $In extends LiteRTAgentConfig,
   @override
   BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig;
   @override
+  CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
+      get compactionConfig;
+  @override
   $R call({
     String? modelPath,
     LiteRTBackend? backend,
@@ -1723,6 +1791,7 @@ abstract class LiteRTAgentConfigCopyWith<$R, $In extends LiteRTAgentConfig,
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
     BudgetConfig? budgetConfig,
+    CompactionConfig? compactionConfig,
   });
   LiteRTAgentConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -1815,6 +1884,11 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
   BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig =>
       $value.budgetConfig?.copyWith.$chain((v) => call(budgetConfig: v));
   @override
+  CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
+      get compactionConfig => $value.compactionConfig?.copyWith.$chain(
+            (v) => call(compactionConfig: v),
+          );
+  @override
   $R call({
     String? modelPath,
     LiteRTBackend? backend,
@@ -1843,6 +1917,7 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
     Object? debugConfig = $none,
     Object? retryConfig = $none,
     Object? budgetConfig = $none,
+    Object? compactionConfig = $none,
   }) =>
       $apply(
         FieldCopyWithData({
@@ -1876,6 +1951,7 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
           if (debugConfig != $none) #debugConfig: debugConfig,
           if (retryConfig != $none) #retryConfig: retryConfig,
           if (budgetConfig != $none) #budgetConfig: budgetConfig,
+          if (compactionConfig != $none) #compactionConfig: compactionConfig,
         }),
       );
   @override
@@ -1920,6 +1996,8 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
         debugConfig: data.get(#debugConfig, or: $value.debugConfig),
         retryConfig: data.get(#retryConfig, or: $value.retryConfig),
         budgetConfig: data.get(#budgetConfig, or: $value.budgetConfig),
+        compactionConfig:
+            data.get(#compactionConfig, or: $value.compactionConfig),
       );
 
   @override

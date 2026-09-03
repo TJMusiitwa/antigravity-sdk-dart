@@ -36,6 +36,7 @@ Map<String, dynamic> _runCommandToolProto(bool enabled, RunCommandConfig? cfg) {
     'enable_daemon_commands': cfg?.enableDaemons ?? false,
     'max_timeout_ms':
         timeoutSeconds != null ? (timeoutSeconds * 1000).round() : 0,
+    'enable_sandbox': cfg?.enableSandbox ?? false,
   };
 }
 
@@ -58,6 +59,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   final DebugConfig? _debugConfig;
   final RetryConfig? _retryConfig;
   final BudgetConfig? _budgetConfig;
+  final CompactionConfig? _compactionConfig;
 
   Process? _process;
   WebSocket? _ws;
@@ -86,6 +88,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
     BudgetConfig? budgetConfig,
+    CompactionConfig? compactionConfig,
   })  : _configuredBinaryPath = binaryPath,
         _toolRunner = toolRunner,
         _hookRunner = hookRunner,
@@ -103,7 +106,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         _subagents = subagents ?? const [],
         _debugConfig = debugConfig,
         _retryConfig = retryConfig,
-        _budgetConfig = budgetConfig;
+        _budgetConfig = budgetConfig,
+        _compactionConfig = compactionConfig;
 
   @override
   DebugConfig? get debugConfig => _debugConfig;
@@ -421,6 +425,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     };
 
     final retryConfigMap = _retryConfig?.toMap();
+    final compaction = _effectiveCompactionConfig();
 
     return {
       'cascade_id': _conversationId ?? '',
@@ -432,15 +437,63 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       'workspaces': workspacesProto,
       'skills_paths': _skillsPaths,
       'harness_side_tools': harnessSideTools,
-      'compaction_threshold': cfg.compactionThreshold ?? 0,
+      'compaction_threshold': compaction?.checkpointIntervalTokens ??
+          // ignore: deprecated_member_use_from_same_package
+          cfg.compactionThreshold ??
+          0,
+      if (compaction != null)
+        'compaction_config': _buildCompactionConfigProto(compaction),
       'finish_tool_schema_json': cfg.finishToolSchemaJson ?? '',
       'app_data_dir': _appDataDir ?? '',
       'mcp_servers': mcpServersProto,
-      if (_budgetConfig != null) 'budget_config': _budgetConfig!.toMap(),
+      if (_budgetConfig != null && _budgetHasLimits(_budgetConfig!))
+        'budget_config': _buildBudgetConfigProto(_budgetConfig!),
       if (enabledHooks.isNotEmpty) 'enabled_hooks': enabledHooks,
       if (customAgentsProtos.isNotEmpty) 'custom_subagents': customAgentsProtos,
       if (retryConfigMap != null && retryConfigMap.isNotEmpty)
         'retry_config': retryConfigMap,
+    };
+  }
+
+  /// Resolves the compaction policy, falling back to the deprecated
+  /// capability-level `compactionThreshold` when no [CompactionConfig] is set.
+  CompactionConfig? _effectiveCompactionConfig() {
+    if (_compactionConfig != null) return _compactionConfig;
+    // ignore: deprecated_member_use_from_same_package
+    final threshold = _capabilitiesConfig.compactionThreshold;
+    if (threshold != null) {
+      return CompactionConfig(checkpointIntervalTokens: threshold);
+    }
+    return null;
+  }
+
+  Map<String, dynamic> _buildCompactionConfigProto(CompactionConfig cfg) {
+    return {
+      if (cfg.checkpointIntervalTokens != null)
+        'checkpoint_interval_tokens': cfg.checkpointIntervalTokens,
+      if (cfg.maxContextTokens != null)
+        'max_context_tokens': cfg.maxContextTokens,
+    };
+  }
+
+  /// Whether at least one budget limit is set, since the harness rejects an
+  /// otherwise empty `budget_config`.
+  bool _budgetHasLimits(BudgetConfig cfg) {
+    return cfg.maxModelCalls != null ||
+        cfg.maxToolCalls != null ||
+        cfg.maxInputTokens != null ||
+        cfg.maxOutputTokens != null ||
+        cfg.maxTotalTokens != null;
+  }
+
+  Map<String, dynamic> _buildBudgetConfigProto(BudgetConfig cfg) {
+    return {
+      if (cfg.maxModelCalls != null) 'max_model_calls': cfg.maxModelCalls,
+      if (cfg.maxToolCalls != null) 'max_tool_calls': cfg.maxToolCalls,
+      if (cfg.maxInputTokens != null) 'max_input_tokens': cfg.maxInputTokens,
+      if (cfg.maxOutputTokens != null) 'max_output_tokens': cfg.maxOutputTokens,
+      if (cfg.maxTotalTokens != null) 'max_total_tokens': cfg.maxTotalTokens,
+      'scope': cfg.scope.protoValue,
     };
   }
 
@@ -471,10 +524,9 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     return <String, dynamic>{
       'name': tool.name,
       'description': tool.description,
-      'parameters_json_schema': jsonEncode(normalizeSchema(
-          tool.schema.isEmpty
-              ? {'type': 'object', 'properties': <String, dynamic>{}}
-              : tool.schema)),
+      'parameters_json_schema': jsonEncode(normalizeSchema(tool.schema.isEmpty
+          ? {'type': 'object', 'properties': <String, dynamic>{}}
+          : tool.schema)),
     };
   }
 
@@ -1745,6 +1797,7 @@ class LocalOpenAIConnectionStrategy extends LocalConnectionStrategy {
     super.debugConfig,
     super.retryConfig,
     super.budgetConfig,
+    super.compactionConfig,
   });
 
   @override
@@ -1813,6 +1866,7 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
     super.debugConfig,
     super.retryConfig,
     super.budgetConfig,
+    super.compactionConfig,
   }) : super(
           baseUrl: '',
           modelName: p.basename(modelPath),
