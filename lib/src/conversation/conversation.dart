@@ -1,6 +1,7 @@
 import 'dart:async';
-import 'package:logging/logging.dart';
+
 import 'package:antigravity/antigravity.dart';
+import 'package:logging/logging.dart';
 
 final _logger = Logger('antigravity.conversation');
 
@@ -24,16 +25,24 @@ class Conversation {
   final Set<String> _seenCompactionKeys = <String>{};
 
   /// Creates a new [Conversation] on the given underlying connection.
-  Conversation(this._connection, {HookRunner? hookRunner})
-      : _hookRunner = hookRunner {
+  Conversation(
+    this._connection, {
+    HookRunner? hookRunner,
+    List<Step>? history,
+    int? maxHistorySize,
+  }) : _hookRunner = hookRunner {
+    if (maxHistorySize != null) this.maxHistorySize = maxHistorySize;
+    if (history != null) _history.addAll(history);
     _history.addAll(_connection.initialHistory);
-    for (var i = 0; i < _connection.initialHistory.length; i++) {
-      final step = _connection.initialHistory[i];
+    for (var i = 0; i < _history.length; i++) {
+      final step = _history[i];
       if (step.type == StepType.compaction && _isNewCompaction(step)) {
         _compactionIndices.add(i);
       }
-      if (step.usageMetadata != null) {
-        _accumulateUsage(step.usageMetadata!);
+      // ignore: deprecated_member_use_from_same_package
+      final usage = step.usageMetadata;
+      if (usage != null) {
+        _accumulateUsage(usage);
       }
     }
     _enforceMaxHistory();
@@ -43,10 +52,17 @@ class Conversation {
   static Future<Conversation> create(
     ConnectionStrategy strategy, {
     HookRunner? hookRunner,
+    List<Step>? history,
+    int? maxHistorySize,
   }) async {
     await strategy.start();
     final conn = strategy.connect();
-    return Conversation(conn, hookRunner: hookRunner);
+    return Conversation(
+      conn,
+      hookRunner: hookRunner,
+      history: history,
+      maxHistorySize: maxHistorySize,
+    );
   }
 
   /// Returns the underlying connection.
