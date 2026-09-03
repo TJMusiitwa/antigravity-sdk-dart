@@ -241,6 +241,13 @@ class Step with StepMappable {
   final dynamic structuredOutput;
 
   /// Token usage metadata associated with this step.
+  ///
+  /// Prefer `ChatResponse.usageMetadata` for per-turn usage or
+  /// `Conversation.cumulativeUsage` for the session total.
+  @Deprecated(
+    'Access per-step usage via ChatResponse.usageMetadata or the '
+    'cumulative total via Conversation.cumulativeUsage instead.',
+  )
   final UsageMetadata? usageMetadata;
 
   Step({

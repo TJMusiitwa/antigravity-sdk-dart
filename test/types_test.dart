@@ -1271,8 +1271,8 @@ void main() {
   });
 
   group('v0.9.0 updates', () {
-    test('defaultModel is updated to gemini-3.7-flash', () {
-      expect(defaultModel, equals('gemini-3.7-flash'));
+    test('defaultModel is updated to gemini-3.8-flash', () {
+      expect(defaultModel, equals('gemini-3.8-flash'));
     });
 
     test('AgentBehavior enum values and protoValue mapping', () {
@@ -1823,6 +1823,60 @@ void main() {
         expect(ep.apiKey, isNull);
         ep.validateEndpoint(); // Should not throw
       });
+    });
+  });
+
+  group('v0.13.0 updates', () {
+    test('BudgetScope.lifetime has protoValue BUDGET_SCOPE_LIFETIME', () {
+      expect(BudgetScope.lifetime.protoValue, equals('BUDGET_SCOPE_LIFETIME'));
+    });
+
+    test(
+        'BudgetScope.forwardLooking has protoValue BUDGET_SCOPE_FORWARD_LOOKING',
+        () {
+      expect(
+        BudgetScope.forwardLooking.protoValue,
+        equals('BUDGET_SCOPE_FORWARD_LOOKING'),
+      );
+    });
+
+    test('BudgetScope serializes to its bare value in BudgetConfig maps', () {
+      // toMap() is the SDK-facing representation and stays unprefixed; only
+      // the wire proto carries the BUDGET_SCOPE_ prefix.
+      expect(
+        BudgetConfig(maxTotalTokens: 10).toMap()['scope'],
+        equals('LIFETIME'),
+      );
+    });
+
+    test('BudgetConfig.scope defaults to lifetime', () {
+      expect(BudgetConfig().scope, equals(BudgetScope.lifetime));
+    });
+
+    test('BuiltinTools.minimal() returns the expected tools', () {
+      expect(
+        BuiltinTools.minimal(),
+        equals([
+          BuiltinTools.runCommand,
+          BuiltinTools.viewFile,
+          BuiltinTools.createFile,
+          BuiltinTools.editFile,
+          BuiltinTools.listDirectory,
+          BuiltinTools.searchDirectory,
+        ]),
+      );
+    });
+
+    test('AgentBehavior.minimal protoValue is AGENT_BEHAVIOR_MINIMAL', () {
+      expect(
+        AgentBehavior.minimal.protoValue,
+        equals('AGENT_BEHAVIOR_MINIMAL'),
+      );
+    });
+
+    test('AgentBehavior.fromString parses minimal', () {
+      expect(
+          AgentBehavior.fromString('minimal'), equals(AgentBehavior.minimal));
     });
   });
 }
