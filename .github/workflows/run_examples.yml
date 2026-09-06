@@ -5,12 +5,44 @@ on:
   #   tags:
   #     - '*'
   workflow_dispatch:
+    inputs:
+      os:
+        description: 'Operating System to run on'
+        required: true
+        default: 'ubuntu'
+        type: choice
+        options:
+          - 'ubuntu'
+          - 'macos'
+          - 'both'
 
 jobs:
+  configure-matrix:
+    runs-on: ubuntu-slim
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: |
+          choice="${{ inputs.os || 'ubuntu' }}"
+          case "$choice" in
+            macos)
+              echo 'matrix=["macos-latest"]' >> $GITHUB_OUTPUT
+              ;;
+            both)
+              echo 'matrix=["ubuntu-latest", "macos-latest"]' >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo 'matrix=["ubuntu-latest"]' >> $GITHUB_OUTPUT
+              ;;
+          esac
+
   run-examples:
+    needs: configure-matrix
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: ${{ fromJson(needs.configure-matrix.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:
@@ -33,10 +65,12 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           for f in example/getting_started/*.dart; do
-            # Skip interactive or environment-dependent examples
+            # Skip interactive, environment-dependent, or unsupported examples
+            # Note: compaction.dart is skipped until upstream localharness binary on PyPI supports compaction_config
             if [[ "$f" == *"human_in_the_loop.dart"* ]] || \
                [[ "$f" == *"autonomous_shell.dart"* ]] || \
-               [[ "$f" == *"mcp_tools.dart"* ]]; then
+               [[ "$f" == *"mcp_tools.dart"* ]] || \
+               [[ "$f" == *"compaction.dart"* ]]; then
               echo "Skipping: $f"
               continue
             fi
