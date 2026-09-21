@@ -421,25 +421,12 @@ void main() {
   group('compaction wire proto', () {
     test('compaction_config is emitted when CompactionConfig is set', () {
       final config = buildStrategy(
-        compactionConfig: CompactionConfig(checkpointIntervalTokens: 40000),
+        compactionConfig: CompactionConfig(tokenThreshold: 40000),
       ).buildHarnessConfigForTest();
 
       final compaction = config['compaction_config'] as Map<String, dynamic>;
-      expect(compaction['checkpoint_interval_tokens'], equals(40000));
-      expect(compaction.containsKey('max_context_tokens'), isFalse);
+      expect(compaction['token_threshold'], equals(40000));
       expect(config['compaction_threshold'], equals(40000));
-    });
-
-    test('compaction_config includes max_context_tokens when set', () {
-      final config = buildStrategy(
-        compactionConfig: CompactionConfig(
-          checkpointIntervalTokens: 40000,
-          maxContextTokens: 100000,
-        ),
-      ).buildHarnessConfigForTest();
-
-      final compaction = config['compaction_config'] as Map<String, dynamic>;
-      expect(compaction['max_context_tokens'], equals(100000));
     });
 
     test(
@@ -451,7 +438,7 @@ void main() {
 
       expect(config['compaction_threshold'], equals(1234));
       expect(
-        (config['compaction_config'] as Map)['checkpoint_interval_tokens'],
+        (config['compaction_config'] as Map)['token_threshold'],
         equals(1234),
       );
     });
@@ -527,15 +514,15 @@ void main() {
       expect(config.capabilities.agentBehavior, equals(AgentBehavior.minimal));
     });
 
-    test('sets checkpointIntervalTokens to 65536', () {
+    test('sets tokenThreshold to 65536', () {
       final config = LocalAgentConfig().lightweight();
 
       expect(
-        config.compactionConfig?.checkpointIntervalTokens,
+        config.compactionConfig?.tokenThreshold,
         equals(65536),
       );
       expect(
-        config.effectiveCompactionConfig?.checkpointIntervalTokens,
+        config.effectiveCompactionConfig?.tokenThreshold,
         equals(65536),
       );
     });
@@ -595,11 +582,11 @@ void main() {
 
     test('keeps a caller-provided compactionConfig', () {
       final config = LocalAgentConfig(
-        compactionConfig: CompactionConfig(checkpointIntervalTokens: 1024),
+        compactionConfig: CompactionConfig(tokenThreshold: 1024),
       ).lightweight();
 
       expect(
-        config.compactionConfig?.checkpointIntervalTokens,
+        config.compactionConfig?.tokenThreshold,
         equals(1024),
       );
     });
@@ -614,8 +601,7 @@ void main() {
 
       expect(harnessConfig['agent_behavior'], equals('AGENT_BEHAVIOR_MINIMAL'));
       expect(
-        (harnessConfig['compaction_config']
-            as Map)['checkpoint_interval_tokens'],
+        (harnessConfig['compaction_config'] as Map)['token_threshold'],
         equals(65536),
       );
     });

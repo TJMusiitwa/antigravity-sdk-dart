@@ -420,6 +420,55 @@ void main() {
       expect(meta.promptTokenCount, isNull);
       expect(meta.totalTokenCount, isNull);
     });
+
+    test('scales token counts by a finite non-negative factor', () {
+      final meta = UsageMetadata(
+        promptTokenCount: 5,
+        cachedContentTokenCount: 2,
+        candidatesTokenCount: 10,
+        thoughtsTokenCount: 3,
+        totalTokenCount: 20,
+      );
+
+      final scaled = meta * 1.5;
+
+      expect(scaled.promptTokenCount, equals(8));
+      expect(scaled.cachedContentTokenCount, equals(3));
+      expect(scaled.candidatesTokenCount, equals(15));
+      expect(scaled.thoughtsTokenCount, equals(5));
+      expect(scaled.totalTokenCount, equals(30));
+    });
+
+    test('preserves null counts when scaling', () {
+      expect(UsageMetadata(totalTokenCount: 10) * 0,
+          equals(UsageMetadata(totalTokenCount: 0)));
+    });
+
+    test('rejects invalid multiplication factors', () {
+      final meta = UsageMetadata(totalTokenCount: 10);
+
+      expect(() => meta * -1, throwsArgumentError);
+      expect(() => meta * double.nan, throwsArgumentError);
+      expect(() => meta * double.infinity, throwsArgumentError);
+    });
+  });
+
+  group('SandboxStatus', () {
+    test('round-trips available status', () {
+      final status = SandboxStatus(available: true);
+
+      expect(SandboxStatus.fromMap(status.toMap()), equals(status));
+      expect(status.toMap(), equals({'available': true}));
+    });
+
+    test('round-trips unavailable reason', () {
+      final status = SandboxStatus(
+        available: false,
+        unavailableReason: 'Unsupported host',
+      );
+
+      expect(SandboxStatus.fromJson(status.toJson()), equals(status));
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -474,6 +523,27 @@ void main() {
       final json = CapabilitiesConfig(compactionThreshold: 8000).toMap();
       expect(json['compaction_threshold'], equals(8000));
     });
+
+    test('serializes tool output truncation configuration', () {
+      final json = CapabilitiesConfig(
+        toolOutputTruncationConfig: ToolOutputTruncationConfig(maxTokens: 2048),
+      ).toMap();
+
+      expect(
+          json['tool_output_truncation_config'], equals({'max_tokens': 2048}));
+    });
+
+    test('validates tool output truncation limits', () {
+      expect(
+        () => ToolOutputTruncationConfig(maxTokens: -1),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => ToolOutputTruncationConfig(maxTokens: 2147483648),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(ToolOutputTruncationConfig(maxTokens: 0).maxTokens, equals(0));
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -496,6 +566,15 @@ void main() {
         BuiltinTools.allTools().length,
         equals(BuiltinTools.values.length),
       );
+    });
+
+    test('defaultTools() excludes askQuestion', () {
+      expect(
+          BuiltinTools.defaultTools(),
+          containsAll(BuiltinTools.values
+              .where((tool) => tool != BuiltinTools.askQuestion)));
+      expect(BuiltinTools.defaultTools(),
+          isNot(contains(BuiltinTools.askQuestion)));
     });
 
     test('nondestructive() does not include run_command', () {
@@ -1826,7 +1905,7 @@ void main() {
     });
   });
 
-  group('v0.13.0 updates', () {
+  group('v0.14.0 updates', () {
     test('BudgetScope.lifetime has protoValue BUDGET_SCOPE_LIFETIME', () {
       expect(BudgetScope.lifetime.protoValue, equals('BUDGET_SCOPE_LIFETIME'));
     });
