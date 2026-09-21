@@ -437,7 +437,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       'workspaces': workspacesProto,
       'skills_paths': _skillsPaths,
       'harness_side_tools': harnessSideTools,
-      'compaction_threshold': compaction?.checkpointIntervalTokens ??
+      'compaction_threshold': compaction?.tokenThreshold ??
           // ignore: deprecated_member_use_from_same_package
           cfg.compactionThreshold ??
           0,
@@ -462,17 +462,14 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     // ignore: deprecated_member_use_from_same_package
     final threshold = _capabilitiesConfig.compactionThreshold;
     if (threshold != null) {
-      return CompactionConfig(checkpointIntervalTokens: threshold);
+      return CompactionConfig(tokenThreshold: threshold);
     }
     return null;
   }
 
   Map<String, dynamic> _buildCompactionConfigProto(CompactionConfig cfg) {
     return {
-      if (cfg.checkpointIntervalTokens != null)
-        'checkpoint_interval_tokens': cfg.checkpointIntervalTokens,
-      if (cfg.maxContextTokens != null)
-        'max_context_tokens': cfg.maxContextTokens,
+      if (cfg.tokenThreshold != null) 'token_threshold': cfg.tokenThreshold,
     };
   }
 
@@ -628,12 +625,12 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   }
 
   Set<BuiltinTools> _resolveActiveTools(CapabilitiesConfig cfg) {
-    final allTools = BuiltinTools.values.toSet();
+    final defaultTools = BuiltinTools.defaultTools().toSet();
     if (cfg.enabledTools != null) return cfg.enabledTools!.toSet();
     if (cfg.disabledTools != null) {
-      return allTools.difference(cfg.disabledTools!.toSet());
+      return defaultTools.difference(cfg.disabledTools!.toSet());
     }
-    return allTools;
+    return defaultTools;
   }
 
   Map<String, dynamic> _buildHarnessSideTools(

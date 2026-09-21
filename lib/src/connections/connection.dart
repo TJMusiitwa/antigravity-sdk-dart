@@ -142,7 +142,7 @@ abstract class AgentConfig with AgentConfigMappable {
     // ignore: deprecated_member_use_from_same_package
     final threshold = capabilities.compactionThreshold;
     if (threshold != null) {
-      return CompactionConfig(checkpointIntervalTokens: threshold);
+      return CompactionConfig(tokenThreshold: threshold);
     }
     return null;
   }
@@ -156,7 +156,7 @@ abstract class AgentConfig with AgentConfigMappable {
   /// - `capabilities.enabledTools` restricted to [BuiltinTools.minimal]
   /// - `capabilities.agentBehavior` set to [AgentBehavior.minimal]
   /// - `capabilities.enableSubagents` set to `false`
-  /// - `compactionConfig.checkpointIntervalTokens` set to
+  /// - `compactionConfig.tokenThreshold` set to
   ///   [lightweightCheckpointIntervalTokens] (64 Ki tokens)
   ///
   /// Explicitly configured capabilities that remain meaningful under these
@@ -196,6 +196,7 @@ abstract class AgentConfig with AgentConfigMappable {
       enableSubagents: false,
       runCommandConfig: capabilities.runCommandConfig,
       finishToolSchemaJson: capabilities.finishToolSchemaJson,
+      toolOutputTruncationConfig: capabilities.toolOutputTruncationConfig,
     );
   }
 
@@ -205,7 +206,7 @@ abstract class AgentConfig with AgentConfigMappable {
   CompactionConfig lightweightCompactionConfig() {
     return compactionConfig ??
         CompactionConfig(
-          checkpointIntervalTokens: lightweightCheckpointIntervalTokens,
+          tokenThreshold: lightweightCheckpointIntervalTokens,
         );
   }
 

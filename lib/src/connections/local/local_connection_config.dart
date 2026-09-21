@@ -464,8 +464,8 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
 
   /// Maximum sequence length/context window for the LiteRT runner.
   @Deprecated(
-    'Use compactionConfig: CompactionConfig(maxContextTokens: ...) instead. '
-    'The context ceiling is now part of the shared compaction policy.',
+    'Use the LiteRT server context configuration instead. '
+    'CompactionConfig now only controls tokenThreshold.',
   )
   final int? maxContextTokens;
 
@@ -500,28 +500,14 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
     super.compactionConfig,
   });
 
-  /// Folds the deprecated [maxContextTokens] into the shared compaction policy
-  /// so the LiteRT runner and the harness read a single source of truth.
+  /// Returns the shared compaction policy, if one was configured.
   @override
   CompactionConfig? get effectiveCompactionConfig {
-    final base = super.effectiveCompactionConfig;
-    // ignore: deprecated_member_use_from_same_package
-    final legacyCeiling = maxContextTokens;
-    if (legacyCeiling == null) return base;
-    if (base == null) {
-      return CompactionConfig(maxContextTokens: legacyCeiling);
-    }
-    if (base.maxContextTokens != null) return base;
-    return CompactionConfig(
-      checkpointIntervalTokens: base.checkpointIntervalTokens,
-      maxContextTokens: legacyCeiling,
-    );
+    return super.effectiveCompactionConfig;
   }
 
-  /// The context-window ceiling handed to the LiteRT runner, resolved from
-  /// [compactionConfig] and falling back to the deprecated [maxContextTokens].
-  int? get effectiveMaxContextTokens =>
-      effectiveCompactionConfig?.maxContextTokens;
+  /// The context-window ceiling handed to the LiteRT runner.
+  int? get effectiveMaxContextTokens => maxContextTokens;
 
   @override
   LiteRTAgentConfig lightweight() => copyWith(
