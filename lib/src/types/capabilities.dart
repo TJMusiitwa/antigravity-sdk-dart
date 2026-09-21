@@ -6,6 +6,9 @@ part 'capabilities.mapper.dart';
 
 final _logger = Logger('antigravity.capabilities');
 
+/// Maximum value for protobuf int32 wire fields.
+const int _maxInt32 = 2147483647; // 2^31 - 1
+
 /// Identifiers for common connection-provided builtin tools.
 @MappableEnum()
 enum BuiltinTools {
@@ -38,6 +41,17 @@ enum BuiltinTools {
 
   final String value;
   const BuiltinTools(this.value);
+
+  /// Returns the default set of builtin tools for autonomous agents.
+  ///
+  /// Excludes [askQuestion] because autonomous agents cannot prompt the user.
+  /// To enable [askQuestion], it must be explicitly included in
+  /// [CapabilitiesConfig.enabledTools].
+  static List<BuiltinTools> defaultTools() {
+    return BuiltinTools.values
+        .where((t) => t != BuiltinTools.askQuestion)
+        .toList();
+  }
 
   static List<BuiltinTools> readOnly() {
     return [
@@ -174,7 +188,58 @@ class RunCommandConfig with RunCommandConfigMappable {
       RunCommandConfigMapper.fromJson(json);
 }
 
+/// Configuration for truncating large tool outputs.
+///
+/// When a tool's output exceeds [maxTokens], the harness preserves the
+/// beginning (prefix) of the output up to the limit and truncates the
+/// remainder (tail), appending a notice informing the model that the output
+/// was truncated.
+///
+/// Example:
+/// ```dart
+/// final config = ToolOutputTruncationConfig(maxTokens: 2048);
+/// ```
+@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+class ToolOutputTruncationConfig with ToolOutputTruncationConfigMappable {
+  /// Maximum number of estimated tokens for a single tool response.
+  ///
+  /// Must be non-negative. Preserves the beginning (prefix) of the tool
+  /// response and truncates the end (tail). Setting to 0 explicitly disables
+  /// truncation.
+  final int maxTokens;
+
+  ToolOutputTruncationConfig({required this.maxTokens}) {
+    if (maxTokens < 0 || maxTokens > _maxInt32) {
+      throw AntigravityValidationException(
+        'maxTokens must be between 0 and $_maxInt32 inclusive, got $maxTokens',
+      );
+    }
+  }
+
+  factory ToolOutputTruncationConfig.fromMap(Map<String, dynamic> map) =>
+      ToolOutputTruncationConfigMapper.fromMap(map);
+  factory ToolOutputTruncationConfig.fromJson(String json) =>
+      ToolOutputTruncationConfigMapper.fromJson(json);
+}
+
 /// General agent capability configuration.
+///
+/// **Disabling vs. Denying Tools:**
+///
+/// [enabledTools] / [disabledTools] control which tools the harness *exposes*
+/// to the model. A disabled tool is stripped from the model's context entirely —
+/// the model never sees it, never wastes tokens considering it, and never
+/// attempts to call it. Use these fields when a tool is irrelevant to the
+/// agent's purpose.
+///
+/// By contrast, the policy system leaves a tool visible in the model's context
+/// but rejects the call at runtime. The model may still attempt to invoke a
+/// policy-denied tool, at which point the SDK returns a denial message. This
+/// costs tokens and may cause retries, but allows the model to understand *why*
+/// access was refused.
+///
+/// **Guideline**: Prefer [disabledTools] / [enabledTools] for tools the agent
+/// should never use. Use `policy.deny()` for conditional restrictions.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class CapabilitiesConfig with CapabilitiesConfigMappable {
   /// Whether subagent spawning is enabled for this agent.
@@ -183,14 +248,27 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
   /// The execution behavior of the agent (e.g. autonomous or interactive).
   final AgentBehavior agentBehavior;
 
-  /// Optional explicit list of builtin tools to enable.
+  /// Explicit allowlist of builtin tools to enable. Mutually exclusive with
+  /// [disabledTools]. When null, all tools enabled except [BuiltinTools.askQuestion]
+  /// (see [BuiltinTools.defaultTools]). Disabled tools are removed from the
+  /// model's context, saving tokens and preventing the model from even
+  /// considering them.
   final List<BuiltinTools>? enabledTools;
 
-  /// Optional explicit list of builtin tools to disable.
+  /// Explicit denylist of builtin tools to disable. Mutually exclusive with
+  /// [enabledTools]. When specified, the given tools are subtracted from
+  /// [BuiltinTools.defaultTools] (which already excludes [BuiltinTools.askQuestion]).
+  /// When null, all default tools are enabled. Note that to enable
+  /// [BuiltinTools.askQuestion], it must be explicitly included in [enabledTools].
   final List<BuiltinTools>? disabledTools;
 
   /// Maximum message compaction threshold before historical turns are summarized.
-  @Deprecated('Use CompactionConfig directly on AgentConfig instead')
+  ///
+  /// **Deprecated:** Configure `CompactionConfig(tokenThreshold: ...)` directly
+  /// on `AgentConfig` instead.
+  @Deprecated(
+    'Use CompactionConfig(tokenThreshold: ...) directly on AgentConfig instead',
+  )
   final int? compactionThreshold;
 
   /// Custom finish tool JSON schema definition.
@@ -204,6 +282,12 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
 
   /// Optional configuration for the builtin run_command tool.
   final RunCommandConfig? runCommandConfig;
+
+  /// Optional configuration for truncating large tool outputs.
+  ///
+  /// Preserves the beginning (prefix) of the response and truncates the end.
+  /// Can be specified as a [ToolOutputTruncationConfig] object.
+  final ToolOutputTruncationConfig? toolOutputTruncationConfig;
 
   /// Backward compatibility alias for [agentBehavior].
   AgentBehavior get agentMode => agentBehavior;
@@ -219,6 +303,7 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
     this.maxSubagentDepth,
     this.allowedSubagents,
     this.runCommandConfig,
+    this.toolOutputTruncationConfig,
   }) : agentBehavior = resolveAgentBehaviorAndWarn(
           agentBehavior: agentBehavior,
           agentMode: agentMode,
@@ -233,9 +318,15 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
     }
     // ignore: deprecated_member_use_from_same_package
     final threshold = compactionThreshold;
-    if (threshold != null && threshold <= 0) {
-      throw AntigravityValidationException(
-        'compactionThreshold must be greater than 0, got $threshold',
+    if (threshold != null) {
+      if (threshold <= 0) {
+        throw AntigravityValidationException(
+          'compactionThreshold must be greater than 0, got $threshold',
+        );
+      }
+      _logger.warning(
+        'CapabilitiesConfig.compactionThreshold is deprecated. Configure '
+        'CompactionConfig(tokenThreshold: ...) directly on AgentConfig instead.',
       );
     }
     if (maxSubagentDepth != null && maxSubagentDepth! < 1) {

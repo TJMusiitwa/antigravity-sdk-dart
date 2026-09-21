@@ -121,6 +121,33 @@ enum StepStatus {
   }
 }
 
+/// OS command sandbox (exebox) status reported by the harness.
+///
+/// The harness emits this in an environment event early in the session to
+/// indicate whether OS-level command sandboxing is actually available.
+@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+class SandboxStatus with SandboxStatusMappable {
+  /// Whether the sandbox actually enforces isolation.
+  ///
+  /// When false, `run_command` executes unsandboxed even if
+  /// `RunCommandConfig.enableSandbox` was requested.
+  final bool available;
+
+  /// Human-readable explanation when [available] is false; null when the
+  /// sandbox is available.
+  final String? unavailableReason;
+
+  SandboxStatus({
+    required this.available,
+    this.unavailableReason,
+  });
+
+  factory SandboxStatus.fromMap(Map<String, dynamic> map) =>
+      SandboxStatusMapper.fromMap(map);
+  factory SandboxStatus.fromJson(String json) =>
+      SandboxStatusMapper.fromJson(json);
+}
+
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class UsageMetadata with UsageMetadataMappable {
   final int? promptTokenCount;
@@ -179,6 +206,44 @@ class UsageMetadata with UsageMetadataMappable {
           (thoughtsTokenCount ?? 0) - (other.thoughtsTokenCount ?? 0),
       totalTokenCount: (totalTokenCount ?? 0) - (other.totalTokenCount ?? 0),
       serviceTier: serviceTier ?? other.serviceTier,
+    );
+  }
+
+  /// Scales all token counts by a non-negative, finite numeric [factor].
+  ///
+  /// Each field is individually multiplied and rounded to the nearest integer.
+  /// Fields that were null remain null in the result.
+  ///
+  /// Throws [ArgumentError] if [factor] is negative, infinite, or NaN.
+  ///
+  /// Example — scale a usage sample by 1.5:
+  /// ```dart
+  /// final scaled = usage * 1.5;
+  /// ```
+  UsageMetadata operator *(num factor) {
+    if (factor.isNaN || factor.isInfinite || factor < 0) {
+      throw ArgumentError.value(
+        factor,
+        'factor',
+        'Multiplication factor must be a finite, non-negative number',
+      );
+    }
+    return UsageMetadata(
+      promptTokenCount: promptTokenCount != null
+          ? (promptTokenCount! * factor).round()
+          : null,
+      cachedContentTokenCount: cachedContentTokenCount != null
+          ? (cachedContentTokenCount! * factor).round()
+          : null,
+      candidatesTokenCount: candidatesTokenCount != null
+          ? (candidatesTokenCount! * factor).round()
+          : null,
+      thoughtsTokenCount: thoughtsTokenCount != null
+          ? (thoughtsTokenCount! * factor).round()
+          : null,
+      totalTokenCount:
+          totalTokenCount != null ? (totalTokenCount! * factor).round() : null,
+      serviceTier: serviceTier,
     );
   }
 }

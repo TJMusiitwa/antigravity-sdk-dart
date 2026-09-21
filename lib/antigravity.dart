@@ -15,6 +15,8 @@ export 'src/tools/tool_runner.dart';
 export 'src/triggers/trigger_runner.dart';
 export 'src/triggers/triggers.dart';
 export 'src/types.dart';
+export 'src/types/capabilities.dart';
+export 'src/types/step.dart';
 export 'src/utils/binary_discovery.dart';
 export 'src/utils/harness_downloader.dart';
 export 'src/utils/interactive.dart';

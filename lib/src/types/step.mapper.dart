@@ -261,6 +261,150 @@ extension StepStatusMapperExtension on StepStatus {
 }
 
 /// @nodoc
+class SandboxStatusMapper extends ClassMapperBase<SandboxStatus> {
+  SandboxStatusMapper._();
+
+  static SandboxStatusMapper? _instance;
+  static SandboxStatusMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(_instance = SandboxStatusMapper._());
+    }
+    return _instance!;
+  }
+
+  @override
+  final String id = 'SandboxStatus';
+
+  static bool _$available(SandboxStatus v) => v.available;
+  static const Field<SandboxStatus, bool> _f$available = Field(
+    'available',
+    _$available,
+  );
+  static String? _$unavailableReason(SandboxStatus v) => v.unavailableReason;
+  static const Field<SandboxStatus, String> _f$unavailableReason = Field(
+    'unavailableReason',
+    _$unavailableReason,
+    key: r'unavailable_reason',
+    opt: true,
+  );
+
+  @override
+  final MappableFields<SandboxStatus> fields = const {
+    #available: _f$available,
+    #unavailableReason: _f$unavailableReason,
+  };
+  @override
+  final bool ignoreNull = true;
+
+  static SandboxStatus _instantiate(DecodingData data) {
+    return SandboxStatus(
+      available: data.dec(_f$available),
+      unavailableReason: data.dec(_f$unavailableReason),
+    );
+  }
+
+  @override
+  final Function instantiate = _instantiate;
+
+  static SandboxStatus fromMap(Map<String, dynamic> map) {
+    return ensureInitialized().decodeMap<SandboxStatus>(map);
+  }
+
+  static SandboxStatus fromJson(String json) {
+    return ensureInitialized().decodeJson<SandboxStatus>(json);
+  }
+}
+
+/// @nodoc
+mixin SandboxStatusMappable {
+  String toJson() {
+    return SandboxStatusMapper.ensureInitialized().encodeJson<SandboxStatus>(
+      this as SandboxStatus,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return SandboxStatusMapper.ensureInitialized().encodeMap<SandboxStatus>(
+      this as SandboxStatus,
+    );
+  }
+
+  SandboxStatusCopyWith<SandboxStatus, SandboxStatus, SandboxStatus>
+      get copyWith => _SandboxStatusCopyWithImpl<SandboxStatus, SandboxStatus>(
+            this as SandboxStatus,
+            $identity,
+            $identity,
+          );
+  @override
+  String toString() {
+    return SandboxStatusMapper.ensureInitialized().stringifyValue(
+      this as SandboxStatus,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return SandboxStatusMapper.ensureInitialized().equalsValue(
+      this as SandboxStatus,
+      other,
+    );
+  }
+
+  @override
+  int get hashCode {
+    return SandboxStatusMapper.ensureInitialized().hashValue(
+      this as SandboxStatus,
+    );
+  }
+}
+
+/// @nodoc
+extension SandboxStatusValueCopy<$R, $Out>
+    on ObjectCopyWith<$R, SandboxStatus, $Out> {
+  SandboxStatusCopyWith<$R, SandboxStatus, $Out> get $asSandboxStatus =>
+      $base.as((v, t, t2) => _SandboxStatusCopyWithImpl<$R, $Out>(v, t, t2));
+}
+
+/// @nodoc
+abstract class SandboxStatusCopyWith<$R, $In extends SandboxStatus, $Out>
+    implements ClassCopyWith<$R, $In, $Out> {
+  $R call({bool? available, String? unavailableReason});
+  SandboxStatusCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
+}
+
+/// @nodoc
+class _SandboxStatusCopyWithImpl<$R, $Out>
+    extends ClassCopyWithBase<$R, SandboxStatus, $Out>
+    implements SandboxStatusCopyWith<$R, SandboxStatus, $Out> {
+  _SandboxStatusCopyWithImpl(super.value, super.then, super.then2);
+
+  @override
+  late final ClassMapperBase<SandboxStatus> $mapper =
+      SandboxStatusMapper.ensureInitialized();
+  @override
+  $R call({bool? available, Object? unavailableReason = $none}) => $apply(
+        FieldCopyWithData({
+          if (available != null) #available: available,
+          if (unavailableReason != $none) #unavailableReason: unavailableReason,
+        }),
+      );
+  @override
+  SandboxStatus $make(CopyWithData data) => SandboxStatus(
+        available: data.get(#available, or: $value.available),
+        unavailableReason: data.get(
+          #unavailableReason,
+          or: $value.unavailableReason,
+        ),
+      );
+
+  @override
+  SandboxStatusCopyWith<$R2, SandboxStatus, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  ) =>
+      _SandboxStatusCopyWithImpl<$R2, $Out2>($value, $cast, t);
+}
+
+/// @nodoc
 class UsageMetadataMapper extends ClassMapperBase<UsageMetadata> {
   UsageMetadataMapper._();
 

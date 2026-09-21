@@ -320,6 +320,145 @@ class _RunCommandConfigCopyWithImpl<$R, $Out>
 }
 
 /// @nodoc
+class ToolOutputTruncationConfigMapper
+    extends ClassMapperBase<ToolOutputTruncationConfig> {
+  ToolOutputTruncationConfigMapper._();
+
+  static ToolOutputTruncationConfigMapper? _instance;
+  static ToolOutputTruncationConfigMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(
+        _instance = ToolOutputTruncationConfigMapper._(),
+      );
+    }
+    return _instance!;
+  }
+
+  @override
+  final String id = 'ToolOutputTruncationConfig';
+
+  static int _$maxTokens(ToolOutputTruncationConfig v) => v.maxTokens;
+  static const Field<ToolOutputTruncationConfig, int> _f$maxTokens = Field(
+    'maxTokens',
+    _$maxTokens,
+    key: r'max_tokens',
+  );
+
+  @override
+  final MappableFields<ToolOutputTruncationConfig> fields = const {
+    #maxTokens: _f$maxTokens,
+  };
+  @override
+  final bool ignoreNull = true;
+
+  static ToolOutputTruncationConfig _instantiate(DecodingData data) {
+    return ToolOutputTruncationConfig(maxTokens: data.dec(_f$maxTokens));
+  }
+
+  @override
+  final Function instantiate = _instantiate;
+
+  static ToolOutputTruncationConfig fromMap(Map<String, dynamic> map) {
+    return ensureInitialized().decodeMap<ToolOutputTruncationConfig>(map);
+  }
+
+  static ToolOutputTruncationConfig fromJson(String json) {
+    return ensureInitialized().decodeJson<ToolOutputTruncationConfig>(json);
+  }
+}
+
+/// @nodoc
+mixin ToolOutputTruncationConfigMappable {
+  String toJson() {
+    return ToolOutputTruncationConfigMapper.ensureInitialized()
+        .encodeJson<ToolOutputTruncationConfig>(
+      this as ToolOutputTruncationConfig,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return ToolOutputTruncationConfigMapper.ensureInitialized()
+        .encodeMap<ToolOutputTruncationConfig>(
+      this as ToolOutputTruncationConfig,
+    );
+  }
+
+  ToolOutputTruncationConfigCopyWith<ToolOutputTruncationConfig,
+          ToolOutputTruncationConfig, ToolOutputTruncationConfig>
+      get copyWith => _ToolOutputTruncationConfigCopyWithImpl<
+              ToolOutputTruncationConfig, ToolOutputTruncationConfig>(
+          this as ToolOutputTruncationConfig, $identity, $identity);
+  @override
+  String toString() {
+    return ToolOutputTruncationConfigMapper.ensureInitialized().stringifyValue(
+      this as ToolOutputTruncationConfig,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return ToolOutputTruncationConfigMapper.ensureInitialized().equalsValue(
+      this as ToolOutputTruncationConfig,
+      other,
+    );
+  }
+
+  @override
+  int get hashCode {
+    return ToolOutputTruncationConfigMapper.ensureInitialized().hashValue(
+      this as ToolOutputTruncationConfig,
+    );
+  }
+}
+
+/// @nodoc
+extension ToolOutputTruncationConfigValueCopy<$R, $Out>
+    on ObjectCopyWith<$R, ToolOutputTruncationConfig, $Out> {
+  ToolOutputTruncationConfigCopyWith<$R, ToolOutputTruncationConfig, $Out>
+      get $asToolOutputTruncationConfig => $base.as(
+            (v, t, t2) =>
+                _ToolOutputTruncationConfigCopyWithImpl<$R, $Out>(v, t, t2),
+          );
+}
+
+/// @nodoc
+abstract class ToolOutputTruncationConfigCopyWith<
+    $R,
+    $In extends ToolOutputTruncationConfig,
+    $Out> implements ClassCopyWith<$R, $In, $Out> {
+  $R call({int? maxTokens});
+  ToolOutputTruncationConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  );
+}
+
+/// @nodoc
+class _ToolOutputTruncationConfigCopyWithImpl<$R, $Out>
+    extends ClassCopyWithBase<$R, ToolOutputTruncationConfig, $Out>
+    implements
+        ToolOutputTruncationConfigCopyWith<$R, ToolOutputTruncationConfig,
+            $Out> {
+  _ToolOutputTruncationConfigCopyWithImpl(super.value, super.then, super.then2);
+
+  @override
+  late final ClassMapperBase<ToolOutputTruncationConfig> $mapper =
+      ToolOutputTruncationConfigMapper.ensureInitialized();
+  @override
+  $R call({int? maxTokens}) =>
+      $apply(FieldCopyWithData({if (maxTokens != null) #maxTokens: maxTokens}));
+  @override
+  ToolOutputTruncationConfig $make(CopyWithData data) =>
+      ToolOutputTruncationConfig(
+        maxTokens: data.get(#maxTokens, or: $value.maxTokens),
+      );
+
+  @override
+  ToolOutputTruncationConfigCopyWith<$R2, ToolOutputTruncationConfig, $Out2>
+      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+          _ToolOutputTruncationConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+}
+
+/// @nodoc
 class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
   CapabilitiesConfigMapper._();
 
@@ -330,6 +469,7 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
       AgentBehaviorMapper.ensureInitialized();
       BuiltinToolsMapper.ensureInitialized();
       RunCommandConfigMapper.ensureInitialized();
+      ToolOutputTruncationConfigMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -415,6 +555,17 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
     key: r'run_command_config',
     opt: true,
   );
+  static ToolOutputTruncationConfig? _$toolOutputTruncationConfig(
+    CapabilitiesConfig v,
+  ) =>
+      v.toolOutputTruncationConfig;
+  static const Field<CapabilitiesConfig, ToolOutputTruncationConfig>
+      _f$toolOutputTruncationConfig = Field(
+    'toolOutputTruncationConfig',
+    _$toolOutputTruncationConfig,
+    key: r'tool_output_truncation_config',
+    opt: true,
+  );
 
   @override
   final MappableFields<CapabilitiesConfig> fields = const {
@@ -428,6 +579,7 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
     #maxSubagentDepth: _f$maxSubagentDepth,
     #allowedSubagents: _f$allowedSubagents,
     #runCommandConfig: _f$runCommandConfig,
+    #toolOutputTruncationConfig: _f$toolOutputTruncationConfig,
   };
   @override
   final bool ignoreNull = true;
@@ -444,6 +596,7 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
       maxSubagentDepth: data.dec(_f$maxSubagentDepth),
       allowedSubagents: data.dec(_f$allowedSubagents),
       runCommandConfig: data.dec(_f$runCommandConfig),
+      toolOutputTruncationConfig: data.dec(_f$toolOutputTruncationConfig),
     );
   }
 
@@ -521,6 +674,8 @@ abstract class CapabilitiesConfigCopyWith<$R, $In extends CapabilitiesConfig,
       get allowedSubagents;
   RunCommandConfigCopyWith<$R, RunCommandConfig, RunCommandConfig>?
       get runCommandConfig;
+  ToolOutputTruncationConfigCopyWith<$R, ToolOutputTruncationConfig,
+      ToolOutputTruncationConfig>? get toolOutputTruncationConfig;
   $R call({
     bool? enableSubagents,
     AgentBehavior? agentBehavior,
@@ -532,6 +687,7 @@ abstract class CapabilitiesConfigCopyWith<$R, $In extends CapabilitiesConfig,
     int? maxSubagentDepth,
     List<String>? allowedSubagents,
     RunCommandConfig? runCommandConfig,
+    ToolOutputTruncationConfig? toolOutputTruncationConfig,
   });
   CapabilitiesConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -582,6 +738,12 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
             (v) => call(runCommandConfig: v),
           );
   @override
+  ToolOutputTruncationConfigCopyWith<$R, ToolOutputTruncationConfig,
+          ToolOutputTruncationConfig>?
+      get toolOutputTruncationConfig =>
+          $value.toolOutputTruncationConfig?.copyWith
+              .$chain((v) => call(toolOutputTruncationConfig: v));
+  @override
   $R call({
     bool? enableSubagents,
     Object? agentBehavior = $none,
@@ -593,6 +755,7 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
     Object? maxSubagentDepth = $none,
     Object? allowedSubagents = $none,
     Object? runCommandConfig = $none,
+    Object? toolOutputTruncationConfig = $none,
   }) =>
       $apply(
         FieldCopyWithData({
@@ -608,6 +771,8 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
           if (maxSubagentDepth != $none) #maxSubagentDepth: maxSubagentDepth,
           if (allowedSubagents != $none) #allowedSubagents: allowedSubagents,
           if (runCommandConfig != $none) #runCommandConfig: runCommandConfig,
+          if (toolOutputTruncationConfig != $none)
+            #toolOutputTruncationConfig: toolOutputTruncationConfig,
         }),
       );
   @override
@@ -631,6 +796,10 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
             data.get(#allowedSubagents, or: $value.allowedSubagents),
         runCommandConfig:
             data.get(#runCommandConfig, or: $value.runCommandConfig),
+        toolOutputTruncationConfig: data.get(
+          #toolOutputTruncationConfig,
+          or: $value.toolOutputTruncationConfig,
+        ),
       );
 
   @override

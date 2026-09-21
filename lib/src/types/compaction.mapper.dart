@@ -23,45 +23,23 @@ class CompactionConfigMapper extends ClassMapperBase<CompactionConfig> {
   @override
   final String id = 'CompactionConfig';
 
-  static int? _$checkpointIntervalTokens(CompactionConfig v) =>
-      v.checkpointIntervalTokens;
-  static const Field<CompactionConfig, int> _f$checkpointIntervalTokens = Field(
-    'checkpointIntervalTokens',
-    _$checkpointIntervalTokens,
-    key: r'checkpoint_interval_tokens',
-    opt: true,
-  );
-  static int? _$maxContextTokens(CompactionConfig v) => v.maxContextTokens;
-  static const Field<CompactionConfig, int> _f$maxContextTokens = Field(
-    'maxContextTokens',
-    _$maxContextTokens,
-    key: r'max_context_tokens',
-    opt: true,
-  );
-  static int? _$compactionThreshold(CompactionConfig v) =>
-      v.compactionThreshold;
-  static const Field<CompactionConfig, int> _f$compactionThreshold = Field(
-    'compactionThreshold',
-    _$compactionThreshold,
-    key: r'compaction_threshold',
+  static int? _$tokenThreshold(CompactionConfig v) => v.tokenThreshold;
+  static const Field<CompactionConfig, int> _f$tokenThreshold = Field(
+    'tokenThreshold',
+    _$tokenThreshold,
+    key: r'token_threshold',
     opt: true,
   );
 
   @override
   final MappableFields<CompactionConfig> fields = const {
-    #checkpointIntervalTokens: _f$checkpointIntervalTokens,
-    #maxContextTokens: _f$maxContextTokens,
-    #compactionThreshold: _f$compactionThreshold,
+    #tokenThreshold: _f$tokenThreshold,
   };
   @override
   final bool ignoreNull = true;
 
   static CompactionConfig _instantiate(DecodingData data) {
-    return CompactionConfig(
-      checkpointIntervalTokens: data.dec(_f$checkpointIntervalTokens),
-      maxContextTokens: data.dec(_f$maxContextTokens),
-      compactionThreshold: data.dec(_f$compactionThreshold),
-    );
+    return CompactionConfig(tokenThreshold: data.dec(_f$tokenThreshold));
   }
 
   @override
@@ -129,11 +107,7 @@ extension CompactionConfigValueCopy<$R, $Out>
 /// @nodoc
 abstract class CompactionConfigCopyWith<$R, $In extends CompactionConfig, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
-  $R call({
-    int? checkpointIntervalTokens,
-    int? maxContextTokens,
-    int? compactionThreshold,
-  });
+  $R call({int? tokenThreshold});
   CompactionConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
   );
@@ -149,32 +123,14 @@ class _CompactionConfigCopyWithImpl<$R, $Out>
   late final ClassMapperBase<CompactionConfig> $mapper =
       CompactionConfigMapper.ensureInitialized();
   @override
-  $R call({
-    Object? checkpointIntervalTokens = $none,
-    Object? maxContextTokens = $none,
-    Object? compactionThreshold = $none,
-  }) =>
-      $apply(
+  $R call({Object? tokenThreshold = $none}) => $apply(
         FieldCopyWithData({
-          if (checkpointIntervalTokens != $none)
-            #checkpointIntervalTokens: checkpointIntervalTokens,
-          if (maxContextTokens != $none) #maxContextTokens: maxContextTokens,
-          if (compactionThreshold != $none)
-            #compactionThreshold: compactionThreshold,
+          if (tokenThreshold != $none) #tokenThreshold: tokenThreshold,
         }),
       );
   @override
   CompactionConfig $make(CopyWithData data) => CompactionConfig(
-        checkpointIntervalTokens: data.get(
-          #checkpointIntervalTokens,
-          or: $value.checkpointIntervalTokens,
-        ),
-        maxContextTokens:
-            data.get(#maxContextTokens, or: $value.maxContextTokens),
-        compactionThreshold: data.get(
-          #compactionThreshold,
-          or: $value.compactionThreshold,
-        ),
+        tokenThreshold: data.get(#tokenThreshold, or: $value.tokenThreshold),
       );
 
   @override
