@@ -1,3 +1,10 @@
+## 0.14.0
+
+* **Sync with Python SDK v0.1.17**:
+  - Simplified `CompactionConfig` to the validated `tokenThreshold` field, retaining the deprecated `checkpointIntervalTokens` getter for source compatibility.
+  - Added `ToolOutputTruncationConfig`, `SandboxStatus`, `UsageMetadata` scalar multiplication, and `BuiltinTools.defaultTools()`.
+  - Updated generated mappers, harness serialization, documentation, and compatibility tests for the new wire shapes.
+
 # 0.13.0
 
 * **Sync with Python SDK v0.1.16**:
