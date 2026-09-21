@@ -15,12 +15,8 @@
 /// Example demonstrating context compaction policy in the Google Antigravity SDK.
 ///
 /// Long-running sessions eventually outgrow the model's context window. The
-/// harness handles this by periodically summarising older history into a
-/// checkpoint. [CompactionConfig] exposes two dials for that behavior:
-///   1. [CompactionConfig.checkpointIntervalTokens] — how many tokens of
-///      history accumulate before a background checkpoint (summary) is prepared.
-///   2. [CompactionConfig.maxContextTokens] — the hard ceiling on the context
-///      window, past which older turns are evicted.
+/// harness handles this by periodically summarising older history when the
+/// active trajectory exceeds [CompactionConfig.tokenThreshold].
 ///
 /// To run:
 ///   dart run example/getting_started/compaction.dart
@@ -36,19 +32,12 @@ import 'package:antigravity/antigravity.dart';
 Future<void> main() async {
   final config = LocalAgentConfig(
     compactionConfig: CompactionConfig(
-      // Interval at which background checkpoints (summaries) are prepared.
-      checkpointIntervalTokens: 40000,
-      // Maximum context window ceiling before older turns are evicted.
-      maxContextTokens: 100000,
+      tokenThreshold: 40000,
     ),
   );
 
   print('Compaction policy:');
-  print(
-    '  checkpointIntervalTokens: '
-    '${config.compactionConfig?.checkpointIntervalTokens}',
-  );
-  print('  maxContextTokens: ${config.compactionConfig?.maxContextTokens}');
+  print('  tokenThreshold: ${config.compactionConfig?.tokenThreshold}');
 
   final agent = Agent(config);
   await agent.start();

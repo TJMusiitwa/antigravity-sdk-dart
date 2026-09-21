@@ -195,7 +195,7 @@ dart run example/getting_started/hello_world.dart
 
 ### 21. Compaction (`compaction.dart`)
 * **Focus**: Context compaction policy.
-* **Details**: Demonstrates `CompactionConfig`, setting `checkpointIntervalTokens` (how much history accumulates before a background summary is prepared) and `maxContextTokens` (the hard context-window ceiling).
+* **Details**: Demonstrates `CompactionConfig`, setting `tokenThreshold` (the trajectory token threshold that triggers context compaction).
 * **Run Command**:
   ```bash
   dart run example/getting_started/compaction.dart
