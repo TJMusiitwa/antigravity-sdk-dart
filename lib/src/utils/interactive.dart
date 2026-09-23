@@ -3,10 +3,18 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../agent.dart';
+import '../connections/connection.dart';
 import '../hooks/hooks.dart';
 import '../hooks/policy.dart' as policy_module;
 import '../types.dart';
-import '../connections/connection.dart';
+
+final _ansiCsi = RegExp(r'\x1b\[[0-?]*[ -/]*[@-~]|\x1b[@-Z\\-_]');
+final _controlChars = RegExp(r'[\x00-\x08\x0b-\x1f\x7f-\x9f]');
+
+/// Strips ANSI escape sequences and control characters to prevent UI spoofing.
+String sanitizeTerminalText(Object? text) {
+  return text.toString().replaceAll(_ansiCsi, '').replaceAll(_controlChars, '');
+}
 
 // A shared broadcast stream for stdin lines to prevent "Stream has already been listened to" errors.
 Stream<String>? _stdinLines;
@@ -68,9 +76,11 @@ class ToolConfirmationHook extends PreToolCallDecideHook {
   Future<HookResult> run(HookContext context, ToolCall toolCall) async {
     Spinner.pauseActive();
     try {
-      print("\nTool execution requested: ${toolCall.name}");
+      print(
+        "\nTool execution requested: ${sanitizeTerminalText(toolCall.name)}",
+      );
       if (toolCall.args.isNotEmpty) {
-        print("Arguments: ${toolCall.args}");
+        print("Arguments: ${sanitizeTerminalText(toolCall.args)}");
       }
       try {
         final ans = await asyncInput("Allow execution? (y/n) [n]: ");
@@ -87,12 +97,22 @@ class ToolConfirmationHook extends PreToolCallDecideHook {
 }
 
 /// A policy handler that prompts the user for confirmation before executing a tool.
-Future<bool> askUserHandler(ToolCall tc) async {
+///
+/// Built-in interactive CLI confirmation handler for ASK_USER policies and auto
+/// policy mode. [reason] is supplied by the policy evaluation runtime (for
+/// example a safety assessment) and is displayed so the user can decide. It is
+/// optional so existing one-argument call sites keep compiling.
+Future<bool> askUserHandler(ToolCall tc, [String? reason]) async {
   Spinner.pauseActive();
   try {
-    print("\nPolicy check: Tool execution requested: ${tc.name}");
+    print(
+      "\nPolicy check: Tool execution requested: ${sanitizeTerminalText(tc.name)}",
+    );
+    if (reason != null && reason.isNotEmpty) {
+      print("Reason: ${sanitizeTerminalText(reason)}");
+    }
     if (tc.args.isNotEmpty) {
-      print("Arguments: ${tc.args}");
+      print("Arguments: ${sanitizeTerminalText(tc.args)}");
     }
     try {
       final ans = await asyncInput("Allow execution? (y/n) [n]: ");
@@ -174,7 +194,15 @@ List<policy_module.Policy> _upgradePoliciesList(
     List<policy_module.Policy> policies) {
   final upgraded = <policy_module.Policy>[];
   for (final p in policies) {
-    if (p.tool == BuiltinTools.runCommand.value &&
+    if (p is policy_module.AutoPolicy && p.askUser == null) {
+      upgraded.add(
+        policy_module.auto(
+          name: p.name.isNotEmpty ? p.name : 'auto',
+          handler: askUserHandler,
+          model: p.model,
+        ),
+      );
+    } else if (p.tool == BuiltinTools.runCommand.value &&
         p.decision == policy_module.Decision.deny &&
         p.when == null) {
       upgraded.add(

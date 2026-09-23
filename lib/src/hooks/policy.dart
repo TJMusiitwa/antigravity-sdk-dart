@@ -16,6 +16,15 @@ enum Decision {
   askUser,
 }
 
+/// An ask-user handler.
+///
+/// Receives the pending [ToolCall]. Handlers may optionally accept a `reason`
+/// supplied by the policy evaluation runtime (for example a safety assessment
+/// in auto policy mode), declared as an optional positional or named
+/// parameter. [executeAskUser] passes it only when the handler declares it, so
+/// existing one-argument handlers remain valid.
+typedef AskUserHandler = FutureOr<bool> Function(ToolCall toolCall);
+
 /// A single tool call policy rule in the Google Antigravity SDK.
 class Policy {
   /// The tool name that this policy targets (or '*' for a wildcard match).
@@ -28,10 +37,21 @@ class Policy {
   final FutureOr<bool> Function(ToolCall toolCall)? when;
 
   /// Interactivity callback handler when the [decision] is [Decision.askUser].
-  final FutureOr<bool> Function(ToolCall toolCall)? askUser;
+  final AskUserHandler? askUser;
 
   /// The unique descriptive name of the policy rule.
   final String name;
+
+  /// Optional explanation for why the policy matched.
+  ///
+  /// Forwarded to [askUser] handlers, and used as the deny reason when the
+  /// decision is [Decision.deny] or the user rejects the call.
+  final String reason;
+
+  /// Whether this policy enables auto policy mode safety evaluation.
+  ///
+  /// Always false for ordinary rules. [AutoPolicy] overrides this.
+  bool get auto => false;
 
   /// Creates a new [Policy] rule.
   Policy({
@@ -40,7 +60,47 @@ class Policy {
     this.when,
     this.askUser,
     this.name = '',
+    this.reason = '',
   });
+}
+
+/// A policy rule enabling auto policy mode safety evaluation.
+///
+/// When running in auto policy mode, commands and tool calls are assessed for
+/// safety by pre-tool safety assessors before execution. If flagged, execution
+/// is blocked, or user confirmation is requested when [askUser] is set.
+///
+/// Auto policy mode evaluates tools with inherent execution or network risk,
+/// such as shell command execution and external URL fetching. Standard
+/// read-only workspace operations are allowed without prompting. For file-write
+/// containment, pair [auto] with [workspaceOnly].
+///
+/// Evaluation order when combined with other policies:
+/// 1. Specific tool rules and server prefix rules run first and take precedence.
+/// 2. [auto] runs next for assessed tools and safety-flagged invocations.
+/// 3. Global wildcard rules ([denyAll], [allowAll]) run last as catch-all
+///    fallbacks for unassessed tools.
+class AutoPolicy extends Policy {
+  /// Optional Gemini model name used for safety evaluation.
+  ///
+  /// When null, the runtime's default safety assessment model is used.
+  final String? model;
+
+  @override
+  bool get auto => true;
+
+  /// Creates an [AutoPolicy].
+  ///
+  /// The tool target is always `*`. The decision is [Decision.askUser] when
+  /// [askUser] is set, otherwise [Decision.deny].
+  AutoPolicy({
+    super.askUser,
+    super.name = 'auto',
+    this.model,
+  }) : super(
+          tool: '*',
+          decision: askUser != null ? Decision.askUser : Decision.deny,
+        );
 }
 
 // --- Builder Helpers ---
@@ -51,7 +111,8 @@ List<Policy> _mcpPolicies(
   List<String>? mcpTools, {
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
-  FutureOr<bool> Function(ToolCall toolCall)? handler,
+  AskUserHandler? handler,
+  String reason = '',
 }) {
   final server = mcpConfig.name;
 
@@ -65,6 +126,7 @@ List<Policy> _mcpPolicies(
         when: when,
         name: policyName,
         askUser: handler,
+        reason: reason,
       ),
     ];
   }
@@ -81,6 +143,7 @@ List<Policy> _mcpPolicies(
         when: when,
         name: policyName,
         askUser: handler,
+        reason: reason,
       ),
     );
   }
@@ -94,9 +157,10 @@ dynamic _createPolicy(
   Decision decision,
   dynamic tool, {
   List<String>? mcpTools,
-  FutureOr<bool> Function(ToolCall toolCall)? handler,
+  AskUserHandler? handler,
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
+  String reason = '',
 }) {
   switch (tool) {
     case String s:
@@ -111,6 +175,7 @@ dynamic _createPolicy(
         when: when,
         askUser: handler,
         name: name,
+        reason: reason,
       );
     case McpServerConfig mcp:
       return _mcpPolicies(
@@ -120,6 +185,7 @@ dynamic _createPolicy(
         when: when,
         name: name,
         handler: handler,
+        reason: reason,
       );
     default:
       throw ArgumentError(
@@ -153,6 +219,7 @@ dynamic deny(
   List<String>? mcpTools,
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
+  String reason = '',
 }) =>
     _createPolicy(
       Decision.deny,
@@ -160,6 +227,7 @@ dynamic deny(
       mcpTools: mcpTools,
       when: when,
       name: name,
+      reason: reason,
     );
 
 /// Creates an ASK_USER policy.
@@ -171,12 +239,18 @@ dynamic deny(
 /// confirmation is delegated to the host platform environment (e.g. IDE UI / Flutter dialog);
 /// note that if client-side [enforce] is called with an [askUser] policy without a [handler],
 /// an [ArgumentError] is thrown to prevent unhandled confirmation gates.
+///
+/// Custom handlers receive the pending [ToolCall] and can optionally accept a
+/// `reason` parameter explaining why confirmation was requested by the runtime
+/// (for example a safety assessment in auto policy mode). [reason] is that
+/// explanation when the policy itself supplies one.
 dynamic askUser(
   dynamic tool, {
   List<String>? mcpTools,
-  FutureOr<bool> Function(ToolCall toolCall)? handler,
+  AskUserHandler? handler,
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
+  String reason = '',
 }) =>
     _createPolicy(
       Decision.askUser,
@@ -185,6 +259,7 @@ dynamic askUser(
       handler: handler,
       when: when,
       name: name,
+      reason: reason,
     );
 
 /// Creates a policy that approves all tool calls without confirmation.
@@ -194,11 +269,35 @@ Policy allowAll() => allow('*', name: 'allow_all');
 Policy denyAll() => deny('*', name: 'deny_all');
 
 /// Creates a list of safe default policies (allowing read-only, asking for everything else).
-List<Policy> safeDefaults(FutureOr<bool> Function(ToolCall toolCall) handler) {
+///
+/// Deprecated tools ([BuiltinTools.deprecated]) are treated as read-only here,
+/// matching upstream: they stay allowed when explicitly enabled, but are not
+/// part of [BuiltinTools.readOnly].
+List<Policy> safeDefaults(AskUserHandler handler) {
+  final readOnlyTools = [
+    ...BuiltinTools.readOnly(),
+    ...BuiltinTools.deprecated(),
+  ];
   return [
-    ...BuiltinTools.readOnly().map((t) => allow(t.value)),
+    ...readOnlyTools.map((t) => allow(t.value)),
     askUser('*', handler: handler),
   ];
+}
+
+/// Creates a policy enabling auto policy mode safety evaluation.
+///
+/// When running in auto policy mode, commands and tool calls are assessed for
+/// safety before execution. If flagged, execution is blocked, or [handler] is
+/// invoked to request confirmation. At most one [auto] rule may be specified.
+///
+/// [model] is an optional Gemini model name used for safety evaluation. When
+/// null, the runtime's default safety assessment model is used.
+AutoPolicy auto({
+  String name = 'auto',
+  AskUserHandler? handler,
+  String? model,
+}) {
+  return AutoPolicy(name: name, askUser: handler, model: model);
 }
 
 /// Denies or asks confirmation for running commands, allowing everything else.
@@ -296,7 +395,17 @@ List<Policy> workspaceOnly(List<String> workspaces) {
       .toList();
 }
 
-/// Creates a policy to allow tools only within a specific workspace.
+/// Creates a wildcard allow rule that matches non-file tools and file tools
+/// inside [workspacePath].
+///
+/// This rule never denies: a file call outside [workspacePath] simply does not
+/// match it. Local configs restrict file tools to their `workspaces` in the
+/// harness, and [workspaceOnly] denies file access outside a set of
+/// directories on the client.
+@Deprecated(
+  'Allows every non-file tool and never denies. Use the config `workspaces` '
+  '(enforced by the harness) or workspaceOnly() instead.',
+)
 Policy workspace(String workspacePath) {
   return allow(
     '*',
@@ -427,6 +536,11 @@ class PolicyDecideHook extends PreToolCallDecideHook {
   }
 
   Future<HookResult?> _evaluatePolicy(Policy p, ToolCall toolCall) async {
+    // Auto policy mode safety evaluation is enforced at the
+    // platform/execution layer, not by this client hook.
+    if (p.auto) {
+      return null;
+    }
     final targetInfo = _resolveCallTarget(toolCall);
     if (!_matchesTarget(p.tool, targetInfo.target, targetInfo.isMcp)) {
       return null;
@@ -464,21 +578,52 @@ class PolicyDecideHook extends PreToolCallDecideHook {
     String label,
   ) async {
     if (p.decision == Decision.deny) {
-      return HookResult(allow: false, message: "Denied by policy '$label'.");
+      return HookResult(
+        allow: false,
+        message: p.reason.isNotEmpty ? p.reason : "Denied by policy '$label'.",
+      );
     }
     if (p.decision == Decision.approve) {
       return HookResult(allow: true);
     }
     if (p.askUser != null) {
-      final approved = await p.askUser!(toolCall);
+      final approved = await executeAskUser(p, toolCall, reason: p.reason);
       if (approved) return HookResult(allow: true);
       return HookResult(
         allow: false,
-        message: "User denied tool '${toolCall.name}' (policy '$label').",
+        message: p.reason.isNotEmpty
+            ? p.reason
+            : "User denied tool '${toolCall.name}' (policy '$label').",
       );
     }
     return null;
   }
+}
+
+/// Invokes [policy]'s ask-user handler, passing [reason] when the callback
+/// accepts it.
+///
+/// [AskUserHandler] only requires the tool call, so pre-0.15.0 one-argument
+/// handlers stay valid. A handler that also declares an optional positional
+/// `reason` (`[String reason = '']` or `[String? reason]`) receives it, as does
+/// one declaring a named `{String reason = ''}` or `{String? reason}`. The
+/// handler is called exactly once.
+Future<bool> executeAskUser(
+  Policy policy,
+  ToolCall toolCall, {
+  String reason = '',
+}) async {
+  final handler = policy.askUser;
+  if (handler == null) {
+    throw StateError('ask_user handler is null');
+  }
+  if (handler is FutureOr<bool> Function(ToolCall, [String])) {
+    return await handler(toolCall, reason);
+  }
+  if (handler is FutureOr<bool> Function(ToolCall, {String reason})) {
+    return await handler(toolCall, reason: reason);
+  }
+  return await handler(toolCall);
 }
 
 /// Compiles list of Policies into a high-performance PreToolCallDecideHook.
@@ -501,6 +646,9 @@ PreToolCallDecideHook enforce(
   }
 
   for (final p in flatPolicies) {
+    // Auto policy without a handler denies flagged calls at the harness; it
+    // is not a client-side confirmation gate.
+    if (p.auto) continue;
     if (p.decision == Decision.askUser && p.askUser == null) {
       throw ArgumentError(
         "ASK_USER policy '${p.name.isNotEmpty ? p.name : p.tool}' is missing an ask_user handler.",
@@ -515,4 +663,93 @@ PreToolCallDecideHook enforce(
 
   final serverNames = mcpServers?.map((s) => s.name).toList();
   return PolicyDecideHook(buckets, serverNames: serverNames);
+}
+
+const String _policyDecisionAllow = 'POLICY_DECISION_ALLOW';
+const String _policyDecisionDeny = 'POLICY_DECISION_DENY';
+const String _policyDecisionAskUser = 'POLICY_DECISION_ASK_USER';
+
+/// Wire name of the workspace-only rule, skipped by dynamic evaluation.
+const String workspaceOnlyPolicyName = 'workspace_only';
+
+({String tool, String serverName}) _parseToolTarget(String tool) {
+  if (tool == '*') return (tool: '*', serverName: '');
+  final slash = tool.indexOf('/');
+  if (slash >= 0) {
+    return (
+      tool: tool.substring(slash + 1),
+      serverName: tool.substring(0, slash),
+    );
+  }
+  return (tool: tool, serverName: '');
+}
+
+String _decisionProto(Decision decision) => switch (decision) {
+      Decision.approve => _policyDecisionAllow,
+      Decision.deny => _policyDecisionDeny,
+      Decision.askUser => _policyDecisionAskUser,
+    };
+
+/// Serializes [policies] into the `localharness` `policy_config` map.
+///
+/// Static rules (no condition, not ASK_USER) are handled entirely by the
+/// harness. Dynamic rules are tagged with a `rule_id` and returned in
+/// [PolicyConfigProto.dynamicPolicies] so the connection can answer a
+/// `PolicyDecisionRequest`. At most one [AutoPolicy] is accepted; it is
+/// emitted as `auto_config` and stored under the rule id `auto`.
+({Map<String, dynamic> config, Map<String, Policy> dynamicPolicies})
+    toPolicyConfigProto(List<dynamic> policies) {
+  final flat = flattenPolicies(policies);
+  final dynamicPolicies = <String, Policy>{};
+  final rules = <Map<String, dynamic>>[];
+  AutoPolicy? autoPolicy;
+
+  for (var i = 0; i < flat.length; i++) {
+    final p = flat[i];
+    if (p is AutoPolicy) {
+      if (autoPolicy != null) {
+        throw ArgumentError(
+          'Multiple AutoPolicy rules found; at most one policy.auto() '
+          'rule may be specified.',
+        );
+      }
+      autoPolicy = p;
+      continue;
+    }
+
+    final target = _parseToolTarget(p.tool);
+    final isWorkspaceOnly = p.name == workspaceOnlyPolicyName;
+    final isDynamic =
+        (p.when != null || p.decision == Decision.askUser) && !isWorkspaceOnly;
+    final ruleId = isDynamic ? 'rule_$i' : '';
+    if (isDynamic) {
+      dynamicPolicies[ruleId] = p;
+    }
+    rules.add({
+      'tool': target.tool,
+      'server_name': target.serverName,
+      'name': p.name.isNotEmpty ? p.name : p.tool,
+      'decision': _decisionProto(p.decision),
+      'deny_reason': p.reason,
+      'is_dynamic': isDynamic,
+      'rule_id': ruleId,
+    });
+  }
+
+  Map<String, dynamic>? autoConfig;
+  if (autoPolicy != null) {
+    autoConfig = {
+      'enabled': true,
+      'model': autoPolicy.model ?? '',
+    };
+    dynamicPolicies['auto'] = autoPolicy;
+  }
+
+  return (
+    config: {
+      'rules': rules,
+      if (autoConfig != null) 'auto_config': autoConfig,
+    },
+    dynamicPolicies: dynamicPolicies,
+  );
 }
