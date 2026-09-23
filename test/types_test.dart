@@ -552,8 +552,12 @@ void main() {
   group('BuiltinTools', () {
     test('readOnly() contains expected tools', () {
       final ro = BuiltinTools.readOnly().map((t) => t.value).toSet();
-      expect(ro, containsAll(['list_directory', 'view_file', 'finish']));
+      expect(ro, containsAll(['view_file', 'schedule', 'finish']));
       expect(ro.contains('run_command'), isFalse);
+      // Deprecated directory tools are off by default.
+      expect(ro.contains('list_directory'), isFalse);
+      expect(ro.contains('search_directory'), isFalse);
+      expect(ro.contains('find_file'), isFalse);
     });
 
     test('fileTools() contains view, create, edit file', () {
@@ -568,13 +572,23 @@ void main() {
       );
     });
 
-    test('defaultTools() excludes askQuestion', () {
+    test('defaultTools() excludes askQuestion and deprecated tools', () {
+      final excluded = {
+        BuiltinTools.askQuestion,
+        ...BuiltinTools.deprecated(),
+      };
       expect(
-          BuiltinTools.defaultTools(),
-          containsAll(BuiltinTools.values
-              .where((tool) => tool != BuiltinTools.askQuestion)));
+        BuiltinTools.defaultTools(),
+        containsAll(
+            BuiltinTools.values.where((tool) => !excluded.contains(tool))),
+      );
       expect(BuiltinTools.defaultTools(),
           isNot(contains(BuiltinTools.askQuestion)));
+      expect(
+        BuiltinTools.defaultTools(),
+        isNot(contains(BuiltinTools.listDirectory)),
+      );
+      expect(BuiltinTools.defaultTools(), contains(BuiltinTools.schedule));
     });
 
     test('nondestructive() does not include run_command', () {
@@ -1940,8 +1954,6 @@ void main() {
           BuiltinTools.viewFile,
           BuiltinTools.createFile,
           BuiltinTools.editFile,
-          BuiltinTools.listDirectory,
-          BuiltinTools.searchDirectory,
         ]),
       );
     });
@@ -1956,6 +1968,35 @@ void main() {
     test('AgentBehavior.fromString parses minimal', () {
       expect(
           AgentBehavior.fromString('minimal'), equals(AgentBehavior.minimal));
+    });
+  });
+
+  group('v0.15.0 updates', () {
+    test('BuiltinTools.deprecated() is the directory tools disabled by default',
+        () {
+      expect(
+        BuiltinTools.deprecated(),
+        equals([
+          BuiltinTools.listDirectory,
+          BuiltinTools.searchDirectory,
+          BuiltinTools.findFile,
+        ]),
+      );
+    });
+
+    test('SubagentConfig.model serializes as a name-only wire field', () {
+      final subagent = SubagentConfig(
+        name: 'researcher',
+        description: 'Looks things up.',
+        model: 'gemini-2.5-pro',
+      );
+      expect(subagent.toMap()['model'], equals('gemini-2.5-pro'));
+      final parsed = SubagentConfig.fromMap({
+        'name': 'researcher',
+        'description': 'Looks things up.',
+        'model': 'gemini-2.5-pro',
+      });
+      expect(parsed.model, equals('gemini-2.5-pro'));
     });
   });
 }

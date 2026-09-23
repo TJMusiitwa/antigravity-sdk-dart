@@ -699,4 +699,114 @@ void main() {
       },
     );
   });
+
+  group('v0.1.18 auto policy and deny reason', () {
+    test('toPolicyConfigProto emits auto_config and stores the auto rule', () {
+      final encoded = toPolicyConfigProto([
+        auto(
+            handler: (tc, [reason]) async => reason == 'flagged',
+            model: 'gemini-2.5-flash'),
+        deny('run_command', reason: 'blocked'),
+      ]);
+      expect(
+          encoded.config['auto_config'],
+          equals({
+            'enabled': true,
+            'model': 'gemini-2.5-flash',
+          }));
+      expect(encoded.dynamicPolicies['auto'], isA<AutoPolicy>());
+      final rules = encoded.config['rules'] as List;
+      expect(rules, hasLength(1));
+      expect(rules.first['deny_reason'], equals('blocked'));
+      expect(rules.first['decision'], equals('POLICY_DECISION_DENY'));
+    });
+
+    test('a second auto() rule is rejected', () {
+      expect(
+        () => toPolicyConfigProto([auto(), auto()]),
+        throwsArgumentError,
+      );
+    });
+
+    test('deny reason is used as the client-side denial message', () async {
+      final hook = enforce([deny('run_command', reason: 'no shell')]);
+      final result =
+          await hook.run(HookContext(), ToolCall(name: 'run_command'));
+      expect(result.allow, isFalse);
+      expect(result.message, equals('no shell'));
+    });
+
+    test(
+        'executeAskUser passes the runtime reason only to handlers that take it',
+        () async {
+      String? seen;
+      final withReason = Policy(
+        tool: '*',
+        decision: Decision.askUser,
+        askUser: (tc, [reason]) async {
+          seen = reason;
+          return true;
+        },
+      );
+      expect(
+        await executeAskUser(withReason, ToolCall(name: 'run_command'),
+            reason: 'flagged'),
+        isTrue,
+      );
+      expect(seen, equals('flagged'));
+
+      final legacy = Policy(
+        tool: '*',
+        decision: Decision.askUser,
+        askUser: (ToolCall tc) async => tc.name == 'view_file',
+      );
+      expect(
+        await executeAskUser(legacy, ToolCall(name: 'view_file'),
+            reason: 'flagged'),
+        isTrue,
+      );
+    });
+
+    test('executeAskUser passes reason to a named parameter', () async {
+      String? seen;
+      final named = Policy(
+        tool: '*',
+        decision: Decision.askUser,
+        askUser: (ToolCall tc, {String reason = ''}) async {
+          seen = reason;
+          return true;
+        },
+      );
+      await executeAskUser(named, ToolCall(name: 'run_command'),
+          reason: 'flagged');
+      expect(seen, equals('flagged'));
+    });
+
+    test('executeAskUser calls the handler once when it throws', () async {
+      var calls = 0;
+      final broken = Policy(
+        tool: '*',
+        decision: Decision.askUser,
+        askUser: (tc, [reason]) async {
+          calls++;
+          // A bug inside the handler must not be mistaken for a signature
+          // mismatch and trigger a second prompt.
+          final dynamic missing = null;
+          return missing.call() as bool;
+        },
+      );
+      await expectLater(
+        executeAskUser(broken, ToolCall(name: 'run_command'), reason: 'x'),
+        throwsA(isA<NoSuchMethodError>()),
+      );
+      expect(calls, equals(1));
+    });
+
+    test('client enforce skips auto rules', () async {
+      final hook = enforce([auto()]);
+      final result =
+          await hook.run(HookContext(), ToolCall(name: 'run_command'));
+      expect(result.allow, isTrue);
+    });
+  });
 }

@@ -41,6 +41,61 @@ void main() {
       await agent.stop();
     });
 
+    test(
+        'Agent registers the client policy hook when the harness does not '
+        'evaluate policies', () async {
+      final config = FakeAgentConfig(strategy, policies: [allowAll()]);
+      final agent = Agent(config);
+      await agent.start();
+      expect(
+        config.capturedHookRunner!.preToolCallDecideHooks,
+        contains(isA<PolicyDecideHook>()),
+      );
+      await agent.stop();
+    });
+
+    test(
+        'Agent skips the client policy hook when the harness evaluates '
+        'policies', () async {
+      final config = FakeAgentConfig(
+        strategy,
+        harnessPolicies: true,
+        policies: [
+          askUser('run_command', handler: (tc) => true),
+          allowAll(),
+        ],
+      );
+      final agent = Agent(config);
+      await agent.start();
+      expect(
+        config.capturedHookRunner!.preToolCallDecideHooks
+            .whereType<PolicyDecideHook>(),
+        isEmpty,
+      );
+      await agent.stop();
+    });
+
+    test('Agent still validates policies evaluated by the harness', () async {
+      final config = FakeAgentConfig(
+        strategy,
+        harnessPolicies: true,
+        policies: [
+          Policy(tool: 'run_command', decision: Decision.askUser),
+        ],
+      );
+      final agent = Agent(config);
+      expect(agent.start(), throwsArgumentError);
+    });
+
+    test('local configs evaluate policies in the harness', () {
+      expect(LocalAgentConfig(apiKey: 'k').evaluatesPoliciesInHarness, isTrue);
+      expect(
+        LiteRTAgentConfig(modelPath: '/tmp/model.litertlm')
+            .evaluatesPoliciesInHarness,
+        isTrue,
+      );
+    });
+
     test('Conversation pre-turn hook receives prompt and allows it', () async {
       var hookCalledWithPrompt = '';
       final preHook = TestPreTurnHook((prompt) {
@@ -614,9 +669,12 @@ class FakeConnectionStrategy implements ConnectionStrategy {
 
 class FakeAgentConfig extends AgentConfig {
   final ConnectionStrategy strategy;
+  final bool harnessPolicies;
+  HookRunner? capturedHookRunner;
 
   FakeAgentConfig(
     this.strategy, {
+    this.harnessPolicies = false,
     super.systemInstructions,
     super.capabilities,
     super.tools,
@@ -631,11 +689,20 @@ class FakeAgentConfig extends AgentConfig {
   ConnectionStrategy createStrategy({
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
-  }) =>
-      strategy;
+  }) {
+    capturedHookRunner = hookRunner;
+    return strategy;
+  }
+
+  @override
+  bool get evaluatesPoliciesInHarness => harnessPolicies;
 
   @override
   AgentConfig lightweight() => throw UnimplementedError();
+
+  @override
+  AgentConfig eval({ThinkingLevel? thinkingLevel = ThinkingLevel.high}) =>
+      throw UnimplementedError();
 
   @override
   String toJson() => throw UnimplementedError();

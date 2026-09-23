@@ -1,7 +1,9 @@
+import 'package:antigravity/src/agent.dart';
 import 'package:antigravity/src/connections/connection.dart';
 import 'package:antigravity/src/connections/local/local_connection.dart';
 import 'package:antigravity/src/connections/local/local_connection_config.dart';
 import 'package:antigravity/src/hooks/hooks.dart';
+import 'package:antigravity/src/hooks/policy.dart';
 import 'package:antigravity/src/tools/tool_runner.dart';
 import 'package:antigravity/src/types.dart';
 import 'package:test/test.dart';
@@ -16,6 +18,7 @@ void main() {
     CapabilitiesConfig? capabilitiesConfig,
     CompactionConfig? compactionConfig,
     BudgetConfig? budgetConfig,
+    List<Policy>? policies,
   }) {
     return LocalConnectionStrategy(
       toolRunner: ToolRunner(),
@@ -28,6 +31,7 @@ void main() {
       retryConfig: retryConfig,
       compactionConfig: compactionConfig,
       budgetConfig: budgetConfig,
+      policies: policies,
     );
   }
 
@@ -600,10 +604,245 @@ void main() {
       final harnessConfig = strategy.buildHarnessConfigForTest();
 
       expect(harnessConfig['agent_behavior'], equals('AGENT_BEHAVIOR_MINIMAL'));
+      final tools = harnessConfig['harness_side_tools'] as Map;
+      // minimal() no longer includes the deprecated directory tools.
+      expect((tools['list_dir'] as Map)['enabled'], isFalse);
+      expect((tools['grep_search'] as Map)['enabled'], isFalse);
+      expect((tools['schedule'] as Map)['enabled'], isFalse);
+      // run_command is in minimal(), so manage_task is paired on.
+      expect((tools['manage_task'] as Map)['enabled'], isTrue);
       expect(
         (harnessConfig['compaction_config'] as Map)['token_threshold'],
         equals(65536),
       );
+    });
+  });
+
+  group('v0.1.18 schedule, subagent model, and policy wire', () {
+    test('default tools enable schedule and pair manage_task', () {
+      final tools = buildStrategy()
+          .buildHarnessConfigForTest()['harness_side_tools'] as Map;
+      expect((tools['schedule'] as Map)['enabled'], isTrue);
+      expect((tools['manage_task'] as Map)['enabled'], isTrue);
+      expect((tools['list_dir'] as Map)['enabled'], isFalse);
+      expect((tools['grep_search'] as Map)['enabled'], isFalse);
+      expect((tools['find'] as Map)['enabled'], isFalse);
+    });
+
+    test('schedule alone still enables manage_task', () {
+      final tools = buildStrategy(
+        capabilitiesConfig: CapabilitiesConfig(
+          enabledTools: [BuiltinTools.schedule],
+        ),
+      ).buildHarnessConfigForTest()['harness_side_tools'] as Map;
+      expect((tools['schedule'] as Map)['enabled'], isTrue);
+      expect((tools['manage_task'] as Map)['enabled'], isTrue);
+      expect((tools['run_command'] as Map)['enabled'], isFalse);
+    });
+
+    test('subagent model is a name-only ModelConfig', () {
+      final config = buildStrategy(
+        subagents: [
+          SubagentConfig(
+            name: 'researcher',
+            description: 'Reads.',
+            model: 'gemini-2.5-pro',
+          ),
+        ],
+      ).buildHarnessConfigForTest();
+      final subagent = (config['custom_subagents'] as List).first as Map;
+      expect(subagent['model'], equals({'name': 'gemini-2.5-pro'}));
+    });
+
+    test('omitted subagent model is absent from the proto', () {
+      final config = buildStrategy(
+        subagents: [
+          SubagentConfig(name: 'researcher', description: 'Reads.'),
+        ],
+      ).buildHarnessConfigForTest();
+      final subagent = (config['custom_subagents'] as List).first as Map;
+      expect(subagent.containsKey('model'), isFalse);
+    });
+
+    test('policy_config carries auto_config and a dynamic rule id', () {
+      final config = buildStrategy(
+        policies: [
+          deny('run_command', reason: 'no shell'),
+          auto(model: 'gemini-2.5-flash'),
+        ],
+      ).buildHarnessConfigForTest();
+      final policyConfig = config['policy_config'] as Map;
+      expect(
+          policyConfig['auto_config'],
+          equals({
+            'enabled': true,
+            'model': 'gemini-2.5-flash',
+          }));
+      final rules = policyConfig['rules'] as List;
+      final shell =
+          rules.cast<Map>().firstWhere((r) => r['tool'] == 'run_command');
+      expect(shell['decision'], equals('POLICY_DECISION_DENY'));
+      expect(shell['deny_reason'], equals('no shell'));
+      expect(shell['is_dynamic'], isFalse);
+    });
+  });
+
+  group('default local policies', () {
+    test('omitted policies default to confirmRunCommand, not a workspace rule',
+        () {
+      final config = LocalAgentConfig(apiKey: 'k', workspaces: ['/tmp/ws']);
+      expect(
+        config.policies.map((p) => (p.tool, p.decision, p.name)),
+        equals([
+          ('run_command', Decision.deny, 'confirm_run_command'),
+          ('*', Decision.approve, 'confirm_run_command'),
+        ]),
+      );
+    });
+
+    test('default rules are static on the wire', () {
+      final strategy = LocalAgentConfig(apiKey: 'k').createStrategy(
+        toolRunner: ToolRunner(),
+        hookRunner: HookRunner(),
+      ) as LocalConnectionStrategy;
+      final harness = strategy.buildHarnessConfigForTest();
+      final rules = (harness['policy_config'] as Map)['rules'] as List;
+      expect(rules.map((r) => r['is_dynamic']), everyElement(isFalse));
+      expect(strategy.dynamicPolicies, isEmpty);
+      expect(
+        (harness['workspaces'] as List).single['filesystem_workspace'],
+        isNotNull,
+      );
+    });
+
+    test('copyWith does not accumulate policies', () {
+      final config = LocalAgentConfig(apiKey: 'k', policies: [allowAll()]);
+      expect(config.lightweight().lightweight().policies, hasLength(1));
+      expect(
+          LocalAgentConfig(apiKey: 'k').lightweight().policies, hasLength(2));
+    });
+
+    test('an explicit empty list stays empty', () {
+      expect(LocalAgentConfig(apiKey: 'k', policies: []).policies, isEmpty);
+    });
+
+    test('an explicit empty list trips the missing safety policy guard',
+        () async {
+      final agent = Agent(LocalAgentConfig(apiKey: 'k', policies: []));
+      await expectLater(agent.start(), throwsArgumentError);
+    });
+  });
+
+  group('AgentConfig.eval()', () {
+    test('applies the benchmark preset and thinking level on the wire', () {
+      final config = LocalAgentConfig(apiKey: 'k').eval();
+      expect(config.capabilities.enableSubagents, isFalse);
+      expect(
+        config.capabilities.disabledTools,
+        equals([BuiltinTools.generateImage]),
+      );
+      expect(config.capabilities.runCommandConfig?.enableDaemons, isTrue);
+      expect(config.policies.map((p) => p.name), contains('allow_all'));
+      expect(config.retryConfig?.apiRetry?.maxRetries, equals(4294967295));
+
+      final strategy = config.createStrategy(
+        toolRunner: ToolRunner(),
+        hookRunner: HookRunner(),
+      ) as LocalConnectionStrategy;
+      final harness = strategy.buildHarnessConfigForTest();
+      final textModel = (harness['models'] as List).cast<Map>().firstWhere(
+            (m) => (m['types'] as List).contains('MODEL_TYPE_TEXT'),
+          );
+      expect(
+        textModel['gemini_api_endpoint']['options']['thinking_level'],
+        equals('high'),
+      );
+      expect(
+        (harness['harness_side_tools'] as Map)['generate_image']['enabled'],
+        isFalse,
+      );
+    });
+
+    test('keeps a caller-provided disabledTools list', () {
+      final config = LocalAgentConfig(
+        apiKey: 'k',
+        capabilities: CapabilitiesConfig(
+          disabledTools: [BuiltinTools.searchWeb],
+        ),
+      ).eval();
+      expect(
+        config.capabilities.disabledTools,
+        equals([BuiltinTools.searchWeb]),
+      );
+      expect(config.capabilities.enabledTools, isNull);
+    });
+
+    test('keeps a caller-provided enabledTools list', () {
+      final config = LocalAgentConfig(
+        apiKey: 'k',
+        capabilities: CapabilitiesConfig(
+          enabledTools: [BuiltinTools.viewFile],
+        ),
+      ).eval();
+      expect(
+        config.capabilities.enabledTools,
+        equals([BuiltinTools.viewFile]),
+      );
+      expect(config.capabilities.disabledTools, isNull);
+    });
+
+    test('replaces the default confirmRunCommand rules with allowAll', () {
+      final config = LocalAgentConfig(apiKey: 'k').lightweight().eval();
+      expect(config.policies.map((p) => p.name), equals(['allow_all']));
+    });
+
+    test('keeps caller-provided policies', () {
+      final config =
+          LocalAgentConfig(apiKey: 'k', policies: [deny('run_command')]).eval();
+      expect(config.policies.map((p) => p.tool), equals(['run_command']));
+    });
+
+    test('thinkingLevel null leaves model options unset', () {
+      final config = LocalAgentConfig(apiKey: 'k').eval(thinkingLevel: null);
+      final text =
+          config.models!.firstWhere((m) => m.types.contains(ModelType.text));
+      expect((text.endpoint as GeminiAPIEndpoint).options, isNull);
+    });
+
+    test('refuses to overwrite a model target that already sets thinkingLevel',
+        () {
+      final config = LocalAgentConfig(
+        model: ModelTarget(
+          name: 'gemini-3.8-flash',
+          endpoint: GeminiAPIEndpoint(
+            apiKey: 'k',
+            options: GeminiModelOptions(thinkingLevel: ThinkingLevel.low),
+          ),
+        ),
+      );
+      expect(config.eval, throwsA(isA<AntigravityValidationException>()));
+      final kept = config.eval(thinkingLevel: null);
+      expect(
+        (kept.models!.first.endpoint as GeminiAPIEndpoint)
+            .options
+            ?.thinkingLevel,
+        equals(ThinkingLevel.low),
+      );
+    });
+
+    test('LiteRT and OpenAI configs reject a thinking level', () {
+      expect(
+        () => LiteRTAgentConfig(modelPath: '/tmp/model.litertlm').eval(),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () =>
+            LocalOpenAIAgentConfig(baseUrl: 'http://localhost:11434/v1').eval(),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      final kept = LiteRTAgentConfig(modelPath: '/tmp/model.litertlm')
+          .eval(thinkingLevel: null);
+      expect(kept.capabilities.enableSubagents, isFalse);
     });
   });
 }
