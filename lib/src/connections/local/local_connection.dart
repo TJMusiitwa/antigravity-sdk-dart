@@ -8,6 +8,8 @@ import 'package:path/path.dart' as p;
 import 'package:web_socket_channel/status.dart' as status;
 
 import '../../hooks/hooks.dart';
+import '../../hooks/policy.dart' as policy_lib;
+import '../../hooks/policy.dart';
 import '../../tools/schema_utils.dart';
 import '../../tools/tool_runner.dart';
 import '../../types.dart';
@@ -60,6 +62,10 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   final RetryConfig? _retryConfig;
   final BudgetConfig? _budgetConfig;
   final CompactionConfig? _compactionConfig;
+  final List<Policy> _policies;
+
+  /// Dynamic policies keyed by harness `rule_id`, filled when the config is built.
+  final Map<String, Policy> dynamicPolicies = {};
 
   Process? _process;
   WebSocket? _ws;
@@ -89,6 +95,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     RetryConfig? retryConfig,
     BudgetConfig? budgetConfig,
     CompactionConfig? compactionConfig,
+    List<Policy>? policies,
   })  : _configuredBinaryPath = binaryPath,
         _toolRunner = toolRunner,
         _hookRunner = hookRunner,
@@ -107,7 +114,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         _debugConfig = debugConfig,
         _retryConfig = retryConfig,
         _budgetConfig = budgetConfig,
-        _compactionConfig = compactionConfig;
+        _compactionConfig = compactionConfig,
+        _policies = policies ?? const [];
 
   @override
   DebugConfig? get debugConfig => _debugConfig;
@@ -158,6 +166,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     _connection = LocalConnection(
       process: _process!,
       ws: _ws!,
+      dynamicPolicies: dynamicPolicies,
       messageStream: sessionData.messageStream,
       toolRunner: _toolRunner,
       hookRunner: _hookRunner,
@@ -425,6 +434,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     };
 
     final retryConfigMap = _retryConfig?.toMap();
+    final policyConfig = _buildPolicyConfigProto();
     final compaction = _effectiveCompactionConfig();
 
     return {
@@ -452,7 +462,17 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       if (customAgentsProtos.isNotEmpty) 'custom_subagents': customAgentsProtos,
       if (retryConfigMap != null && retryConfigMap.isNotEmpty)
         'retry_config': retryConfigMap,
+      if (policyConfig != null) 'policy_config': policyConfig,
     };
+  }
+
+  Map<String, dynamic>? _buildPolicyConfigProto() {
+    if (_policies.isEmpty) return null;
+    final encoded = policy_lib.toPolicyConfigProto(_policies);
+    dynamicPolicies
+      ..clear()
+      ..addAll(encoded.dynamicPolicies);
+    return encoded.config;
   }
 
   /// Resolves the compaction policy, falling back to the deprecated
@@ -655,6 +675,11 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         activeTools.contains(BuiltinTools.runCommand),
         cfg.runCommandConfig,
       ),
+      'manage_task': {
+        'enabled': activeTools.contains(BuiltinTools.runCommand) ||
+            activeTools.contains(BuiltinTools.schedule),
+      },
+      'schedule': {'enabled': activeTools.contains(BuiltinTools.schedule)},
       'file_edit': {'enabled': activeTools.contains(BuiltinTools.editFile)},
       'view_file': {'enabled': activeTools.contains(BuiltinTools.viewFile)},
       'write_to_file': {
@@ -757,6 +782,13 @@ class LocalConnectionStrategy implements ConnectionStrategy {
             activeSubTools.contains(BuiltinTools.runCommand),
             subCap?.runCommandConfig,
           ),
+          'manage_task': {
+            'enabled': activeSubTools.contains(BuiltinTools.runCommand) ||
+                activeSubTools.contains(BuiltinTools.schedule),
+          },
+          'schedule': {
+            'enabled': activeSubTools.contains(BuiltinTools.schedule)
+          },
           'file_edit': {
             'enabled': activeSubTools.contains(BuiltinTools.editFile)
           },
@@ -784,6 +816,9 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         },
         'agent_behavior':
             (subCap?.agentBehavior ?? AgentBehavior.autonomous).protoValue,
+        // Subagents pin a model name only; they always run against the
+        // agent-level endpoint.
+        if (subagent.model != null) 'model': {'name': subagent.model},
       };
     }).toList();
   }
@@ -931,6 +966,7 @@ class LocalConnection implements Connection {
   final Stream<dynamic> _messageStream;
   final ToolRunner _toolRunner;
   final HookRunner _hookRunner;
+  final Map<String, Policy> _dynamicPolicies;
   HookRouter? _hookRouter;
   final Map<String, _StepTracker> _stepTrackers = {};
 
@@ -983,11 +1019,13 @@ class LocalConnection implements Connection {
     this.mainTrajectoryId,
     UsageMetadata? cumulativeUsage,
     Map<String, UsageMetadata>? trajectoryUsages,
+    Map<String, Policy>? dynamicPolicies,
   })  : _process = process,
         _ws = ws,
         _messageStream = messageStream,
         _toolRunner = toolRunner,
         _hookRunner = hookRunner,
+        _dynamicPolicies = dynamicPolicies ?? const {},
         _convId = conversationId ?? '' {
     if (initialHistory != null) {
       _initialHistory.addAll(initialHistory);
@@ -1117,7 +1155,145 @@ class LocalConnection implements Connection {
           Map<String, dynamic>.from(normalizedEvent['tool_call'] as Map));
       _logger.info('Tool call requested: ${tc.name}');
       await _handleToolCall(tc);
+      return;
     }
+
+    if (normalizedEvent.containsKey('policy_decision_request')) {
+      await _handlePolicyDecisionRequest(
+        normalizedEvent['policy_decision_request'],
+      );
+    }
+  }
+
+  /// Evaluates a dynamic policy rule and sends the decision response.
+  ///
+  /// Wire outcomes match `PolicyEvaluationOutcome` in `localharness.proto`.
+  Future<void> _handlePolicyDecisionRequest(dynamic rawRequest) async {
+    if (rawRequest is! Map) return;
+    final request = Map<String, dynamic>.from(rawRequest);
+    final requestId = request['request_id']?.toString() ?? '';
+    final ruleId = request['rule_id']?.toString() ?? '';
+    final rule = _dynamicPolicies[ruleId];
+
+    if (rule == null) {
+      _logger.severe('Unknown policy rule_id: $ruleId');
+      _sendPolicyDecisionResponse(
+        requestId,
+        outcome: 'POLICY_EVALUATION_OUTCOME_DENY',
+        denyReason: 'Unknown rule_id: $ruleId',
+      );
+      return;
+    }
+
+    final toolCall = _toolCallFromPolicyRequest(request);
+    final requestReason = request['reason']?.toString() ?? '';
+    try {
+      if (rule.when != null) {
+        final matched = await rule.when!(toolCall);
+        if (!matched) {
+          _sendPolicyDecisionResponse(
+            requestId,
+            outcome: 'POLICY_EVALUATION_OUTCOME_NO_MATCH',
+          );
+          return;
+        }
+      }
+
+      if (rule.askUser != null) {
+        final reason = requestReason.isNotEmpty ? requestReason : rule.reason;
+        final allow = await policy_lib.executeAskUser(
+          rule,
+          toolCall,
+          reason: reason,
+        );
+        _sendPolicyDecisionResponse(
+          requestId,
+          outcome: allow
+              ? 'POLICY_EVALUATION_OUTCOME_ALLOW'
+              : 'POLICY_EVALUATION_OUTCOME_DENY',
+          denyReason: allow
+              ? ''
+              : (reason.isNotEmpty
+                  ? reason
+                  : 'Denied by user (${rule.name.isNotEmpty ? rule.name : rule.tool}).'),
+        );
+      } else if (rule.decision == policy_lib.Decision.askUser) {
+        final denyReason =
+            "Policy '${rule.name.isNotEmpty ? rule.name : rule.tool}' requires ask_user handler, but none was provided.";
+        _logger.severe(denyReason);
+        _sendPolicyDecisionResponse(
+          requestId,
+          outcome: 'POLICY_EVALUATION_OUTCOME_DENY',
+          denyReason: denyReason,
+        );
+      } else if (rule.decision == policy_lib.Decision.deny) {
+        _sendPolicyDecisionResponse(
+          requestId,
+          outcome: 'POLICY_EVALUATION_OUTCOME_DENY',
+          denyReason: requestReason.isNotEmpty
+              ? requestReason
+              : "Denied by policy '${rule.name.isNotEmpty ? rule.name : rule.tool}'.",
+        );
+      } else if (rule.decision == policy_lib.Decision.approve) {
+        _sendPolicyDecisionResponse(
+          requestId,
+          outcome: 'POLICY_EVALUATION_OUTCOME_ALLOW',
+        );
+      } else {
+        final denyReason =
+            "Unhandled policy decision '${rule.decision}' for '${rule.name.isNotEmpty ? rule.name : rule.tool}'.";
+        _logger.severe(denyReason);
+        _sendPolicyDecisionResponse(
+          requestId,
+          outcome: 'POLICY_EVALUATION_OUTCOME_DENY',
+          denyReason: denyReason,
+        );
+      }
+    } catch (e) {
+      _logger.severe('Policy evaluation failed for rule_id=$ruleId: $e');
+      _sendPolicyDecisionResponse(
+        requestId,
+        outcome: 'POLICY_EVALUATION_OUTCOME_DENY',
+        denyReason: 'Policy evaluation error: $e',
+      );
+    }
+  }
+
+  ToolCall _toolCallFromPolicyRequest(Map<String, dynamic> request) {
+    final toolArgs = request['tool_args'];
+    if (toolArgs is! Map) return ToolCall(name: '');
+    final args = Map<String, dynamic>.from(toolArgs);
+    final rawJson = args['arguments_json']?.toString() ?? '{}';
+    Map<String, dynamic> parsed;
+    try {
+      final decoded = jsonDecode(rawJson);
+      parsed = decoded is Map
+          ? Map<String, dynamic>.from(decoded)
+          : <String, dynamic>{};
+    } catch (_) {
+      parsed = <String, dynamic>{};
+    }
+    final server = args['server_name']?.toString();
+    return ToolCall(
+      name: args['tool_name']?.toString() ?? '',
+      args: parsed,
+      serverName: (server == null || server.isEmpty) ? null : server,
+    );
+  }
+
+  void _sendPolicyDecisionResponse(
+    String requestId, {
+    required String outcome,
+    String denyReason = '',
+  }) {
+    if (_disconnecting) return;
+    _ws.add(jsonEncode({
+      'policy_decision_response': {
+        'request_id': requestId,
+        'outcome': outcome,
+        'deny_reason': denyReason,
+      },
+    }));
   }
 
   void _handleCallHookRequest(dynamic rawReq) {
@@ -1795,6 +1971,7 @@ class LocalOpenAIConnectionStrategy extends LocalConnectionStrategy {
     super.retryConfig,
     super.budgetConfig,
     super.compactionConfig,
+    super.policies,
   });
 
   @override
@@ -1864,6 +2041,7 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
     super.retryConfig,
     super.budgetConfig,
     super.compactionConfig,
+    super.policies,
   }) : super(
           baseUrl: '',
           modelName: p.basename(modelPath),

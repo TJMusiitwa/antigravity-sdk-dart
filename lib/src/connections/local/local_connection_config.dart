@@ -86,6 +86,12 @@ String? makeStepId(Object? trajectoryId, Object? stepIndex) {
 }
 
 /// Base configuration class for local harness agent configurations.
+///
+/// When [policies] is omitted, it defaults to [confirmRunCommand], which denies
+/// `run_command` and allows everything else. Pass `policies: [allowAll()]` for
+/// fully autonomous execution, including shell access.
+///
+/// File tools are restricted to [workspaces] by the harness policy evaluator.
 @MappableClass()
 abstract class BaseLocalAgentConfig extends AgentConfig
     with BaseLocalAgentConfigMappable {
@@ -93,7 +99,7 @@ abstract class BaseLocalAgentConfig extends AgentConfig
     super.systemInstructions,
     CapabilitiesConfig? capabilities,
     List<Tool>? tools,
-    super.policies,
+    List<dynamic>? policies,
     List<Hook>? hooks,
     List<Trigger>? triggers,
     List<McpServerConfig>? mcpServers,
@@ -110,6 +116,7 @@ abstract class BaseLocalAgentConfig extends AgentConfig
     super.budgetConfig,
     super.compactionConfig,
   }) : super(
+          policies: policies ?? confirmRunCommand(),
           capabilities: capabilities ?? CapabilitiesConfig(),
           tools: tools ?? const [],
           hooks: hooks ?? const [],
@@ -120,7 +127,6 @@ abstract class BaseLocalAgentConfig extends AgentConfig
           skillsPaths: skillsPaths ?? const [],
         ) {
     _validateAllowedSubagents();
-    _applyWorkspacePolicies();
   }
 
   void _validateAllowedSubagents() {
@@ -155,12 +161,9 @@ abstract class BaseLocalAgentConfig extends AgentConfig
     }
   }
 
-  void _applyWorkspacePolicies() {
-    // Automatically add workspace containment policies for all declared workspaces
-    for (final ws in workspaces) {
-      policies.add(workspace(ws));
-    }
-  }
+  /// Local strategies serialize [policies] into the harness `policy_config`.
+  @override
+  bool get evaluatesPoliciesInHarness => true;
 }
 
 /// Configuration for the local harness backend.
@@ -309,6 +312,19 @@ class LocalAgentConfig extends BaseLocalAgentConfig
       );
 
   @override
+  LocalAgentConfig eval({ThinkingLevel? thinkingLevel = ThinkingLevel.high}) {
+    return copyWith(
+      capabilities: evalCapabilities(),
+      policies: policiesExplicitlySet ? policies : [allowAll()],
+      retryConfig: retryConfig ?? RetryConfig.benchmark(),
+      models: thinkingLevel == null
+          ? _mergeModelsList()
+          : modelsWithEvalThinkingLevel(_mergeModelsList(), thinkingLevel),
+      model: null,
+    );
+  }
+
+  @override
   ConnectionStrategy createStrategy({
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
@@ -336,6 +352,7 @@ class LocalAgentConfig extends BaseLocalAgentConfig
       retryConfig: retryConfig,
       budgetConfig: budgetConfig,
       compactionConfig: effectiveCompactionConfig,
+      policies: policies,
     );
   }
 }
@@ -381,6 +398,24 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
       );
 
   @override
+  LocalOpenAIAgentConfig eval({
+    ThinkingLevel? thinkingLevel = ThinkingLevel.high,
+  }) {
+    if (thinkingLevel != null) {
+      throw AntigravityValidationException(
+        'Cannot apply thinkingLevel in eval() on LocalOpenAIAgentConfig: '
+        'thinkingLevel is only supported on configs with Gemini or Vertex '
+        'model targets (pass thinkingLevel: null to disable).',
+      );
+    }
+    return copyWith(
+      capabilities: evalCapabilities(),
+      policies: policiesExplicitlySet ? policies : [allowAll()],
+      retryConfig: retryConfig ?? RetryConfig.benchmark(),
+    );
+  }
+
+  @override
   ConnectionStrategy createStrategy({
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
@@ -422,6 +457,7 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
       retryConfig: retryConfig,
       budgetConfig: budgetConfig,
       compactionConfig: effectiveCompactionConfig,
+      policies: policies,
     );
   }
 }
@@ -516,6 +552,22 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
       );
 
   @override
+  LiteRTAgentConfig eval({ThinkingLevel? thinkingLevel = ThinkingLevel.high}) {
+    if (thinkingLevel != null) {
+      throw AntigravityValidationException(
+        'Cannot apply thinkingLevel in eval() on LiteRTAgentConfig: '
+        'thinkingLevel is only supported on configs with Gemini or Vertex '
+        'model targets (pass thinkingLevel: null to disable).',
+      );
+    }
+    return copyWith(
+      capabilities: evalCapabilities(),
+      policies: policiesExplicitlySet ? policies : [allowAll()],
+      retryConfig: retryConfig ?? RetryConfig.benchmark(),
+    );
+  }
+
+  @override
   ConnectionStrategy createStrategy({
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
@@ -550,6 +602,7 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
       retryConfig: retryConfig,
       budgetConfig: budgetConfig,
       compactionConfig: effectiveCompactionConfig,
+      policies: policies,
     );
   }
 }

@@ -60,7 +60,10 @@ class Agent {
       // Apply policies
       final activePolicies = List<policy.Policy>.from(_config.policies);
       final cfg = _config.capabilities;
-      final readOnlyTools = BuiltinTools.readOnly().toSet();
+      final readOnlyTools = {
+        ...BuiltinTools.readOnly(),
+        ...BuiltinTools.deprecated(),
+      };
 
       Set<BuiltinTools> activeTools;
       if (cfg.enabledTools != null) {
@@ -89,9 +92,15 @@ class Agent {
       }
 
       if (activePolicies.isNotEmpty) {
-        _hookRunner!.registerHook(
-          policy.enforce(activePolicies, mcpServers: _config.mcpServers),
-        );
+        // Always compile the policies so invalid rules fail fast.
+        final policyHook =
+            policy.enforce(activePolicies, mcpServers: _config.mcpServers);
+        // Configs that send policies to the harness have them evaluated there,
+        // with dynamic rules answered via policy_decision_request. Registering
+        // the client hook as well would evaluate every rule twice.
+        if (!_config.evaluatesPoliciesInHarness) {
+          _hookRunner!.registerHook(policyHook);
+        }
       }
 
       final allTools = _config.getAllCustomTools();

@@ -210,6 +210,158 @@ abstract class AgentConfig with AgentConfigMappable {
         );
   }
 
+  /// Returns a copy of this configuration with evaluation presets applied.
+  ///
+  /// Because the Antigravity SDK can be configured in many ways to power
+  /// different product surfaces, [eval] provides a standardized,
+  /// product-agnostic default intended to represent Gemini's core coding
+  /// ability on benchmarks and evaluation suites.
+  ///
+  /// Presets applied, while preserving fields the caller set explicitly:
+  /// - Disables [BuiltinTools.generateImage] via `disabledTools`.
+  /// - Disables subagent spawning (`enableSubagents: false`).
+  /// - Enables daemon command execution
+  ///   (`runCommandConfig: RunCommandConfig(enableDaemons: true)`).
+  /// - Sets `policies` to [allowAll] for autonomous tool execution, unless
+  ///   policies were already provided (the default [confirmRunCommand] rules
+  ///   are replaced).
+  /// - Sets `retryConfig` to [RetryConfig.benchmark], unless one was provided.
+  /// - Defaults [thinkingLevel] to [ThinkingLevel.high] on text models. Pass
+  ///   `null` to leave existing model-target thinking levels unchanged.
+  ///
+  /// Throws [AntigravityValidationException] when [thinkingLevel] is non-null
+  /// and the config has no text Gemini or Vertex model targets, or when a text
+  /// [ModelTarget] already sets `thinkingLevel`.
+  AgentConfig eval({ThinkingLevel? thinkingLevel = ThinkingLevel.high});
+
+  /// Whether [policies] are sent to the harness as `policy_config`.
+  ///
+  /// When true, the harness evaluates the rules and asks the connection about
+  /// dynamic ones through `policy_decision_request`, so `Agent` does not also
+  /// register the client-side [enforce] hook. Defaults to false, so custom
+  /// configs whose strategy ignores [policies] keep client-side enforcement.
+  bool get evaluatesPoliciesInHarness => false;
+
+  /// Whether the caller supplied policies, as opposed to a default.
+  ///
+  /// Dart cannot see Pydantic's `model_fields_set`, and `copyWith` passes the
+  /// stored list back through the constructor, so the defaults are recognised
+  /// by content: an empty list, or the handler-less [confirmRunCommand] pair
+  /// that [BaseLocalAgentConfig] uses when `policies` is omitted.
+  @protected
+  bool get policiesExplicitlySet {
+    if (policies.isEmpty) return false;
+    return !_isDefaultConfirmRunCommand(policies);
+  }
+
+  static bool _isDefaultConfirmRunCommand(List<Policy> policies) {
+    if (policies.length != 2) return false;
+    final [first, second] = policies;
+    return first.name == 'confirm_run_command' &&
+        first.tool == BuiltinTools.runCommand.value &&
+        first.decision == Decision.deny &&
+        first.when == null &&
+        second.name == 'confirm_run_command' &&
+        second.tool == '*' &&
+        second.decision == Decision.approve &&
+        second.when == null;
+  }
+
+  /// Builds the [CapabilitiesConfig] that [eval] applies.
+  ///
+  /// A caller-provided [CapabilitiesConfig.enabledTools] allowlist or
+  /// [CapabilitiesConfig.disabledTools] denylist wins over the generate-image
+  /// denylist, matching upstream. A caller-provided [CapabilitiesConfig.runCommandConfig] is
+  /// merged over the daemon default. Unlike Python, Dart cannot tell an
+  /// explicit `enableSubagents: true` from the default, so the preset always
+  /// disables subagents.
+  @protected
+  CapabilitiesConfig evalCapabilities() {
+    final callerRun = capabilities.runCommandConfig;
+    final runCommandConfig = RunCommandConfig(
+      enableDaemons: true,
+      timeoutSeconds: callerRun?.timeoutSeconds,
+      enableSandbox: callerRun?.enableSandbox ?? false,
+    );
+    if (capabilities.enabledTools != null ||
+        capabilities.disabledTools != null) {
+      return capabilities.copyWith(
+        enableSubagents: false,
+        runCommandConfig: runCommandConfig,
+      );
+    }
+    return capabilities.copyWith(
+      disabledTools: [BuiltinTools.generateImage],
+      enableSubagents: false,
+      runCommandConfig: runCommandConfig,
+    );
+  }
+
+  /// Applies [thinkingLevel] to every text Gemini or Vertex model target.
+  ///
+  /// Image-only targets are copied unchanged. Throws when [models] is empty,
+  /// has no text target, a text target has no Gemini or Vertex endpoint, or a
+  /// text target already sets `thinkingLevel`.
+  @protected
+  List<ModelTarget> modelsWithEvalThinkingLevel(
+    List<ModelTarget> models,
+    ThinkingLevel thinkingLevel,
+  ) {
+    if (models.isEmpty) {
+      throw AntigravityValidationException(
+        'Cannot apply thinkingLevel in eval() on $runtimeType: thinkingLevel '
+        'is only supported on configs with Gemini or Vertex model targets '
+        '(pass thinkingLevel: null to disable).',
+      );
+    }
+    final textTargets = models.where((t) => t.types.contains(ModelType.text));
+    if (textTargets.isEmpty) {
+      throw AntigravityValidationException(
+        'Cannot apply thinkingLevel in eval(): no ModelType.text target found '
+        'in models.',
+      );
+    }
+    return models
+        .map((target) => _targetWithEvalThinkingLevel(target, thinkingLevel))
+        .toList();
+  }
+
+  ModelTarget _targetWithEvalThinkingLevel(
+    ModelTarget target,
+    ThinkingLevel thinkingLevel,
+  ) {
+    if (!target.types.contains(ModelType.text)) return target;
+    final endpoint = target.endpoint;
+    if (endpoint is! GeminiAPIEndpoint && endpoint is! VertexEndpoint) {
+      throw AntigravityValidationException(
+        "Cannot apply thinkingLevel to ModelTarget '${target.name}': endpoint "
+        'must be a GeminiAPIEndpoint or VertexEndpoint, got '
+        '${endpoint.runtimeType}.',
+      );
+    }
+    final options = endpoint is GeminiAPIEndpoint
+        ? endpoint.options
+        : (endpoint as VertexEndpoint).options;
+    if (options?.thinkingLevel != null) {
+      throw AntigravityValidationException(
+        "ModelTarget '${target.name}' already sets "
+        'thinkingLevel=${options!.thinkingLevel}; remove thinkingLevel from '
+        'ModelTarget and pass it to eval(thinkingLevel: ...), or pass '
+        'eval(thinkingLevel: null) to keep the ModelTarget setting.',
+      );
+    }
+    final updated = GeminiModelOptions(
+      thinkingLevel: thinkingLevel,
+      serviceTier: options?.serviceTier,
+    );
+    if (endpoint is GeminiAPIEndpoint) {
+      return target.copyWith(endpoint: endpoint.copyWith(options: updated));
+    }
+    return target.copyWith(
+      endpoint: (endpoint as VertexEndpoint).copyWith(options: updated),
+    );
+  }
+
   /// Returns all custom tools across the main agent and subagents, validating against duplicate conflicting names.
   List<Tool> getAllCustomTools() {
     final toolsList = <Tool>[];
