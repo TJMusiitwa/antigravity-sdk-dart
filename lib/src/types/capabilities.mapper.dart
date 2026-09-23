@@ -53,6 +53,8 @@ class BuiltinToolsMapper extends EnumMapper<BuiltinTools> {
         return BuiltinTools.searchWeb;
       case 'read_url_content':
         return BuiltinTools.readUrlContent;
+      case 'schedule':
+        return BuiltinTools.schedule;
       case 'finish':
         return BuiltinTools.finish;
       default:
@@ -87,6 +89,8 @@ class BuiltinToolsMapper extends EnumMapper<BuiltinTools> {
         return 'search_web';
       case BuiltinTools.readUrlContent:
         return 'read_url_content';
+      case BuiltinTools.schedule:
+        return 'schedule';
       case BuiltinTools.finish:
         return 'finish';
     }

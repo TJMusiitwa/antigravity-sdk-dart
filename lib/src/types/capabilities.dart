@@ -1,5 +1,6 @@
 import 'package:dart_mappable/dart_mappable.dart';
 import 'package:logging/logging.dart';
+
 import 'exceptions.dart';
 
 part 'capabilities.mapper.dart';
@@ -36,6 +37,10 @@ enum BuiltinTools {
   searchWeb('search_web'),
   @MappableValue('read_url_content')
   readUrlContent('read_url_content'),
+
+  /// Schedule a one-shot timer or recurring cron job.
+  @MappableValue('schedule')
+  schedule('schedule'),
   @MappableValue('finish')
   finish('finish');
 
@@ -44,31 +49,34 @@ enum BuiltinTools {
 
   /// Returns the default set of builtin tools for autonomous agents.
   ///
-  /// Excludes [askQuestion] because autonomous agents cannot prompt the user.
-  /// To enable [askQuestion], it must be explicitly included in
-  /// [CapabilitiesConfig.enabledTools].
+  /// Excludes [askQuestion] (autonomous agents cannot prompt the user) and the
+  /// deprecated tools in [deprecated] (`list_directory`, `search_directory`,
+  /// and `find_file`, which are off by default). To enable any of those, pass
+  /// them explicitly in [CapabilitiesConfig.enabledTools].
   static List<BuiltinTools> defaultTools() {
-    return BuiltinTools.values
-        .where((t) => t != BuiltinTools.askQuestion)
-        .toList();
+    final excluded = {askQuestion, ...deprecated()};
+    return BuiltinTools.values.where((t) => !excluded.contains(t)).toList();
   }
 
+  /// Returns the default read-only tools.
+  ///
+  /// Excludes [listDirectory], [searchDirectory], and [findFile], which are
+  /// disabled by default. See [deprecated].
   static List<BuiltinTools> readOnly() {
     return [
-      listDirectory,
-      searchDirectory,
-      findFile,
       viewFile,
       readUrlContent,
-      finish
+      schedule,
+      finish,
     ];
   }
 
+  /// Returns the default non-destructive tools.
+  ///
+  /// Excludes [listDirectory], [searchDirectory], and [findFile], which are
+  /// disabled by default. See [deprecated].
   static List<BuiltinTools> nondestructive() {
     return [
-      listDirectory,
-      searchDirectory,
-      findFile,
       viewFile,
       createFile,
       editFile,
@@ -77,19 +85,34 @@ enum BuiltinTools {
       generateImage,
       searchWeb,
       readUrlContent,
+      schedule,
       finish,
     ];
   }
 
   /// A minimal set of tools sufficient for basic file and command work.
+  ///
+  /// Includes `run_command`, `view_file`, `create_file`, and `edit_file`.
   static List<BuiltinTools> minimal() {
     return [
       runCommand,
       viewFile,
       createFile,
       editFile,
+    ];
+  }
+
+  /// Returns deprecated builtin tools that are disabled by default.
+  ///
+  /// Includes [listDirectory], [searchDirectory], and [findFile]. These are
+  /// excluded from [defaultTools], [readOnly], [nondestructive], and [minimal],
+  /// and are only enabled when explicitly requested via
+  /// [CapabilitiesConfig.enabledTools].
+  static List<BuiltinTools> deprecated() {
+    return [
       listDirectory,
       searchDirectory,
+      findFile,
     ];
   }
 
@@ -249,17 +272,21 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
   final AgentBehavior agentBehavior;
 
   /// Explicit allowlist of builtin tools to enable. Mutually exclusive with
-  /// [disabledTools]. When null, all tools enabled except [BuiltinTools.askQuestion]
-  /// (see [BuiltinTools.defaultTools]). Disabled tools are removed from the
-  /// model's context, saving tokens and preventing the model from even
-  /// considering them.
+  /// [disabledTools]. When null, the harness defaults are used (all tools
+  /// except [BuiltinTools.askQuestion] and the [BuiltinTools.deprecated] tools
+  /// [BuiltinTools.listDirectory], [BuiltinTools.searchDirectory], and
+  /// [BuiltinTools.findFile]; see [BuiltinTools.defaultTools]). Disabled tools
+  /// are removed from the model's context, saving tokens and preventing the
+  /// model from even considering them.
   final List<BuiltinTools>? enabledTools;
 
   /// Explicit denylist of builtin tools to disable. Mutually exclusive with
   /// [enabledTools]. When specified, the given tools are subtracted from
-  /// [BuiltinTools.defaultTools] (which already excludes [BuiltinTools.askQuestion]).
-  /// When null, all default tools are enabled. Note that to enable
-  /// [BuiltinTools.askQuestion], it must be explicitly included in [enabledTools].
+  /// [BuiltinTools.defaultTools] (which already excludes
+  /// [BuiltinTools.askQuestion], [BuiltinTools.listDirectory],
+  /// [BuiltinTools.searchDirectory], and [BuiltinTools.findFile]). When null,
+  /// all default tools are enabled. To enable any of those, include them
+  /// explicitly in [enabledTools].
   final List<BuiltinTools>? disabledTools;
 
   /// Maximum message compaction threshold before historical turns are summarized.

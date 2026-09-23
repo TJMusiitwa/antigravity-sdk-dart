@@ -219,12 +219,21 @@ class SubagentConfig with SubagentConfigMappable {
   /// an explicit `is` check instead of failing at runtime.
   final List<Object> tools;
 
+  /// Optional model name for this subagent.
+  ///
+  /// When set, forces the subagent to run under the given model instead of
+  /// inheriting the parent agent's model. Unlike the agent-level model, this
+  /// accepts a name only: subagents always run against the agent-level
+  /// endpoint.
+  final String? model;
+
   SubagentConfig({
     required this.name,
     required this.description,
     this.systemInstructions,
     this.capabilities,
     List<Object>? tools,
+    this.model,
   }) : tools = tools ?? [];
 
   static const fromMap = SubagentConfigMapper.fromMap;

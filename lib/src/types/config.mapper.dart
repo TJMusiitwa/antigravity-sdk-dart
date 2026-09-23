@@ -687,6 +687,12 @@ class SubagentConfigMapper extends ClassMapperBase<SubagentConfig> {
     _$tools,
     opt: true,
   );
+  static String? _$model(SubagentConfig v) => v.model;
+  static const Field<SubagentConfig, String> _f$model = Field(
+    'model',
+    _$model,
+    opt: true,
+  );
 
   @override
   final MappableFields<SubagentConfig> fields = const {
@@ -695,6 +701,7 @@ class SubagentConfigMapper extends ClassMapperBase<SubagentConfig> {
     #systemInstructions: _f$systemInstructions,
     #capabilities: _f$capabilities,
     #tools: _f$tools,
+    #model: _f$model,
   };
   @override
   final bool ignoreNull = true;
@@ -706,6 +713,7 @@ class SubagentConfigMapper extends ClassMapperBase<SubagentConfig> {
       systemInstructions: data.dec(_f$systemInstructions),
       capabilities: data.dec(_f$capabilities),
       tools: data.dec(_f$tools),
+      model: data.dec(_f$model),
     );
   }
 
@@ -784,6 +792,7 @@ abstract class SubagentConfigCopyWith<$R, $In extends SubagentConfig, $Out>
     dynamic systemInstructions,
     SubagentCapabilities? capabilities,
     List<Object>? tools,
+    String? model,
   });
   SubagentConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -817,6 +826,7 @@ class _SubagentConfigCopyWithImpl<$R, $Out>
     Object? systemInstructions = $none,
     Object? capabilities = $none,
     Object? tools = $none,
+    Object? model = $none,
   }) =>
       $apply(
         FieldCopyWithData({
@@ -826,6 +836,7 @@ class _SubagentConfigCopyWithImpl<$R, $Out>
             #systemInstructions: systemInstructions,
           if (capabilities != $none) #capabilities: capabilities,
           if (tools != $none) #tools: tools,
+          if (model != $none) #model: model,
         }),
       );
   @override
@@ -838,6 +849,7 @@ class _SubagentConfigCopyWithImpl<$R, $Out>
         ),
         capabilities: data.get(#capabilities, or: $value.capabilities),
         tools: data.get(#tools, or: $value.tools),
+        model: data.get(#model, or: $value.model),
       );
 
   @override
