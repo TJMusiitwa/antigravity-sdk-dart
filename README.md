@@ -29,7 +29,7 @@ dart run example/getting_started/hello_world.dart
 > **Zero Configuration:** You do *not* need to manually install the Python SDK or download the orchestration harness binary. On the first run, the SDK will automatically detect your platform (OS and CPU architecture), download the official precompiled `localharness` binary from PyPI, extract it, and cache it locally in `~/.antigravity/bin/`.
 
 > [!IMPORTANT]
-> **LiteRT local Gemma execution:** Running local Gemma models via LiteRT (`LiteRTAgentConfig` / `LiteRTConnectionStrategy`) requires `python3` and the `litert-lm-api` library installed in the user's host environment (`pip install litert-lm-api`).
+> **LiteRT local Gemma execution:** Running local Gemma models via LiteRT (`LiteRTAgentConfig` / `LiteRTConnectionStrategy`) requires `python3` and the `litert-lm-api` library installed in the user's host environment (`pip install litert-lm-api`). `LiteRTAgentConfig` does not apply the lightweight preset automatically; call `lightweight()` when you want the reduced tool set.
 
 ---
 
@@ -102,6 +102,8 @@ final config = LocalAgentConfig(
   policies: policies,
 );
 ```
+
+If you omit `policies`, local configs default to `confirmRunCommand()`: `run_command` is denied and every other tool is allowed. Pass `policies: [allowAll()]` for fully autonomous execution. File tools are restricted to the config's `workspaces` (the current directory by default) by the harness.
 
 ### 4. Stateful & Stateless Custom Tools
 Directly register custom tools that your agent can invoke dynamically:
