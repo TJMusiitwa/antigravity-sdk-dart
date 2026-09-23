@@ -1,3 +1,45 @@
+## 0.15.0
+
+Syncs with Python SDK v0.1.18.
+
+### Behavior changes
+
+* **Default tools.** `list_directory`, `search_directory`, and `find_file` are now deprecated and off unless you list them in `enabledTools`. They are no longer in `defaultTools()`, `readOnly()`, `nondestructive()`, or `minimal()`. `minimal()` is now `run_command`, `view_file`, `create_file`, and `edit_file`.
+* **`schedule` is on by default.** The new `BuiltinTools.schedule` tool is part of `defaultTools()`, `readOnly()`, and `nondestructive()`. To turn it off, add it to `disabledTools`.
+* **`manage_task` follows `run_command` and `schedule`.** The harness enables `manage_task` whenever either tool is active, for the main agent and for subagents.
+* **The harness evaluates policies.** Local configs now send `policies` to the harness as `policy_config`. `LocalConnection` answers the harness's `policy_decision_request` for dynamic rules (rules with a `when` predicate or an `askUser` decision). `Agent` no longer registers the client-side `enforce()` hook for these configs, so each rule is evaluated, and each `askUser` handler prompts, once per tool call. `enforce()` still runs when the agent starts, so invalid policies fail early.
+* **`run_command` is denied by default.** When `policies` is omitted, `LocalAgentConfig`, `LocalOpenAIAgentConfig`, and `LiteRTAgentConfig` now default to `confirmRunCommand()`, which denies `run_command` and allows everything else, as upstream does. Previously the default allowed every tool, including `run_command`. Pass `policies: [allowAll()]` to keep the old behavior. An explicit `policies: []` stays empty, so the missing-safety-policy check applies again.
+* **No automatic workspace policy.** Local configs no longer add a `workspace()` rule for each workspace. That rule was a wildcard allow that never denied anything, and on the wire it cost a round trip to the SDK on every tool call. The harness already restricts file tools to the configured `workspaces`, as upstream does. `workspace()` is deprecated; use `workspaces` or `workspaceOnly()`.
+* **Safer terminal prompts.** `ToolConfirmationHook` and `askUserHandler` strip ANSI escape sequences and control characters from tool names, arguments, and reasons before printing them.
+
+### Added
+
+* **`eval()` preset** on `LocalAgentConfig`, `LocalOpenAIAgentConfig`, and `LiteRTAgentConfig`, for benchmark and evaluation runs. It:
+  * disables `generate_image` and subagents;
+  * enables daemon commands (`RunCommandConfig(enableDaemons: true)`);
+  * applies `allowAll()` if you set no policies, and `RetryConfig.benchmark()` if you set no retry config;
+  * on `LocalAgentConfig`, sets text Gemini and Vertex targets to `ThinkingLevel.high`. Pass `thinkingLevel: null` to leave thinking levels unchanged.
+
+  It raises `AntigravityValidationException` if a text target already sets `thinkingLevel`, or if a thinking level is requested on `LiteRTAgentConfig` or `LocalOpenAIAgentConfig`. Your own `enabledTools` or `disabledTools` list replaces the `generate_image` denylist. Dart can't tell an explicit `enableSubagents: true` from the default, so subagents are always disabled. The default `confirmRunCommand()` rules don't count as policies you set, so `eval()` replaces them.
+* **Auto policy mode.** `auto({name, handler, model})` returns an `AutoPolicy`, sent to the harness as `policy_config.auto_config`. The harness's safety assessor checks risky tool calls. Without a handler, flagged calls are denied; with one, you're asked to confirm. Only one `auto()` rule is allowed. `runInteractiveLoop` gives an `auto()` rule without a handler the terminal `askUserHandler`.
+* **Policy reasons.** `deny()` and `askUser()` accept `reason`. It's sent as the rule's `deny_reason`, and it's the denial message and the reason passed to handlers.
+* **Reasons for ask-user handlers.** Handlers can take an optional `reason`, either positional (`(tc, [String? reason])`) or named (`(tc, {String reason = ''})`), to get the runtime's explanation, such as an auto-mode safety assessment. One-argument handlers still work. `executeAskUser` is exported for custom integrations.
+* **`SubagentConfig.model`.** A model name for one subagent, sent as `custom_subagents[].model.name`. Subagents still use the agent-level endpoint.
+* **`AgentConfig.evaluatesPoliciesInHarness`.** True for the local configs. Custom `AgentConfig` subclasses default to false and keep client-side `enforce()`.
+* **`BuiltinTools.deprecated()`** returns the three directory tools.
+
+### Changed
+
+* `safeDefaults()` and the write-tool safety check treat the deprecated directory tools as read-only, as upstream does.
+* `HarnessDownloader.defaultVersion` is `0.1.18`.
+* Raised minimum dependency versions: `dart_mappable` ^4.10.0, `mcp_dart` ^2.4.2, and `meta` ^1.19.0. Dev dependencies: `test` ^1.32.0, `build_runner` ^2.16.1, and `dart_mappable_builder` ^4.10.0.
+
+### Not ported
+
+* The v0.1.18 release notes also list JSON schema normalization, `ToolRunner` coercion changes, the removal of `modified_arguments_json`, and a service-tier ingestion fix. None of those files changed between v0.1.17 and v0.1.18. Dart already parses unknown service tiers as `ServiceTier.standard`.
+* `SpeechAnnotation`, `Environment.StorageQuota`, the `ExternalClientEvent` rename, and the `SystemInstructionTemplate` restructure are proto-only and don't change SDK behavior.
+* Upstream `LiteRTAgentConfig` applies the lightweight preset automatically, and has since v0.1.17. The Dart config doesn't; call `lightweight()` yourself.
+
 ## 0.14.0
 
 * **Sync with Python SDK v0.1.17**:
@@ -5,7 +47,7 @@
   - Added `ToolOutputTruncationConfig`, `SandboxStatus`, `UsageMetadata` scalar multiplication, and `BuiltinTools.defaultTools()`.
   - Updated generated mappers, harness serialization, documentation, and compatibility tests for the new wire shapes.
 
-# 0.13.0
+## 0.13.0
 
 * **Sync with Python SDK v0.1.16**:
   - **Context Compaction Policy (`CompactionConfig`)**:
@@ -43,7 +85,7 @@
     - Added a `BudgetScope.forwardLooking` session-resume demo to `example/getting_started/budget_limits.dart`.
     - `example/getting_started/subagents.dart` now relies on subagents being enabled by default and exposes `example/resources/` as the workspace for all three demos, replacing the temporary directories and synthetic `target_code.dart` / `design.md` / `perf_data.txt` fixtures. The static reviewer audits the bundled `mcp_server.dart`, and the nested hierarchy fact-checks `mcp_server.dart` and `sample_doc.txt`.
 
-# 0.12.0
+## 0.12.0
 
 * **Sync with Python SDK v0.1.15**:
   - **Stop Lifecycle Hook (`StopHook`)**:
@@ -65,7 +107,7 @@
   - **Harness Downloader Default Version**:
     - Updated default upstream `localharness` binary download version in `HarnessDownloader` to `0.1.15`.
 
-# 0.11.0
+## 0.11.0
 
 * **Sync with Python SDK v0.1.14**:
   - **Workspace Path Normalization**:
@@ -84,7 +126,7 @@
   - **Harness Downloader Default Version**:
     - Updated default upstream `localharness` binary download version in `HarnessDownloader` to `0.1.14`.
 
-# 0.10.0
+## 0.10.0
 
 * **Sync with Python SDK v0.1.13**:
   - **Pre-Tool Hook Argument Modification**:
@@ -104,7 +146,7 @@
   - **Harness & Binary Discovery**:
     - Updated default `localharness` binary download version in `HarnessDownloader` to `0.1.13`.
 
-# 0.9.2
+## 0.9.2
  
 * **Fix `RetryConfig` Serialization**:
   - `ModelAPIRetryConfig.toMap()`/`toJson()` (and any `RetryConfig` containing one) threw `MapperException: Unknown type Duration` and emitted a spurious `initial_sleep_duration` key that `localharness` rejects. The `initialSleepDuration` `Duration` is a convenience argument, not a wire field, but was being generated as one.
@@ -114,14 +156,14 @@
 * **CI & Example Automation**:
   - Added non-interactive terminal fallback (`stdin.hasTerminal`) to `example/getting_started/human_in_the_loop.dart` to prevent test runs from blocking on headless standard input.
 
-# 0.9.1
+## 0.9.1
  
 * **Critical Bug Fixes for Local Harness Execution**:
   - **Trajectory Idle State Recognition**: Added support for `STATE_FULLY_IDLE` (and `FULLY_IDLE`) in `LocalConnection` trajectory state updates, properly emitting the `idle_sentinel` step and preventing `agent.chat()` / `response.text()` from hanging at turn completion.
   - **Tool Authorization Handshake**: Added handler for `LIFECYCLE_HOOK_PRE_TOOL` / `PRE_TOOL` in `HookRouter`, returning valid `pre_tool_result` decisions (`ALLOW` / `DENY`) to the harness and resolving tool execution deadlocks.
   - **Wire Path Normalization**: Added wire-format URI normalization (`file:///`, `cns://`) for tool call arguments in `HookRouter` to support path-based safety policies and canonical workspace containment.
 
-# 0.9.0
+## 0.9.0
 
 * **Sync with Python SDK v0.1.11**:
   - **Default Model Upgrade to Gemini 3.7 Flash**: Updated default generative text model in `lib/src/models.dart` to `gemini-3.7-flash`.
@@ -151,7 +193,7 @@
   - **SDK Version Bump & Dependency Synchronization**:
     - Updated package version to `0.9.0` and MCP implementation version to `0.9.0`.
 
-# 0.8.0
+## 0.8.0
 
 * **Sync with Python SDK v0.1.10 & Dart-Idiomatic Enhancements**:
   - **Breaking API Change**: `Conversation.lastTurnUsage` signature updated to `UsageMetadata?` (matching Python SDK v0.1.10) to return `null` when no token usage was recorded during a turn.
@@ -165,7 +207,7 @@
   - **Standardized System Instructions Strategy**: Plain string instructions default to an appended system instruction strategy, while `CustomSystemInstructions` completely replaces built-in instructions.
   - **LiteRT Token Output Limit**: Increased LiteRT default `maxOutputTokens` from 8192 to 16,384 tokens to prevent truncation during complex generation.
 
-# 0.7.0
+## 0.7.0
 
 * **Sync with Python SDK v0.1.9 & Dart-Idiomatic Enhancements**:
   - **Model-Call Retry & Backoff Configuration**: Introduced `RetryConfig`, `ModelAPIRetryConfig`, and `ModelOutputRetryConfig` with `RetryConfig.benchmark()` preset for controlling exponential backoff and output retry behavior across `LocalAgentConfig`, `LocalOpenAIAgentConfig`, and `LiteRTAgentConfig`.
@@ -179,7 +221,7 @@
   - **Hybrid Exception Hierarchy**: `AntigravityValidationException` implements both `Exception` and `ArgumentError` for backwards compatibility.
   - **SDK Alignment**: Bumped SDK version to `0.7.0` aligned with Python SDK `v0.1.9` release.
 
-# 0.6.0
+## 0.6.0
 
 * **Sync with Python SDK v0.1.8**:
   - **Default Model Upgrade to Gemini 3.6 Flash**: Updated default generative text model in `lib/src/models.dart` to `gemini-3.6-flash`.
@@ -188,7 +230,7 @@
   - **Subagent Custom & Templated System Instructions**: Expanded `SubagentConfig` system instructions to support `CustomSystemInstructions` and `TemplatedSystemInstructions`.
   - **SDK Version Bump & Alignment**: Bumping SDK version to 0.6.0 aligned with Python SDK v0.1.8 release updates.
 
-# 0.5.0
+## 0.5.0
 
 * **Sync with Python SDK v0.1.7**:
   - **Hierarchical Thread-Safe State Management**: Introduced the `StateStore` class for hierarchical context state sharing and lock/reentrancy support. Retargeted `HookContext` and `ToolContext` to inherit from `StateStore`.
@@ -201,7 +243,7 @@
   - **Updated default image generation model** to `'gemini-3.1-flash-lite-image'`.
   - **Added `ThinkingLevel.extraHigh`** (`'extra_high'`) level support.
 
-# 0.4.1
+## 0.4.1
 
 * **Bug Fixes & Adjustments**:
   - Restored default workspaces (current working directory) and capabilities configuration on `BaseLocalAgentConfig` to prevent silent sandboxing regressions.
@@ -210,7 +252,7 @@
   - Resolved `HttpClient` socket/connection leak in LiteRT loopback server health checks.
   - Documented public configuration fields on `LocalOpenAIAgentConfig` and `LiteRTAgentConfig`.
 
-# 0.4.0
+## 0.4.0
 
 * **Local Inference & OpenAI Endpoint Support**:
   - Added support for local Gemma execution using LiteRT via `LiteRTAgentConfig` and `LiteRTConnectionStrategy` (which manages a python loopback HTTP server).
@@ -226,7 +268,7 @@
   - Automatically triggers a re-download/upgrade if the cached binary version is older than the SDK's default version (`0.1.6`).
 
 
-# 0.3.1
+## 0.3.1
 
 * **Fix Tool Error Hook Dispatching**:
   - Resolved a bug where `OnToolErrorHook` was never dispatched for either client-side custom tool failures or harness-side built-in tool failures.
@@ -241,7 +283,7 @@
   - Updated local connection classes to implement rather than extend the new interface classes.
   - Added conditional imports in `lib/src/types/content.dart` to support running the package on the web.
 
-# 0.3.0
+## 0.3.0
 
 * **Synchronize updates from Python SDK (v0.1.5)**:
   - Added new `read_url_content` builtin tool and its `ReadUrlContentResult` structured output.
@@ -252,15 +294,15 @@
   - Supported error and cancelled propagation in `trajectory_state_update` events.
   - **Historical Step Absorption**: Aligned startup handshake to await and parse pre-existing conversation history and usage metadata from `initialize_conversation_response`, populating them immediately in `Conversation` on start.
 
-# 0.2.2
+## 0.2.2
 
 * Update to support web platform use 
 
-# 0.2.1
+## 0.2.1
 
 * Reintroduce generated files in package
 
-# 0.2.0
+## 0.2.0
 
 *   **Model Configuration Overhaul**: Replaced the monolithic `GeminiConfig` with a more flexible `ModelTarget` and polymorphic `ModelEndpoint` class hierarchy (`GeminiAPIEndpoint`, `VertexEndpoint`).
 *   **Subagents Feature**: Introduced `SubagentConfig` and `SubagentCapabilities` allowing definition and inclusion of subagents in the main agent's configuration.
