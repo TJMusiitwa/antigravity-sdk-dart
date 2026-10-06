@@ -67,10 +67,12 @@ jobs:
           for f in example/getting_started/*.dart; do
             # Skip interactive, environment-dependent, or unsupported examples
             # Note: compaction.dart is skipped until upstream localharness binary on PyPI supports compaction_config
+            # vertex.dart requires separate Vertex AI credentials; GEMINI_API_KEY is not sufficient.
             if [[ "$f" == *"human_in_the_loop.dart"* ]] || \
                [[ "$f" == *"autonomous_shell.dart"* ]] || \
                [[ "$f" == *"mcp_tools.dart"* ]] || \
-               [[ "$f" == *"compaction.dart"* ]]; then
+               [[ "$f" == *"compaction.dart"* ]] || \
+               [[ "$f" == *"vertex.dart"* ]]; then
               echo "Skipping: $f"
               continue
             fi
