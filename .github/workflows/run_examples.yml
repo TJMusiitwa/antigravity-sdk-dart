@@ -52,7 +52,7 @@ jobs:
       - name: Set up Dart
         uses: dart-lang/setup-dart@v1
         with:
-          sdk: stable
+          sdk: 3.12
 
       - name: Install dependencies
         run: dart pub get
