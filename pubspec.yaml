@@ -26,4 +26,6 @@ dev_dependencies:
   lints: ^6.1.0
   test: ^1.32.0
   build_runner: ^2.16.1
+  # analyzer 14.5.0 breaks build_runner 2.16.1 (contextFeatures setter removed)
+  analyzer: ">=13.3.0 <14.5.0"
   dart_mappable_builder: ^4.10.0
