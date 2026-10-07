@@ -148,6 +148,22 @@ class SandboxStatus with SandboxStatusMappable {
       SandboxStatusMapper.fromJson(json);
 }
 
+/// Experimental metadata for a run_workflow tool step.
+@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+class WorkflowProgress with WorkflowProgressMappable {
+  final String scriptPath;
+  final String script;
+  final String description;
+  final String output;
+  WorkflowProgress(
+      {this.scriptPath = '',
+      this.script = '',
+      this.description = '',
+      this.output = ''});
+  static const fromMap = WorkflowProgressMapper.fromMap;
+  static const fromJson = WorkflowProgressMapper.fromJson;
+}
+
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class UsageMetadata with UsageMetadataMappable {
   final int? promptTokenCount;
@@ -171,8 +187,13 @@ class UsageMetadata with UsageMetadataMappable {
   factory UsageMetadata.fromJson(String json) =>
       UsageMetadataMapper.fromJson(json);
 
-  /// Combines two [UsageMetadata] instances by summing their token counts.
-  UsageMetadata operator +(UsageMetadata other) {
+  /// Sums token counts, or returns a copy when [other] is numeric zero.
+  UsageMetadata operator +(Object other) {
+    if (other is num && other == 0) return UsageMetadata.fromMap(toMap());
+    if (other is! UsageMetadata) {
+      throw ArgumentError.value(
+          other, 'other', 'Expected UsageMetadata or numeric zero');
+    }
     ServiceTier? mergedTier;
     if (serviceTier == other.serviceTier) {
       mergedTier = serviceTier;
@@ -194,8 +215,13 @@ class UsageMetadata with UsageMetadataMappable {
     );
   }
 
-  /// Computes the difference between two [UsageMetadata] instances by subtracting their token counts.
-  UsageMetadata operator -(UsageMetadata other) {
+  /// Subtracts token counts, or returns a copy when [other] is numeric zero.
+  UsageMetadata operator -(Object other) {
+    if (other is num && other == 0) return UsageMetadata.fromMap(toMap());
+    if (other is! UsageMetadata) {
+      throw ArgumentError.value(
+          other, 'other', 'Expected UsageMetadata or numeric zero');
+    }
     return UsageMetadata(
       promptTokenCount: (promptTokenCount ?? 0) - (other.promptTokenCount ?? 0),
       cachedContentTokenCount:
@@ -305,6 +331,9 @@ class Step with StepMappable {
   /// Structured JSON output extracted from finish payload, if schema enforcement was enabled.
   final dynamic structuredOutput;
 
+  /// Experimental workflow progress from the harness.
+  final WorkflowProgress? workflowProgress;
+
   /// Token usage metadata associated with this step.
   ///
   /// Prefer `ChatResponse.usageMetadata` for per-turn usage or
@@ -334,6 +363,7 @@ class Step with StepMappable {
     this.error = '',
     this.isCompleteResponse,
     this.structuredOutput,
+    this.workflowProgress,
     this.usageMetadata,
   });
 
@@ -343,6 +373,28 @@ class Step with StepMappable {
     _normalizeError(updatedMap);
     _normalizeStatusAndSource(updatedMap);
     _normalizeUsageMetadata(updatedMap);
+    final workflow = updatedMap['run_workflow'];
+    if (workflow is Map) {
+      final progress = <String, dynamic>{};
+      for (final key in ['script_path', 'script', 'description', 'output']) {
+        final value = workflow[key] ??
+            (key == 'script_path' ? workflow['scriptPath'] : null);
+        progress[key] = value is String ? value : '';
+      }
+      final path = progress['script_path'] as String;
+      final uri = Uri.tryParse(path);
+      if (uri?.scheme == 'file') progress['script_path'] = uri!.toFilePath();
+      if (uri?.scheme == 'cns') {
+        progress['script_path'] = '/cns/${uri!.host}${uri.path}';
+      }
+      updatedMap['workflow_progress'] = progress;
+      updatedMap['run_workflow'] = {
+        for (final key in ['script_path', 'script', 'description'])
+          if (workflow.containsKey(key) ||
+              (key == 'script_path' && workflow.containsKey('scriptPath')))
+            key: progress[key],
+      };
+    }
 
     final toolCalls = _extractToolCalls(updatedMap);
     if (toolCalls.isNotEmpty) {
@@ -380,7 +432,11 @@ class Step with StepMappable {
     if (map.containsKey('error')) {
       final err = map['error'];
       map['error'] = err is Map
-          ? (err['error_message'] ?? err['errorMessage'] ?? '').toString()
+          ? (err['error_message'] ??
+                  err['errorMessage'] ??
+                  map['error_message'] ??
+                  '')
+              .toString()
           : err.toString();
     } else if (map.containsKey('error_message')) {
       map['error'] = map['error_message'];
@@ -431,6 +487,7 @@ class Step with StepMappable {
     'search_directory': 'search_directory',
     'view_file': 'view_file',
     'invoke_subagent': 'invoke_subagent',
+    'run_workflow': 'run_workflow',
     'generate_image': 'generate_image',
     'search_web': 'search_web',
     'read_url_content': 'read_url_content',
@@ -580,6 +637,8 @@ class Step with StepMappable {
     'TargetFile',
     'directory_path',
     'output_path',
+    'script_path',
+    'ScriptPath',
   ];
 
   static String? _normalizeToolPathArgs(Map<String, dynamic> args) {

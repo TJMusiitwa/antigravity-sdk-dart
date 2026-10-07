@@ -216,3 +216,21 @@ dart run example/getting_started/hello_world.dart
   ```bash
   VERTEX_API_KEY=your-key dart run example/getting_started/vertex.dart
   ```
+
+### Experimental workflows (`workflows.dart`)
+
+Run `dart run example/getting_started/workflows.dart /path/to/workflow.py`.
+The script executes in the harness's Python workflow sandbox. Use `phase`, `log`,
+`agent`, `parallel`, and `pipeline` there. Before the model is asked to run it,
+`runWorkflow` rejects imports, `while` loops, `_`-prefixed attributes,
+`__`-prefixed names, and top-level `return`/`yield` with a `WorkflowException`;
+call `validateWorkflowSource` from `package:antigravity/beta.dart` to check a
+script yourself. Dart functions are not converted to Python.
+
+Subagent skills can be scoped with `SubagentConfig(skillsConfig:
+SubagentInheritSkillsConfig(skillNames: ['audit']))`, disabled with
+`SubagentNoneSkillsConfig()`, or replaced with
+`SubagentOverrideSkillsConfig(skillsPaths: ['/path/to/skills'])`.
+Top-level local configs also accept `inlineSkills: [InlineSkill(name: 'audit',
+description: 'Audit code', content: 'Check correctness.')]` instead of
+`skillsPaths`. Local subagents do not support inline overrides.

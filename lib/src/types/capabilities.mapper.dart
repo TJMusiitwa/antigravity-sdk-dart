@@ -47,6 +47,8 @@ class BuiltinToolsMapper extends EnumMapper<BuiltinTools> {
         return BuiltinTools.askQuestion;
       case 'start_subagent':
         return BuiltinTools.startSubagent;
+      case 'run_workflow':
+        return BuiltinTools.runWorkflow;
       case 'generate_image':
         return BuiltinTools.generateImage;
       case 'search_web':
@@ -83,6 +85,8 @@ class BuiltinToolsMapper extends EnumMapper<BuiltinTools> {
         return 'ask_question';
       case BuiltinTools.startSubagent:
         return 'start_subagent';
+      case BuiltinTools.runWorkflow:
+        return 'run_workflow';
       case BuiltinTools.generateImage:
         return 'generate_image';
       case BuiltinTools.searchWeb:
@@ -241,12 +245,12 @@ mixin RunCommandConfigMappable {
   }
 
   RunCommandConfigCopyWith<RunCommandConfig, RunCommandConfig, RunCommandConfig>
-  get copyWith =>
-      _RunCommandConfigCopyWithImpl<RunCommandConfig, RunCommandConfig>(
-        this as RunCommandConfig,
-        $identity,
-        $identity,
-      );
+      get copyWith =>
+          _RunCommandConfigCopyWithImpl<RunCommandConfig, RunCommandConfig>(
+            this as RunCommandConfig,
+            $identity,
+            $identity,
+          );
   @override
   String toString() {
     return RunCommandConfigMapper.ensureInitialized().stringifyValue(
@@ -274,8 +278,8 @@ mixin RunCommandConfigMappable {
 extension RunCommandConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, RunCommandConfig, $Out> {
   RunCommandConfigCopyWith<$R, RunCommandConfig, $Out>
-  get $asRunCommandConfig =>
-      $base.as((v, t, t2) => _RunCommandConfigCopyWithImpl<$R, $Out>(v, t, t2));
+      get $asRunCommandConfig => $base
+          .as((v, t, t2) => _RunCommandConfigCopyWithImpl<$R, $Out>(v, t, t2));
 }
 
 /// @nodoc
@@ -301,24 +305,26 @@ class _RunCommandConfigCopyWithImpl<$R, $Out>
     bool? enableDaemons,
     Object? timeoutSeconds = $none,
     bool? enableSandbox,
-  }) => $apply(
-    FieldCopyWithData({
-      if (enableDaemons != null) #enableDaemons: enableDaemons,
-      if (timeoutSeconds != $none) #timeoutSeconds: timeoutSeconds,
-      if (enableSandbox != null) #enableSandbox: enableSandbox,
-    }),
-  );
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (enableDaemons != null) #enableDaemons: enableDaemons,
+          if (timeoutSeconds != $none) #timeoutSeconds: timeoutSeconds,
+          if (enableSandbox != null) #enableSandbox: enableSandbox,
+        }),
+      );
   @override
   RunCommandConfig $make(CopyWithData data) => RunCommandConfig(
-    enableDaemons: data.get(#enableDaemons, or: $value.enableDaemons),
-    timeoutSeconds: data.get(#timeoutSeconds, or: $value.timeoutSeconds),
-    enableSandbox: data.get(#enableSandbox, or: $value.enableSandbox),
-  );
+        enableDaemons: data.get(#enableDaemons, or: $value.enableDaemons),
+        timeoutSeconds: data.get(#timeoutSeconds, or: $value.timeoutSeconds),
+        enableSandbox: data.get(#enableSandbox, or: $value.enableSandbox),
+      );
 
   @override
   RunCommandConfigCopyWith<$R2, RunCommandConfig, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) => _RunCommandConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) =>
+      _RunCommandConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -374,27 +380,22 @@ mixin ToolOutputTruncationConfigMappable {
   String toJson() {
     return ToolOutputTruncationConfigMapper.ensureInitialized()
         .encodeJson<ToolOutputTruncationConfig>(
-          this as ToolOutputTruncationConfig,
-        );
+      this as ToolOutputTruncationConfig,
+    );
   }
 
   Map<String, dynamic> toMap() {
     return ToolOutputTruncationConfigMapper.ensureInitialized()
         .encodeMap<ToolOutputTruncationConfig>(
-          this as ToolOutputTruncationConfig,
-        );
+      this as ToolOutputTruncationConfig,
+    );
   }
 
-  ToolOutputTruncationConfigCopyWith<
-    ToolOutputTruncationConfig,
-    ToolOutputTruncationConfig,
-    ToolOutputTruncationConfig
-  >
-  get copyWith =>
-      _ToolOutputTruncationConfigCopyWithImpl<
-        ToolOutputTruncationConfig,
-        ToolOutputTruncationConfig
-      >(this as ToolOutputTruncationConfig, $identity, $identity);
+  ToolOutputTruncationConfigCopyWith<ToolOutputTruncationConfig,
+          ToolOutputTruncationConfig, ToolOutputTruncationConfig>
+      get copyWith => _ToolOutputTruncationConfigCopyWithImpl<
+              ToolOutputTruncationConfig, ToolOutputTruncationConfig>(
+          this as ToolOutputTruncationConfig, $identity, $identity);
   @override
   String toString() {
     return ToolOutputTruncationConfigMapper.ensureInitialized().stringifyValue(
@@ -422,18 +423,17 @@ mixin ToolOutputTruncationConfigMappable {
 extension ToolOutputTruncationConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, ToolOutputTruncationConfig, $Out> {
   ToolOutputTruncationConfigCopyWith<$R, ToolOutputTruncationConfig, $Out>
-  get $asToolOutputTruncationConfig => $base.as(
-    (v, t, t2) => _ToolOutputTruncationConfigCopyWithImpl<$R, $Out>(v, t, t2),
-  );
+      get $asToolOutputTruncationConfig => $base.as(
+            (v, t, t2) =>
+                _ToolOutputTruncationConfigCopyWithImpl<$R, $Out>(v, t, t2),
+          );
 }
 
 /// @nodoc
 abstract class ToolOutputTruncationConfigCopyWith<
-  $R,
-  $In extends ToolOutputTruncationConfig,
-  $Out
->
-    implements ClassCopyWith<$R, $In, $Out> {
+    $R,
+    $In extends ToolOutputTruncationConfig,
+    $Out> implements ClassCopyWith<$R, $In, $Out> {
   $R call({int? maxTokens});
   ToolOutputTruncationConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -444,11 +444,8 @@ abstract class ToolOutputTruncationConfigCopyWith<
 class _ToolOutputTruncationConfigCopyWithImpl<$R, $Out>
     extends ClassCopyWithBase<$R, ToolOutputTruncationConfig, $Out>
     implements
-        ToolOutputTruncationConfigCopyWith<
-          $R,
-          ToolOutputTruncationConfig,
-          $Out
-        > {
+        ToolOutputTruncationConfigCopyWith<$R, ToolOutputTruncationConfig,
+            $Out> {
   _ToolOutputTruncationConfigCopyWithImpl(super.value, super.then, super.then2);
 
   @override
@@ -465,8 +462,8 @@ class _ToolOutputTruncationConfigCopyWithImpl<$R, $Out>
 
   @override
   ToolOutputTruncationConfigCopyWith<$R2, ToolOutputTruncationConfig, $Out2>
-  $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
-      _ToolOutputTruncationConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+          _ToolOutputTruncationConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -499,11 +496,11 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
   static AgentBehavior _$agentBehavior(CapabilitiesConfig v) => v.agentBehavior;
   static const Field<CapabilitiesConfig, AgentBehavior> _f$agentBehavior =
       Field(
-        'agentBehavior',
-        _$agentBehavior,
-        key: r'agent_behavior',
-        opt: true,
-      );
+    'agentBehavior',
+    _$agentBehavior,
+    key: r'agent_behavior',
+    opt: true,
+  );
   static AgentBehavior _$agentMode(CapabilitiesConfig v) => v.agentMode;
   static const Field<CapabilitiesConfig, AgentBehavior> _f$agentMode = Field(
     'agentMode',
@@ -519,11 +516,11 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
       v.disabledTools;
   static const Field<CapabilitiesConfig, List<BuiltinTools>> _f$disabledTools =
       Field(
-        'disabledTools',
-        _$disabledTools,
-        key: r'disabled_tools',
-        opt: true,
-      );
+    'disabledTools',
+    _$disabledTools,
+    key: r'disabled_tools',
+    opt: true,
+  );
   static int? _$compactionThreshold(CapabilitiesConfig v) =>
       v.compactionThreshold;
   static const Field<CapabilitiesConfig, int> _f$compactionThreshold = Field(
@@ -536,11 +533,11 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
       v.finishToolSchemaJson;
   static const Field<CapabilitiesConfig, String> _f$finishToolSchemaJson =
       Field(
-        'finishToolSchemaJson',
-        _$finishToolSchemaJson,
-        key: r'finish_tool_schema_json',
-        opt: true,
-      );
+    'finishToolSchemaJson',
+    _$finishToolSchemaJson,
+    key: r'finish_tool_schema_json',
+    opt: true,
+  );
   static int? _$maxSubagentDepth(CapabilitiesConfig v) => v.maxSubagentDepth;
   static const Field<CapabilitiesConfig, int> _f$maxSubagentDepth = Field(
     'maxSubagentDepth',
@@ -552,25 +549,26 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
       v.allowedSubagents;
   static const Field<CapabilitiesConfig, List<String>> _f$allowedSubagents =
       Field(
-        'allowedSubagents',
-        _$allowedSubagents,
-        key: r'allowed_subagents',
-        opt: true,
-      );
+    'allowedSubagents',
+    _$allowedSubagents,
+    key: r'allowed_subagents',
+    opt: true,
+  );
   static RunCommandConfig? _$runCommandConfig(CapabilitiesConfig v) =>
       v.runCommandConfig;
   static const Field<CapabilitiesConfig, RunCommandConfig> _f$runCommandConfig =
       Field(
-        'runCommandConfig',
-        _$runCommandConfig,
-        key: r'run_command_config',
-        opt: true,
-      );
+    'runCommandConfig',
+    _$runCommandConfig,
+    key: r'run_command_config',
+    opt: true,
+  );
   static ToolOutputTruncationConfig? _$toolOutputTruncationConfig(
     CapabilitiesConfig v,
-  ) => v.toolOutputTruncationConfig;
+  ) =>
+      v.toolOutputTruncationConfig;
   static const Field<CapabilitiesConfig, ToolOutputTruncationConfig>
-  _f$toolOutputTruncationConfig = Field(
+      _f$toolOutputTruncationConfig = Field(
     'toolOutputTruncationConfig',
     _$toolOutputTruncationConfig,
     key: r'tool_output_truncation_config',
@@ -634,13 +632,9 @@ mixin CapabilitiesConfigMappable {
         .encodeMap<CapabilitiesConfig>(this as CapabilitiesConfig);
   }
 
-  CapabilitiesConfigCopyWith<
-    CapabilitiesConfig,
-    CapabilitiesConfig,
-    CapabilitiesConfig
-  >
-  get copyWith =>
-      _CapabilitiesConfigCopyWithImpl<CapabilitiesConfig, CapabilitiesConfig>(
+  CapabilitiesConfigCopyWith<CapabilitiesConfig, CapabilitiesConfig,
+      CapabilitiesConfig> get copyWith => _CapabilitiesConfigCopyWithImpl<
+          CapabilitiesConfig, CapabilitiesConfig>(
         this as CapabilitiesConfig,
         $identity,
         $identity,
@@ -672,40 +666,24 @@ mixin CapabilitiesConfigMappable {
 extension CapabilitiesConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, CapabilitiesConfig, $Out> {
   CapabilitiesConfigCopyWith<$R, CapabilitiesConfig, $Out>
-  get $asCapabilitiesConfig => $base.as(
-    (v, t, t2) => _CapabilitiesConfigCopyWithImpl<$R, $Out>(v, t, t2),
-  );
+      get $asCapabilitiesConfig => $base.as(
+            (v, t, t2) => _CapabilitiesConfigCopyWithImpl<$R, $Out>(v, t, t2),
+          );
 }
 
 /// @nodoc
-abstract class CapabilitiesConfigCopyWith<
-  $R,
-  $In extends CapabilitiesConfig,
-  $Out
->
-    implements ClassCopyWith<$R, $In, $Out> {
-  ListCopyWith<
-    $R,
-    BuiltinTools,
-    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
-  >?
-  get enabledTools;
-  ListCopyWith<
-    $R,
-    BuiltinTools,
-    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
-  >?
-  get disabledTools;
+abstract class CapabilitiesConfigCopyWith<$R, $In extends CapabilitiesConfig,
+    $Out> implements ClassCopyWith<$R, $In, $Out> {
+  ListCopyWith<$R, BuiltinTools,
+      ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get enabledTools;
+  ListCopyWith<$R, BuiltinTools,
+      ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get disabledTools;
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-  get allowedSubagents;
+      get allowedSubagents;
   RunCommandConfigCopyWith<$R, RunCommandConfig, RunCommandConfig>?
-  get runCommandConfig;
-  ToolOutputTruncationConfigCopyWith<
-    $R,
-    ToolOutputTruncationConfig,
-    ToolOutputTruncationConfig
-  >?
-  get toolOutputTruncationConfig;
+      get runCommandConfig;
+  ToolOutputTruncationConfigCopyWith<$R, ToolOutputTruncationConfig,
+      ToolOutputTruncationConfig>? get toolOutputTruncationConfig;
   $R call({
     bool? enableSubagents,
     AgentBehavior? agentBehavior,
@@ -734,53 +712,45 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
   late final ClassMapperBase<CapabilitiesConfig> $mapper =
       CapabilitiesConfigMapper.ensureInitialized();
   @override
-  ListCopyWith<
-    $R,
-    BuiltinTools,
-    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
-  >?
-  get enabledTools => $value.enabledTools != null
-      ? ListCopyWith(
-          $value.enabledTools!,
-          (v, t) => ObjectCopyWith(v, $identity, t),
-          (v) => call(enabledTools: v),
-        )
-      : null;
+  ListCopyWith<$R, BuiltinTools,
+          ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>?
+      get enabledTools => $value.enabledTools != null
+          ? ListCopyWith(
+              $value.enabledTools!,
+              (v, t) => ObjectCopyWith(v, $identity, t),
+              (v) => call(enabledTools: v),
+            )
+          : null;
   @override
-  ListCopyWith<
-    $R,
-    BuiltinTools,
-    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
-  >?
-  get disabledTools => $value.disabledTools != null
-      ? ListCopyWith(
-          $value.disabledTools!,
-          (v, t) => ObjectCopyWith(v, $identity, t),
-          (v) => call(disabledTools: v),
-        )
-      : null;
+  ListCopyWith<$R, BuiltinTools,
+          ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>?
+      get disabledTools => $value.disabledTools != null
+          ? ListCopyWith(
+              $value.disabledTools!,
+              (v, t) => ObjectCopyWith(v, $identity, t),
+              (v) => call(disabledTools: v),
+            )
+          : null;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-  get allowedSubagents => $value.allowedSubagents != null
-      ? ListCopyWith(
-          $value.allowedSubagents!,
-          (v, t) => ObjectCopyWith(v, $identity, t),
-          (v) => call(allowedSubagents: v),
-        )
-      : null;
+      get allowedSubagents => $value.allowedSubagents != null
+          ? ListCopyWith(
+              $value.allowedSubagents!,
+              (v, t) => ObjectCopyWith(v, $identity, t),
+              (v) => call(allowedSubagents: v),
+            )
+          : null;
   @override
   RunCommandConfigCopyWith<$R, RunCommandConfig, RunCommandConfig>?
-  get runCommandConfig => $value.runCommandConfig?.copyWith.$chain(
-    (v) => call(runCommandConfig: v),
-  );
+      get runCommandConfig => $value.runCommandConfig?.copyWith.$chain(
+            (v) => call(runCommandConfig: v),
+          );
   @override
-  ToolOutputTruncationConfigCopyWith<
-    $R,
-    ToolOutputTruncationConfig,
-    ToolOutputTruncationConfig
-  >?
-  get toolOutputTruncationConfig => $value.toolOutputTruncationConfig?.copyWith
-      .$chain((v) => call(toolOutputTruncationConfig: v));
+  ToolOutputTruncationConfigCopyWith<$R, ToolOutputTruncationConfig,
+          ToolOutputTruncationConfig>?
+      get toolOutputTruncationConfig =>
+          $value.toolOutputTruncationConfig?.copyWith
+              .$chain((v) => call(toolOutputTruncationConfig: v));
   @override
   $R call({
     bool? enableSubagents,
@@ -794,51 +764,55 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
     Object? allowedSubagents = $none,
     Object? runCommandConfig = $none,
     Object? toolOutputTruncationConfig = $none,
-  }) => $apply(
-    FieldCopyWithData({
-      if (enableSubagents != null) #enableSubagents: enableSubagents,
-      if (agentBehavior != $none) #agentBehavior: agentBehavior,
-      if (agentMode != $none) #agentMode: agentMode,
-      if (enabledTools != $none) #enabledTools: enabledTools,
-      if (disabledTools != $none) #disabledTools: disabledTools,
-      if (compactionThreshold != $none)
-        #compactionThreshold: compactionThreshold,
-      if (finishToolSchemaJson != $none)
-        #finishToolSchemaJson: finishToolSchemaJson,
-      if (maxSubagentDepth != $none) #maxSubagentDepth: maxSubagentDepth,
-      if (allowedSubagents != $none) #allowedSubagents: allowedSubagents,
-      if (runCommandConfig != $none) #runCommandConfig: runCommandConfig,
-      if (toolOutputTruncationConfig != $none)
-        #toolOutputTruncationConfig: toolOutputTruncationConfig,
-    }),
-  );
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (enableSubagents != null) #enableSubagents: enableSubagents,
+          if (agentBehavior != $none) #agentBehavior: agentBehavior,
+          if (agentMode != $none) #agentMode: agentMode,
+          if (enabledTools != $none) #enabledTools: enabledTools,
+          if (disabledTools != $none) #disabledTools: disabledTools,
+          if (compactionThreshold != $none)
+            #compactionThreshold: compactionThreshold,
+          if (finishToolSchemaJson != $none)
+            #finishToolSchemaJson: finishToolSchemaJson,
+          if (maxSubagentDepth != $none) #maxSubagentDepth: maxSubagentDepth,
+          if (allowedSubagents != $none) #allowedSubagents: allowedSubagents,
+          if (runCommandConfig != $none) #runCommandConfig: runCommandConfig,
+          if (toolOutputTruncationConfig != $none)
+            #toolOutputTruncationConfig: toolOutputTruncationConfig,
+        }),
+      );
   @override
   CapabilitiesConfig $make(CopyWithData data) => CapabilitiesConfig(
-    enableSubagents: data.get(#enableSubagents, or: $value.enableSubagents),
-    agentBehavior: data.get(#agentBehavior, or: $value.agentBehavior),
-    agentMode: data.get(#agentMode, or: $value.agentMode),
-    enabledTools: data.get(#enabledTools, or: $value.enabledTools),
-    disabledTools: data.get(#disabledTools, or: $value.disabledTools),
-    compactionThreshold: data.get(
-      #compactionThreshold,
-      or: $value.compactionThreshold,
-    ),
-    finishToolSchemaJson: data.get(
-      #finishToolSchemaJson,
-      or: $value.finishToolSchemaJson,
-    ),
-    maxSubagentDepth: data.get(#maxSubagentDepth, or: $value.maxSubagentDepth),
-    allowedSubagents: data.get(#allowedSubagents, or: $value.allowedSubagents),
-    runCommandConfig: data.get(#runCommandConfig, or: $value.runCommandConfig),
-    toolOutputTruncationConfig: data.get(
-      #toolOutputTruncationConfig,
-      or: $value.toolOutputTruncationConfig,
-    ),
-  );
+        enableSubagents: data.get(#enableSubagents, or: $value.enableSubagents),
+        agentBehavior: data.get(#agentBehavior, or: $value.agentBehavior),
+        agentMode: data.get(#agentMode, or: $value.agentMode),
+        enabledTools: data.get(#enabledTools, or: $value.enabledTools),
+        disabledTools: data.get(#disabledTools, or: $value.disabledTools),
+        compactionThreshold: data.get(
+          #compactionThreshold,
+          or: $value.compactionThreshold,
+        ),
+        finishToolSchemaJson: data.get(
+          #finishToolSchemaJson,
+          or: $value.finishToolSchemaJson,
+        ),
+        maxSubagentDepth:
+            data.get(#maxSubagentDepth, or: $value.maxSubagentDepth),
+        allowedSubagents:
+            data.get(#allowedSubagents, or: $value.allowedSubagents),
+        runCommandConfig:
+            data.get(#runCommandConfig, or: $value.runCommandConfig),
+        toolOutputTruncationConfig: data.get(
+          #toolOutputTruncationConfig,
+          or: $value.toolOutputTruncationConfig,
+        ),
+      );
 
   @override
   CapabilitiesConfigCopyWith<$R2, CapabilitiesConfig, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) => _CapabilitiesConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) =>
+      _CapabilitiesConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
-

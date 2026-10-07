@@ -73,6 +73,9 @@ abstract class AgentConfig with AgentConfigMappable {
   /// Paths containing reusable agent skills.
   final List<String> skillsPaths;
 
+  /// In-memory skills, mutually exclusive with local skills paths.
+  final List<InlineSkill> inlineSkills;
+
   /// Optional debug configuration for debugging and observability.
   final DebugConfig? debugConfig;
 
@@ -101,6 +104,7 @@ abstract class AgentConfig with AgentConfigMappable {
     this.appDataDir,
     this.responseSchema,
     List<String>? skillsPaths,
+    this.inlineSkills = const [],
     this.debugConfig,
     this.retryConfig,
     this.budgetConfig,

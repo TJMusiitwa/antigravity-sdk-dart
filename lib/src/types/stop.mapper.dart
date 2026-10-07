@@ -131,11 +131,12 @@ mixin StopHookResultMappable {
   }
 
   StopHookResultCopyWith<StopHookResult, StopHookResult, StopHookResult>
-  get copyWith => _StopHookResultCopyWithImpl<StopHookResult, StopHookResult>(
-    this as StopHookResult,
-    $identity,
-    $identity,
-  );
+      get copyWith =>
+          _StopHookResultCopyWithImpl<StopHookResult, StopHookResult>(
+            this as StopHookResult,
+            $identity,
+            $identity,
+          );
   @override
   String toString() {
     return StopHookResultMapper.ensureInitialized().stringifyValue(
@@ -186,21 +187,22 @@ class _StopHookResultCopyWithImpl<$R, $Out>
       StopHookResultMapper.ensureInitialized();
   @override
   $R call({StopDecision? decision, String? reason}) => $apply(
-    FieldCopyWithData({
-      if (decision != null) #decision: decision,
-      if (reason != null) #reason: reason,
-    }),
-  );
+        FieldCopyWithData({
+          if (decision != null) #decision: decision,
+          if (reason != null) #reason: reason,
+        }),
+      );
   @override
   StopHookResult $make(CopyWithData data) => StopHookResult(
-    decision: data.get(#decision, or: $value.decision),
-    reason: data.get(#reason, or: $value.reason),
-  );
+        decision: data.get(#decision, or: $value.decision),
+        reason: data.get(#reason, or: $value.reason),
+      );
 
   @override
   StopHookResultCopyWith<$R2, StopHookResult, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) => _StopHookResultCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) =>
+      _StopHookResultCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -367,30 +369,31 @@ class _StopArgsCopyWithImpl<$R, $Out>
     int? continuationCount,
     StopReason? stopReason,
     String? errorMessage,
-  }) => $apply(
-    FieldCopyWithData({
-      if (responseText != null) #responseText: responseText,
-      if (trajectoryId != null) #trajectoryId: trajectoryId,
-      if (continuationCount != null) #continuationCount: continuationCount,
-      if (stopReason != null) #stopReason: stopReason,
-      if (errorMessage != null) #errorMessage: errorMessage,
-    }),
-  );
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (responseText != null) #responseText: responseText,
+          if (trajectoryId != null) #trajectoryId: trajectoryId,
+          if (continuationCount != null) #continuationCount: continuationCount,
+          if (stopReason != null) #stopReason: stopReason,
+          if (errorMessage != null) #errorMessage: errorMessage,
+        }),
+      );
   @override
   StopArgs $make(CopyWithData data) => StopArgs(
-    responseText: data.get(#responseText, or: $value.responseText),
-    trajectoryId: data.get(#trajectoryId, or: $value.trajectoryId),
-    continuationCount: data.get(
-      #continuationCount,
-      or: $value.continuationCount,
-    ),
-    stopReason: data.get(#stopReason, or: $value.stopReason),
-    errorMessage: data.get(#errorMessage, or: $value.errorMessage),
-  );
+        responseText: data.get(#responseText, or: $value.responseText),
+        trajectoryId: data.get(#trajectoryId, or: $value.trajectoryId),
+        continuationCount: data.get(
+          #continuationCount,
+          or: $value.continuationCount,
+        ),
+        stopReason: data.get(#stopReason, or: $value.stopReason),
+        errorMessage: data.get(#errorMessage, or: $value.errorMessage),
+      );
 
   @override
   StopArgsCopyWith<$R2, StopArgs, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) => _StopArgsCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) =>
+      _StopArgsCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
-

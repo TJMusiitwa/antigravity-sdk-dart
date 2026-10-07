@@ -7,8 +7,6 @@
 > [!IMPORTANT]
 > **Disclaimer:** This is a community-maintained, unofficial Dart & Flutter port of the Google Antigravity SDK. It is not affiliated with, sponsored by, or endorsed by Google or the official Antigravity team.
 
-A pure Dart & Flutter port of the **Google Antigravity SDK**. 
-
 The Google Antigravity SDK provides a secure, scalable, and stateful infrastructure layer that abstracts the agentic loop, letting you build advanced AI agents powered by Antigravity and Gemini. Focus on what your agent *does* rather than how it runs, handles tools, or manages state.
 
 ---
@@ -30,6 +28,9 @@ dart run example/getting_started/hello_world.dart
 
 > [!IMPORTANT]
 > **LiteRT local Gemma execution:** Running local Gemma models via LiteRT (`LiteRTAgentConfig` / `LiteRTConnectionStrategy`) requires `python3` and the `litert-lm-api` library installed in the user's host environment (`pip install litert-lm-api`). `LiteRTAgentConfig` does not apply the lightweight preset automatically; call `lightweight()` when you want the reduced tool set.
+
+> [!NOTE]
+> **GAOS Interactions transport:** `InteractionsAgentConfig` accepts the same options as `LocalAgentConfig` but speaks the GAOS Interactions protocol to `localharness`. Triggers, `auto()` and dynamic (`when`/`askUser`) policies, and subagent `model` overrides are not yet supported over this protocol and are rejected; root `inlineSkills` are ignored.
 
 ---
 
@@ -103,7 +104,7 @@ final config = LocalAgentConfig(
 );
 ```
 
-If you omit `policies`, local configs default to `confirmRunCommand()`: `run_command` is denied and every other tool is allowed. Pass `policies: [allowAll()]` for fully autonomous execution. File tools are restricted to the config's `workspaces` (the current directory by default) by the harness.
+If you omit `policies`, local configs default to `confirmRunCommand()`: `run_command` is denied and every other tool is allowed. Pass `policies: [allowAll()]` for fully autonomous execution. The harness normally confines file tools to `workspaces` (the current directory by default). `allowAll()` disables that containment unless paired with `workspaceOnly(workspaces)`.
 
 ### 4. Stateful & Stateless Custom Tools
 Directly register custom tools that your agent can invoke dynamically:
@@ -185,6 +186,7 @@ The [`example/`](example/) directory contains high-fidelity ports of every scrip
 | `example/getting_started/autonomous_shell.dart` | Provides an autonomous shell agent run |
 | `example/getting_started/multimodal.dart` | Ingests mixed text, images, and document attachments; returns media from tool outputs |
 | `example/getting_started/human_in_the_loop.dart`| Implements stdin-based interactive confirmation |
+| `example/getting_started/workflows.dart` | Executes a Python workflow via `agent.beta.runWorkflow()` |
 | `example/getting_started/agent_skills.dart`      | Loads and queries local agent skills |
 | `example/getting_started/app_data_dir_override.dart` | Overrides the local application data directory |
 | `example/getting_started/error_handler.dart`     | Catches and resolves tool/agent errors using hooks |

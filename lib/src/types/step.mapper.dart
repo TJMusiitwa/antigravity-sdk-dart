@@ -330,11 +330,11 @@ mixin SandboxStatusMappable {
   }
 
   SandboxStatusCopyWith<SandboxStatus, SandboxStatus, SandboxStatus>
-  get copyWith => _SandboxStatusCopyWithImpl<SandboxStatus, SandboxStatus>(
-    this as SandboxStatus,
-    $identity,
-    $identity,
-  );
+      get copyWith => _SandboxStatusCopyWithImpl<SandboxStatus, SandboxStatus>(
+            this as SandboxStatus,
+            $identity,
+            $identity,
+          );
   @override
   String toString() {
     return SandboxStatusMapper.ensureInitialized().stringifyValue(
@@ -383,24 +383,204 @@ class _SandboxStatusCopyWithImpl<$R, $Out>
       SandboxStatusMapper.ensureInitialized();
   @override
   $R call({bool? available, Object? unavailableReason = $none}) => $apply(
-    FieldCopyWithData({
-      if (available != null) #available: available,
-      if (unavailableReason != $none) #unavailableReason: unavailableReason,
-    }),
-  );
+        FieldCopyWithData({
+          if (available != null) #available: available,
+          if (unavailableReason != $none) #unavailableReason: unavailableReason,
+        }),
+      );
   @override
   SandboxStatus $make(CopyWithData data) => SandboxStatus(
-    available: data.get(#available, or: $value.available),
-    unavailableReason: data.get(
-      #unavailableReason,
-      or: $value.unavailableReason,
-    ),
-  );
+        available: data.get(#available, or: $value.available),
+        unavailableReason: data.get(
+          #unavailableReason,
+          or: $value.unavailableReason,
+        ),
+      );
 
   @override
   SandboxStatusCopyWith<$R2, SandboxStatus, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) => _SandboxStatusCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) =>
+      _SandboxStatusCopyWithImpl<$R2, $Out2>($value, $cast, t);
+}
+
+/// @nodoc
+class WorkflowProgressMapper extends ClassMapperBase<WorkflowProgress> {
+  WorkflowProgressMapper._();
+
+  static WorkflowProgressMapper? _instance;
+  static WorkflowProgressMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(_instance = WorkflowProgressMapper._());
+    }
+    return _instance!;
+  }
+
+  @override
+  final String id = 'WorkflowProgress';
+
+  static String _$scriptPath(WorkflowProgress v) => v.scriptPath;
+  static const Field<WorkflowProgress, String> _f$scriptPath = Field(
+    'scriptPath',
+    _$scriptPath,
+    key: r'script_path',
+    opt: true,
+    def: '',
+  );
+  static String _$script(WorkflowProgress v) => v.script;
+  static const Field<WorkflowProgress, String> _f$script = Field(
+    'script',
+    _$script,
+    opt: true,
+    def: '',
+  );
+  static String _$description(WorkflowProgress v) => v.description;
+  static const Field<WorkflowProgress, String> _f$description = Field(
+    'description',
+    _$description,
+    opt: true,
+    def: '',
+  );
+  static String _$output(WorkflowProgress v) => v.output;
+  static const Field<WorkflowProgress, String> _f$output = Field(
+    'output',
+    _$output,
+    opt: true,
+    def: '',
+  );
+
+  @override
+  final MappableFields<WorkflowProgress> fields = const {
+    #scriptPath: _f$scriptPath,
+    #script: _f$script,
+    #description: _f$description,
+    #output: _f$output,
+  };
+  @override
+  final bool ignoreNull = true;
+
+  static WorkflowProgress _instantiate(DecodingData data) {
+    return WorkflowProgress(
+      scriptPath: data.dec(_f$scriptPath),
+      script: data.dec(_f$script),
+      description: data.dec(_f$description),
+      output: data.dec(_f$output),
+    );
+  }
+
+  @override
+  final Function instantiate = _instantiate;
+
+  static WorkflowProgress fromMap(Map<String, dynamic> map) {
+    return ensureInitialized().decodeMap<WorkflowProgress>(map);
+  }
+
+  static WorkflowProgress fromJson(String json) {
+    return ensureInitialized().decodeJson<WorkflowProgress>(json);
+  }
+}
+
+/// @nodoc
+mixin WorkflowProgressMappable {
+  String toJson() {
+    return WorkflowProgressMapper.ensureInitialized()
+        .encodeJson<WorkflowProgress>(this as WorkflowProgress);
+  }
+
+  Map<String, dynamic> toMap() {
+    return WorkflowProgressMapper.ensureInitialized()
+        .encodeMap<WorkflowProgress>(this as WorkflowProgress);
+  }
+
+  WorkflowProgressCopyWith<WorkflowProgress, WorkflowProgress, WorkflowProgress>
+      get copyWith =>
+          _WorkflowProgressCopyWithImpl<WorkflowProgress, WorkflowProgress>(
+            this as WorkflowProgress,
+            $identity,
+            $identity,
+          );
+  @override
+  String toString() {
+    return WorkflowProgressMapper.ensureInitialized().stringifyValue(
+      this as WorkflowProgress,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return WorkflowProgressMapper.ensureInitialized().equalsValue(
+      this as WorkflowProgress,
+      other,
+    );
+  }
+
+  @override
+  int get hashCode {
+    return WorkflowProgressMapper.ensureInitialized().hashValue(
+      this as WorkflowProgress,
+    );
+  }
+}
+
+/// @nodoc
+extension WorkflowProgressValueCopy<$R, $Out>
+    on ObjectCopyWith<$R, WorkflowProgress, $Out> {
+  WorkflowProgressCopyWith<$R, WorkflowProgress, $Out>
+      get $asWorkflowProgress => $base
+          .as((v, t, t2) => _WorkflowProgressCopyWithImpl<$R, $Out>(v, t, t2));
+}
+
+/// @nodoc
+abstract class WorkflowProgressCopyWith<$R, $In extends WorkflowProgress, $Out>
+    implements ClassCopyWith<$R, $In, $Out> {
+  $R call({
+    String? scriptPath,
+    String? script,
+    String? description,
+    String? output,
+  });
+  WorkflowProgressCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  );
+}
+
+/// @nodoc
+class _WorkflowProgressCopyWithImpl<$R, $Out>
+    extends ClassCopyWithBase<$R, WorkflowProgress, $Out>
+    implements WorkflowProgressCopyWith<$R, WorkflowProgress, $Out> {
+  _WorkflowProgressCopyWithImpl(super.value, super.then, super.then2);
+
+  @override
+  late final ClassMapperBase<WorkflowProgress> $mapper =
+      WorkflowProgressMapper.ensureInitialized();
+  @override
+  $R call({
+    String? scriptPath,
+    String? script,
+    String? description,
+    String? output,
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (scriptPath != null) #scriptPath: scriptPath,
+          if (script != null) #script: script,
+          if (description != null) #description: description,
+          if (output != null) #output: output,
+        }),
+      );
+  @override
+  WorkflowProgress $make(CopyWithData data) => WorkflowProgress(
+        scriptPath: data.get(#scriptPath, or: $value.scriptPath),
+        script: data.get(#script, or: $value.script),
+        description: data.get(#description, or: $value.description),
+        output: data.get(#output, or: $value.output),
+      );
+
+  @override
+  WorkflowProgressCopyWith<$R2, WorkflowProgress, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  ) =>
+      _WorkflowProgressCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -513,11 +693,11 @@ mixin UsageMetadataMappable {
   }
 
   UsageMetadataCopyWith<UsageMetadata, UsageMetadata, UsageMetadata>
-  get copyWith => _UsageMetadataCopyWithImpl<UsageMetadata, UsageMetadata>(
-    this as UsageMetadata,
-    $identity,
-    $identity,
-  );
+      get copyWith => _UsageMetadataCopyWithImpl<UsageMetadata, UsageMetadata>(
+            this as UsageMetadata,
+            $identity,
+            $identity,
+          );
   @override
   String toString() {
     return UsageMetadataMapper.ensureInitialized().stringifyValue(
@@ -579,41 +759,45 @@ class _UsageMetadataCopyWithImpl<$R, $Out>
     Object? thoughtsTokenCount = $none,
     Object? totalTokenCount = $none,
     Object? serviceTier = $none,
-  }) => $apply(
-    FieldCopyWithData({
-      if (promptTokenCount != $none) #promptTokenCount: promptTokenCount,
-      if (cachedContentTokenCount != $none)
-        #cachedContentTokenCount: cachedContentTokenCount,
-      if (candidatesTokenCount != $none)
-        #candidatesTokenCount: candidatesTokenCount,
-      if (thoughtsTokenCount != $none) #thoughtsTokenCount: thoughtsTokenCount,
-      if (totalTokenCount != $none) #totalTokenCount: totalTokenCount,
-      if (serviceTier != $none) #serviceTier: serviceTier,
-    }),
-  );
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (promptTokenCount != $none) #promptTokenCount: promptTokenCount,
+          if (cachedContentTokenCount != $none)
+            #cachedContentTokenCount: cachedContentTokenCount,
+          if (candidatesTokenCount != $none)
+            #candidatesTokenCount: candidatesTokenCount,
+          if (thoughtsTokenCount != $none)
+            #thoughtsTokenCount: thoughtsTokenCount,
+          if (totalTokenCount != $none) #totalTokenCount: totalTokenCount,
+          if (serviceTier != $none) #serviceTier: serviceTier,
+        }),
+      );
   @override
   UsageMetadata $make(CopyWithData data) => UsageMetadata(
-    promptTokenCount: data.get(#promptTokenCount, or: $value.promptTokenCount),
-    cachedContentTokenCount: data.get(
-      #cachedContentTokenCount,
-      or: $value.cachedContentTokenCount,
-    ),
-    candidatesTokenCount: data.get(
-      #candidatesTokenCount,
-      or: $value.candidatesTokenCount,
-    ),
-    thoughtsTokenCount: data.get(
-      #thoughtsTokenCount,
-      or: $value.thoughtsTokenCount,
-    ),
-    totalTokenCount: data.get(#totalTokenCount, or: $value.totalTokenCount),
-    serviceTier: data.get(#serviceTier, or: $value.serviceTier),
-  );
+        promptTokenCount:
+            data.get(#promptTokenCount, or: $value.promptTokenCount),
+        cachedContentTokenCount: data.get(
+          #cachedContentTokenCount,
+          or: $value.cachedContentTokenCount,
+        ),
+        candidatesTokenCount: data.get(
+          #candidatesTokenCount,
+          or: $value.candidatesTokenCount,
+        ),
+        thoughtsTokenCount: data.get(
+          #thoughtsTokenCount,
+          or: $value.thoughtsTokenCount,
+        ),
+        totalTokenCount: data.get(#totalTokenCount, or: $value.totalTokenCount),
+        serviceTier: data.get(#serviceTier, or: $value.serviceTier),
+      );
 
   @override
   UsageMetadataCopyWith<$R2, UsageMetadata, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) => _UsageMetadataCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) =>
+      _UsageMetadataCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -629,6 +813,7 @@ class StepMapper extends ClassMapperBase<Step> {
       StepTargetMapper.ensureInitialized();
       StepStatusMapper.ensureInitialized();
       ToolCallMapper.ensureInitialized();
+      WorkflowProgressMapper.ensureInitialized();
       UsageMetadataMapper.ensureInitialized();
     }
     return _instance!;
@@ -770,6 +955,13 @@ class StepMapper extends ClassMapperBase<Step> {
     key: r'structured_output',
     opt: true,
   );
+  static WorkflowProgress? _$workflowProgress(Step v) => v.workflowProgress;
+  static const Field<Step, WorkflowProgress> _f$workflowProgress = Field(
+    'workflowProgress',
+    _$workflowProgress,
+    key: r'workflow_progress',
+    opt: true,
+  );
   static UsageMetadata? _$usageMetadata(Step v) => v.usageMetadata;
   static const Field<Step, UsageMetadata> _f$usageMetadata = Field(
     'usageMetadata',
@@ -798,6 +990,7 @@ class StepMapper extends ClassMapperBase<Step> {
     #error: _f$error,
     #isCompleteResponse: _f$isCompleteResponse,
     #structuredOutput: _f$structuredOutput,
+    #workflowProgress: _f$workflowProgress,
     #usageMetadata: _f$usageMetadata,
   };
   @override
@@ -823,6 +1016,7 @@ class StepMapper extends ClassMapperBase<Step> {
       error: data.dec(_f$error),
       isCompleteResponse: data.dec(_f$isCompleteResponse),
       structuredOutput: data.dec(_f$structuredOutput),
+      workflowProgress: data.dec(_f$workflowProgress),
       usageMetadata: data.dec(_f$usageMetadata),
     );
   }
@@ -877,7 +1071,9 @@ extension StepValueCopy<$R, $Out> on ObjectCopyWith<$R, Step, $Out> {
 abstract class StepCopyWith<$R, $In extends Step, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   ListCopyWith<$R, ToolCall, ToolCallCopyWith<$R, ToolCall, ToolCall>>
-  get toolCalls;
+      get toolCalls;
+  WorkflowProgressCopyWith<$R, WorkflowProgress, WorkflowProgress>?
+      get workflowProgress;
   UsageMetadataCopyWith<$R, UsageMetadata, UsageMetadata>? get usageMetadata;
   $R call({
     String? id,
@@ -898,6 +1094,7 @@ abstract class StepCopyWith<$R, $In extends Step, $Out>
     String? error,
     bool? isCompleteResponse,
     dynamic structuredOutput,
+    WorkflowProgress? workflowProgress,
     UsageMetadata? usageMetadata,
   });
   StepCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
@@ -912,11 +1109,16 @@ class _StepCopyWithImpl<$R, $Out> extends ClassCopyWithBase<$R, Step, $Out>
   late final ClassMapperBase<Step> $mapper = StepMapper.ensureInitialized();
   @override
   ListCopyWith<$R, ToolCall, ToolCallCopyWith<$R, ToolCall, ToolCall>>
-  get toolCalls => ListCopyWith(
-    $value.toolCalls,
-    (v, t) => v.copyWith.$chain(t),
-    (v) => call(toolCalls: v),
-  );
+      get toolCalls => ListCopyWith(
+            $value.toolCalls,
+            (v, t) => v.copyWith.$chain(t),
+            (v) => call(toolCalls: v),
+          );
+  @override
+  WorkflowProgressCopyWith<$R, WorkflowProgress, WorkflowProgress>?
+      get workflowProgress => $value.workflowProgress?.copyWith.$chain(
+            (v) => call(workflowProgress: v),
+          );
   @override
   UsageMetadataCopyWith<$R, UsageMetadata, UsageMetadata>? get usageMetadata =>
       $value.usageMetadata?.copyWith.$chain((v) => call(usageMetadata: v));
@@ -940,61 +1142,68 @@ class _StepCopyWithImpl<$R, $Out> extends ClassCopyWithBase<$R, Step, $Out>
     String? error,
     Object? isCompleteResponse = $none,
     Object? structuredOutput = $none,
+    Object? workflowProgress = $none,
     Object? usageMetadata = $none,
-  }) => $apply(
-    FieldCopyWithData({
-      if (id != null) #id: id,
-      if (stepIndex != null) #stepIndex: stepIndex,
-      if (cascadeId != null) #cascadeId: cascadeId,
-      if (trajectoryId != null) #trajectoryId: trajectoryId,
-      if (parentTrajectoryId != null) #parentTrajectoryId: parentTrajectoryId,
-      if (depth != null) #depth: depth,
-      if (type != null) #type: type,
-      if (source != null) #source: source,
-      if (target != null) #target: target,
-      if (status != null) #status: status,
-      if (content != null) #content: content,
-      if (contentDelta != null) #contentDelta: contentDelta,
-      if (thinking != null) #thinking: thinking,
-      if (thinkingDelta != null) #thinkingDelta: thinkingDelta,
-      if (toolCalls != null) #toolCalls: toolCalls,
-      if (error != null) #error: error,
-      if (isCompleteResponse != $none) #isCompleteResponse: isCompleteResponse,
-      if (structuredOutput != $none) #structuredOutput: structuredOutput,
-      if (usageMetadata != $none) #usageMetadata: usageMetadata,
-    }),
-  );
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (id != null) #id: id,
+          if (stepIndex != null) #stepIndex: stepIndex,
+          if (cascadeId != null) #cascadeId: cascadeId,
+          if (trajectoryId != null) #trajectoryId: trajectoryId,
+          if (parentTrajectoryId != null)
+            #parentTrajectoryId: parentTrajectoryId,
+          if (depth != null) #depth: depth,
+          if (type != null) #type: type,
+          if (source != null) #source: source,
+          if (target != null) #target: target,
+          if (status != null) #status: status,
+          if (content != null) #content: content,
+          if (contentDelta != null) #contentDelta: contentDelta,
+          if (thinking != null) #thinking: thinking,
+          if (thinkingDelta != null) #thinkingDelta: thinkingDelta,
+          if (toolCalls != null) #toolCalls: toolCalls,
+          if (error != null) #error: error,
+          if (isCompleteResponse != $none)
+            #isCompleteResponse: isCompleteResponse,
+          if (structuredOutput != $none) #structuredOutput: structuredOutput,
+          if (workflowProgress != $none) #workflowProgress: workflowProgress,
+          if (usageMetadata != $none) #usageMetadata: usageMetadata,
+        }),
+      );
   @override
   Step $make(CopyWithData data) => Step(
-    id: data.get(#id, or: $value.id),
-    stepIndex: data.get(#stepIndex, or: $value.stepIndex),
-    cascadeId: data.get(#cascadeId, or: $value.cascadeId),
-    trajectoryId: data.get(#trajectoryId, or: $value.trajectoryId),
-    parentTrajectoryId: data.get(
-      #parentTrajectoryId,
-      or: $value.parentTrajectoryId,
-    ),
-    depth: data.get(#depth, or: $value.depth),
-    type: data.get(#type, or: $value.type),
-    source: data.get(#source, or: $value.source),
-    target: data.get(#target, or: $value.target),
-    status: data.get(#status, or: $value.status),
-    content: data.get(#content, or: $value.content),
-    contentDelta: data.get(#contentDelta, or: $value.contentDelta),
-    thinking: data.get(#thinking, or: $value.thinking),
-    thinkingDelta: data.get(#thinkingDelta, or: $value.thinkingDelta),
-    toolCalls: data.get(#toolCalls, or: $value.toolCalls),
-    error: data.get(#error, or: $value.error),
-    isCompleteResponse: data.get(
-      #isCompleteResponse,
-      or: $value.isCompleteResponse,
-    ),
-    structuredOutput: data.get(#structuredOutput, or: $value.structuredOutput),
-    usageMetadata: data.get(#usageMetadata, or: $value.usageMetadata),
-  );
+        id: data.get(#id, or: $value.id),
+        stepIndex: data.get(#stepIndex, or: $value.stepIndex),
+        cascadeId: data.get(#cascadeId, or: $value.cascadeId),
+        trajectoryId: data.get(#trajectoryId, or: $value.trajectoryId),
+        parentTrajectoryId: data.get(
+          #parentTrajectoryId,
+          or: $value.parentTrajectoryId,
+        ),
+        depth: data.get(#depth, or: $value.depth),
+        type: data.get(#type, or: $value.type),
+        source: data.get(#source, or: $value.source),
+        target: data.get(#target, or: $value.target),
+        status: data.get(#status, or: $value.status),
+        content: data.get(#content, or: $value.content),
+        contentDelta: data.get(#contentDelta, or: $value.contentDelta),
+        thinking: data.get(#thinking, or: $value.thinking),
+        thinkingDelta: data.get(#thinkingDelta, or: $value.thinkingDelta),
+        toolCalls: data.get(#toolCalls, or: $value.toolCalls),
+        error: data.get(#error, or: $value.error),
+        isCompleteResponse: data.get(
+          #isCompleteResponse,
+          or: $value.isCompleteResponse,
+        ),
+        structuredOutput:
+            data.get(#structuredOutput, or: $value.structuredOutput),
+        workflowProgress:
+            data.get(#workflowProgress, or: $value.workflowProgress),
+        usageMetadata: data.get(#usageMetadata, or: $value.usageMetadata),
+      );
 
   @override
   StepCopyWith<$R2, Step, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
       _StepCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
-

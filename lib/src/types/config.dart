@@ -1,4 +1,5 @@
 import 'package:dart_mappable/dart_mappable.dart';
+import 'package:meta/meta.dart';
 import 'package:logging/logging.dart';
 
 import 'capabilities.dart';
@@ -53,9 +54,13 @@ class SubagentCapabilities with SubagentCapabilitiesMappable {
               enabledTools!.contains(BuiltinTools.startSubagent)) &&
           (disabledTools == null ||
               !disabledTools!.contains(BuiltinTools.startSubagent));
-      if (!hasStartSubagent) {
+      final hasWorkflow = (enabledTools == null ||
+              enabledTools!.contains(BuiltinTools.runWorkflow)) &&
+          (disabledTools == null ||
+              !disabledTools!.contains(BuiltinTools.runWorkflow));
+      if (!hasStartSubagent && !hasWorkflow) {
         throw AntigravityValidationException(
-          'Cannot configure allowedSubagents when BuiltinTools.startSubagent is disabled for this subagent.',
+          'Cannot configure allowedSubagents when both startSubagent and runWorkflow are disabled for this subagent.',
         );
       }
     }
@@ -193,6 +198,96 @@ enum StopReason {
   }
 }
 
+/// An in-memory skill definition.
+@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+class InlineSkill with InlineSkillMappable {
+  final String name;
+  final String description;
+  final String content;
+  final List<String> allowedTools;
+  final List<String> dependentTools;
+  final List<String> dependentSkills;
+  final Map<String, String> metadata;
+
+  InlineSkill(
+      {required this.name,
+      required this.description,
+      required this.content,
+      this.allowedTools = const [],
+      this.dependentTools = const [],
+      this.dependentSkills = const [],
+      this.metadata = const {}});
+  static const fromMap = InlineSkillMapper.fromMap;
+  static const fromJson = InlineSkillMapper.fromJson;
+}
+
+/// A subagent skills setting accepted by [SubagentConfig.skillsConfig]:
+/// a [SubagentSkillsConfig], or one of its three mode types directly.
+sealed class SubagentSkillsOption {}
+
+/// How a subagent inherits, disables, or replaces its parent's skills.
+@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+class SubagentSkillsConfig
+    with SubagentSkillsConfigMappable
+    implements SubagentSkillsOption {
+  final SubagentInheritSkillsConfig? inheritConfig;
+  final SubagentNoneSkillsConfig? noneConfig;
+  final SubagentOverrideSkillsConfig? overrideConfig;
+  SubagentSkillsConfig(
+      {this.inheritConfig, this.noneConfig, this.overrideConfig}) {
+    if ([inheritConfig, noneConfig, overrideConfig]
+            .where((x) => x != null)
+            .length >
+        1) {
+      throw AntigravityValidationException(
+          'At most one subagent skills mode may be set.');
+    }
+  }
+  static const fromMap = SubagentSkillsConfigMapper.fromMap;
+  static const fromJson = SubagentSkillsConfigMapper.fromJson;
+}
+
+/// Inherits all parent skills unless filtered by [skillNames].
+@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+class SubagentInheritSkillsConfig
+    with SubagentInheritSkillsConfigMappable
+    implements SubagentSkillsOption {
+  final List<String> skillNames;
+  final List<String> extraSkillsPaths;
+  SubagentInheritSkillsConfig(
+      {this.skillNames = const [], this.extraSkillsPaths = const []});
+  static const fromMap = SubagentInheritSkillsConfigMapper.fromMap;
+  static const fromJson = SubagentInheritSkillsConfigMapper.fromJson;
+}
+
+/// Disables skills and the lookup_skill tool for a subagent.
+@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+class SubagentNoneSkillsConfig
+    with SubagentNoneSkillsConfigMappable
+    implements SubagentSkillsOption {
+  SubagentNoneSkillsConfig();
+  static const fromMap = SubagentNoneSkillsConfigMapper.fromMap;
+  static const fromJson = SubagentNoneSkillsConfigMapper.fromJson;
+}
+
+/// Replaces inherited skills with explicit paths or inline definitions.
+@MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
+class SubagentOverrideSkillsConfig
+    with SubagentOverrideSkillsConfigMappable
+    implements SubagentSkillsOption {
+  final List<String> skillsPaths;
+  final List<InlineSkill> inlineSkills;
+  SubagentOverrideSkillsConfig(
+      {this.skillsPaths = const [], this.inlineSkills = const []}) {
+    if (skillsPaths.isEmpty && inlineSkills.isEmpty) {
+      throw AntigravityValidationException(
+          'Provide skillsPaths or inlineSkills; use SubagentNoneSkillsConfig to disable skills.');
+    }
+  }
+  static const fromMap = SubagentOverrideSkillsConfigMapper.fromMap;
+  static const fromJson = SubagentOverrideSkillsConfigMapper.fromJson;
+}
+
 /// Configuration for a static subagent.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class SubagentConfig with SubagentConfigMappable {
@@ -227,13 +322,52 @@ class SubagentConfig with SubagentConfigMappable {
   /// endpoint.
   final String? model;
 
+  /// Inherit (the default), disable, or replace this subagent's skills.
+  ///
+  /// The constructor also accepts a [SubagentInheritSkillsConfig],
+  /// [SubagentNoneSkillsConfig], or [SubagentOverrideSkillsConfig] directly.
+  final SubagentSkillsConfig? skillsConfig;
+
   SubagentConfig({
+    required String name,
+    required String description,
+    dynamic systemInstructions,
+    SubagentCapabilities? capabilities,
+    List<Object>? tools,
+    String? model,
+    SubagentSkillsOption? skillsConfig,
+  }) : this.raw(
+          name: name,
+          description: description,
+          systemInstructions: systemInstructions,
+          capabilities: capabilities,
+          tools: tools,
+          model: model,
+          skillsConfig: switch (skillsConfig) {
+            null => null,
+            SubagentSkillsConfig config => config,
+            SubagentInheritSkillsConfig config =>
+              SubagentSkillsConfig(inheritConfig: config),
+            SubagentNoneSkillsConfig config =>
+              SubagentSkillsConfig(noneConfig: config),
+            SubagentOverrideSkillsConfig config =>
+              SubagentSkillsConfig(overrideConfig: config),
+          },
+        );
+
+  /// Serialization constructor taking the normalized [skillsConfig].
+  ///
+  /// Use the default constructor, which also accepts the skills mode types.
+  @internal
+  @MappableConstructor()
+  SubagentConfig.raw({
     required this.name,
     required this.description,
     this.systemInstructions,
     this.capabilities,
     List<Object>? tools,
     this.model,
+    this.skillsConfig,
   }) : tools = tools ?? [];
 
   static const fromMap = SubagentConfigMapper.fromMap;

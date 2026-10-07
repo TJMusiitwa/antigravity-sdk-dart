@@ -91,7 +91,8 @@ String? makeStepId(Object? trajectoryId, Object? stepIndex) {
 /// `run_command` and allows everything else. Pass `policies: [allowAll()]` for
 /// fully autonomous execution, including shell access.
 ///
-/// File tools are restricted to [workspaces] by the harness policy evaluator.
+/// The harness confines file tools to [workspaces] by default. [allowAll]
+/// disables containment unless paired with [workspaceOnly].
 @MappableClass()
 abstract class BaseLocalAgentConfig extends AgentConfig
     with BaseLocalAgentConfigMappable {
@@ -111,6 +112,7 @@ abstract class BaseLocalAgentConfig extends AgentConfig
     super.appDataDir,
     super.responseSchema,
     List<String>? skillsPaths,
+    super.inlineSkills,
     super.debugConfig,
     super.retryConfig,
     super.budgetConfig,
@@ -127,6 +129,10 @@ abstract class BaseLocalAgentConfig extends AgentConfig
           skillsPaths: skillsPaths ?? const [],
         ) {
     _validateAllowedSubagents();
+    if (this.skillsPaths.isNotEmpty && inlineSkills.isNotEmpty) {
+      throw AntigravityValidationException(
+          'LocalHarness supports either skillsPaths or inlineSkills, not both.');
+    }
   }
 
   void _validateAllowedSubagents() {
@@ -216,6 +222,7 @@ class LocalAgentConfig extends BaseLocalAgentConfig
     super.appDataDir,
     super.responseSchema,
     super.skillsPaths,
+    super.inlineSkills,
     super.debugConfig,
     super.retryConfig,
     super.budgetConfig,
@@ -346,6 +353,104 @@ class LocalAgentConfig extends BaseLocalAgentConfig
       workspaces: workspaces,
       appDataDir: appDataDir ?? defaultAppDataDir,
       skillsPaths: skillsPaths,
+      inlineSkills: inlineSkills,
+      mcpServers: mcpServers,
+      subagents: subagents,
+      debugConfig: debugConfig,
+      retryConfig: retryConfig,
+      budgetConfig: budgetConfig,
+      compactionConfig: effectiveCompactionConfig,
+      policies: policies,
+    );
+  }
+}
+
+/// Local harness configuration that speaks the GAOS Interactions API.
+///
+/// Accepts every [LocalAgentConfig] option and talks to `localharness` over
+/// the GAOS Interactions JSON protocol instead of the localharness protocol.
+///
+/// Not yet supported over this protocol, and rejected when the agent starts:
+/// [triggers] (rejected at construction), dynamic policies (`when` predicates
+/// or `askUser` decisions), [AutoPolicy], and a subagent `model`. Root
+/// [inlineSkills] are ignored.
+@MappableClass(
+  includeCustomMappers: [
+    ToolMapper(),
+    PolicyMapper(),
+    HookMapper(),
+    TriggerMapper(),
+  ],
+)
+class InteractionsAgentConfig extends LocalAgentConfig
+    with InteractionsAgentConfigMappable {
+  /// Creates a new [InteractionsAgentConfig].
+  InteractionsAgentConfig({
+    super.systemInstructions,
+    super.capabilities,
+    super.tools,
+    super.policies,
+    super.hooks,
+    super.triggers,
+    super.mcpServers,
+    super.subagents,
+    super.workspaces,
+    super.conversationId,
+    super.sessionContinuationMode,
+    super.saveDir,
+    super.appDataDir,
+    super.responseSchema,
+    super.skillsPaths,
+    super.inlineSkills,
+    super.debugConfig,
+    super.retryConfig,
+    super.budgetConfig,
+    super.compactionConfig,
+    super.model,
+    super.models,
+    super.apiKey,
+    super.vertex,
+    super.project,
+    super.location,
+    super.binaryPath,
+  }) {
+    if (triggers.isNotEmpty) {
+      throw AntigravityValidationException(
+          'Automated triggers are not yet supported with '
+          'InteractionsAgentConfig.');
+    }
+  }
+
+  @override
+  InteractionsAgentConfig lightweight() =>
+      super.lightweight() as InteractionsAgentConfig;
+
+  @override
+  InteractionsAgentConfig eval({
+    ThinkingLevel? thinkingLevel = ThinkingLevel.high,
+  }) =>
+      super.eval(thinkingLevel: thinkingLevel) as InteractionsAgentConfig;
+
+  @override
+  ConnectionStrategy createStrategy({
+    required ToolRunner toolRunner,
+    required HookRunner hookRunner,
+  }) {
+    return InteractionsConnectionStrategy(
+      binaryPath: binaryPath,
+      toolRunner: toolRunner,
+      hookRunner: hookRunner,
+      tools: tools,
+      models: _mergeModelsList(),
+      systemInstructions: systemInstructions,
+      capabilitiesConfig: capabilities,
+      conversationId: conversationId,
+      sessionContinuationMode: sessionContinuationMode,
+      saveDir: saveDir != null ? Directory(saveDir!).absolute.path : null,
+      workspaces: workspaces,
+      appDataDir: appDataDir ?? defaultAppDataDir,
+      skillsPaths: skillsPaths,
+      inlineSkills: inlineSkills,
       mcpServers: mcpServers,
       subagents: subagents,
       debugConfig: debugConfig,
@@ -385,6 +490,7 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
     super.appDataDir,
     super.responseSchema,
     super.skillsPaths,
+    super.inlineSkills,
     super.debugConfig,
     super.retryConfig,
     super.budgetConfig,
@@ -451,6 +557,7 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
       workspaces: workspaces,
       appDataDir: appDataDir ?? defaultAppDataDir,
       skillsPaths: skillsPaths,
+      inlineSkills: inlineSkills,
       mcpServers: mcpServers,
       subagents: subagents,
       debugConfig: debugConfig,
@@ -530,6 +637,7 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
     super.appDataDir,
     super.responseSchema,
     super.skillsPaths,
+    super.inlineSkills,
     super.debugConfig,
     super.retryConfig,
     super.budgetConfig,
@@ -596,6 +704,7 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
       workspaces: workspaces,
       appDataDir: appDataDir ?? defaultAppDataDir,
       skillsPaths: skillsPaths,
+      inlineSkills: inlineSkills,
       mcpServers: mcpServers,
       subagents: subagents,
       debugConfig: debugConfig,

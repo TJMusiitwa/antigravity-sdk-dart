@@ -33,3 +33,9 @@ final policies = [
 - [ ] File operations enforce workspace path containment checks (`p.isWithin`).
 
 
+
+## Harness containment
+
+`allowAll()` disables harness workspace containment unless `workspaceOnly(...)`
+rules are also present. To allow command execution while retaining file
+containment, combine `allowAll()` with `workspaceOnly(workspaces)`.

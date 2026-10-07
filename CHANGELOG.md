@@ -1,3 +1,46 @@
+## 0.16.0
+
+Syncs with Python SDK v0.1.21.
+
+### Added
+
+* `InteractionsAgentConfig`, `InteractionsConnectionStrategy`, and
+  `InteractionsConnection`: the local harness over the GAOS Interactions JSON
+  protocol, with streamed step assembly, client tools, lifecycle hooks, question
+  elicitations, and usage tracking. Triggers, `auto()` and dynamic policies, and
+  subagent `model` overrides are rejected; root `inlineSkills` are ignored.
+* `InlineSkill` and `inlineSkills` on all local configs. Paths and inline root
+  skills are mutually exclusive.
+* Subagent skill inheritance, disabling, and path overrides via
+  `SubagentSkillsConfig` and its three mode types, accepted directly through the
+  sealed `SubagentSkillsOption` interface. Local inline overrides are rejected,
+  matching upstream.
+* `HookRunner(hooks: ...)` and `registerHooks`, MCP `forceAllToolsEager`, and
+  numeric-zero identity for usage addition/subtraction.
+* Experimental `agent.beta.runWorkflow(scriptPath: ...)`, `WorkflowResult`,
+  `WorkflowProgress`, and `BuiltinTools.runWorkflow`. Workflows execute Python
+  script files in the harness; Dart closures are not transpiled.
+* Experimental `validateWorkflowSource` and `WorkflowException` in
+  `package:antigravity/beta.dart`. `runWorkflow` now rejects imports, `while`
+  loops, private attributes, dunder names, and top-level `return`/`yield` before
+  contacting the model. The check is lexical; full syntax checking stays with
+  the harness.
+
+### Changed
+
+* `allowAll()` disables harness workspace containment unless paired with
+  `workspaceOnly(...)`.
+* Delegation remains enabled if either `startSubagent` or `runWorkflow` is active.
+  Explicit subagent capabilities now honor default tools and denylists.
+* Error steps no longer emit text/thought deltas. Empty tool IDs retain the
+  existing correct behavior, now covered by regression tests.
+* Harness shutdown waits for exit and reports nonzero status with stderr.
+* `Tool` has readable inspection output; tool runner batches accept iterables.
+* `runWorkflow` expands `~` in script paths and only tries the first workspace
+  for relative paths.
+* Default harness release: 0.1.21. Generated mappers, tests, skills,
+  README, and workflow example updated.
+
 ## 0.15.0
 
 Syncs with Python SDK v0.1.18.

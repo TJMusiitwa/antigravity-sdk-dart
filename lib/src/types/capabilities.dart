@@ -31,6 +31,8 @@ enum BuiltinTools {
   askQuestion('ask_question'),
   @MappableValue('start_subagent')
   startSubagent('start_subagent'),
+  @MappableValue('run_workflow')
+  runWorkflow('run_workflow'),
   @MappableValue('generate_image')
   generateImage('generate_image'),
   @MappableValue('search_web')
@@ -82,6 +84,7 @@ enum BuiltinTools {
       editFile,
       askQuestion,
       startSubagent,
+      runWorkflow,
       generateImage,
       searchWeb,
       readUrlContent,
@@ -363,14 +366,16 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
     }
     final subagentDisabled = !enableSubagents ||
         (disabledTools != null &&
-            disabledTools!.contains(BuiltinTools.startSubagent)) ||
+            disabledTools!.contains(BuiltinTools.startSubagent) &&
+            disabledTools!.contains(BuiltinTools.runWorkflow)) ||
         (enabledTools != null &&
-            !enabledTools!.contains(BuiltinTools.startSubagent));
+            !enabledTools!.contains(BuiltinTools.startSubagent) &&
+            !enabledTools!.contains(BuiltinTools.runWorkflow));
     if (subagentDisabled) {
       if (maxSubagentDepth != null) {
         throw AntigravityValidationException(
           'maxSubagentDepth cannot be configured when subagents are disabled '
-          '(enableSubagents=false or startSubagent not enabled).',
+          '(enableSubagents=false or both startSubagent and runWorkflow disabled).',
         );
       }
       if (allowedSubagents != null) {

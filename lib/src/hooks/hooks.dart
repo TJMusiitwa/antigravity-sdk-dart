@@ -205,6 +205,7 @@ class HookRunner {
 
   /// Creates a new [HookRunner] instance with optional lists of specialized lifecycle hooks.
   HookRunner({
+    Iterable<Hook> hooks = const [],
     List<OnSessionStartHook>? onSessionStartHooks,
     List<OnSessionEndHook>? onSessionEndHooks,
     List<PreTurnHook>? preTurnHooks,
@@ -228,7 +229,16 @@ class HookRunner {
         onCompactionHooks = onCompactionHooks ?? [],
         stopHooks = stopHooks ?? [],
         preStepHooks = preStepHooks ?? [],
-        postStepHooks = postStepHooks ?? [];
+        postStepHooks = postStepHooks ?? [] {
+    registerHooks(hooks);
+  }
+
+  /// Registers a sequence of hooks in order.
+  void registerHooks(Iterable<Hook> hooks) {
+    for (final hook in hooks) {
+      registerHook(hook);
+    }
+  }
 
   /// Registers a hook dynamically.
   void registerHook(Hook hook) {

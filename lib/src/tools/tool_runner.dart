@@ -29,6 +29,10 @@ class Tool {
     required this.schema,
     required this.handler,
   });
+
+  @override
+  String toString() =>
+      'Tool(name: $name, description: $description, schema: $schema)';
 }
 
 /// Registry and executor for custom tools in the Google Antigravity SDK.
@@ -37,7 +41,7 @@ class ToolRunner {
   ToolContext? _context;
 
   /// Creates a new [ToolRunner], registering any provided [tools].
-  ToolRunner({List<Tool>? tools}) {
+  ToolRunner({Iterable<Tool>? tools}) {
     if (tools != null) {
       for (final tool in tools) {
         register(tool);
@@ -82,7 +86,8 @@ class ToolRunner {
   }
 
   /// Executes a batch of tool calls concurrently and returns structured results.
-  Future<List<ToolResult>> processToolCalls(List<ToolCall> toolCalls) async {
+  Future<List<ToolResult>> processToolCalls(
+      Iterable<ToolCall> toolCalls) async {
     final futures = toolCalls.map((tc) async {
       try {
         final tool = _tools[tc.name];

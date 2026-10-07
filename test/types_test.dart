@@ -1433,7 +1433,7 @@ void main() {
       // Subagents disabled via disabledTools containing startSubagent
       expect(
         () => CapabilitiesConfig(
-          disabledTools: [BuiltinTools.startSubagent],
+          disabledTools: [BuiltinTools.startSubagent, BuiltinTools.runWorkflow],
           maxSubagentDepth: 2,
         ),
         throwsA(isA<AntigravityValidationException>()),
@@ -1615,7 +1615,7 @@ void main() {
 
       expect(
         () => SubagentCapabilities(
-          disabledTools: [BuiltinTools.startSubagent],
+          disabledTools: [BuiltinTools.startSubagent, BuiltinTools.runWorkflow],
           allowedSubagents: ['child_worker'],
         ),
         throwsA(isA<AntigravityValidationException>()),

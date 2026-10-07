@@ -1,3 +1,4 @@
+import 'package:antigravity/src/utils/harness_downloader.dart';
 import 'dart:io';
 
 import 'package:antigravity/src/utils/binary_discovery.dart';
@@ -177,7 +178,7 @@ void main() {
       // Write an old version file (0.1.0)
       File('${binDir.path}/.version').writeAsStringSync('0.1.0');
 
-      // We expect it to try to auto-download because version is older than defaultVersion (0.1.18).
+      // We expect it to try to auto-download because version is older than defaultVersion.
       // Since autoDownload is false, it will fail and throw AntigravityBinaryNotFoundException.
       expect(
         BinaryDiscovery.discover(autoDownload: false),
@@ -191,8 +192,9 @@ void main() {
         ..createSync(recursive: true);
       final binFile = File('${binDir.path}/localharness')
         ..writeAsStringSync('binary_content');
-      // Write current default version (0.1.18)
-      File('${binDir.path}/.version').writeAsStringSync('0.1.18');
+      // Write current default version
+      File('${binDir.path}/.version')
+          .writeAsStringSync(HarnessDownloader.defaultVersion);
 
       final result = await BinaryDiscovery.discover(autoDownload: false);
       expect(result, equals(binFile.absolute.path));

@@ -82,6 +82,7 @@ class LocalHarnessProto {
   /// - `port` (uint32, tag 2)
   /// - `bind_address` (string, tag 3, default "localhost")
   /// - `client_info` (ClientInfo message, tag 4)
+  /// - `use_interactions_api` (bool, tag 6)
   static Uint8List encodeInputConfig({
     required String storageDirectory,
     int port = 0,
@@ -89,6 +90,7 @@ class LocalHarnessProto {
     String? clientLanguage,
     String? clientVersion,
     String? clientLanguageVersion,
+    bool useInteractionsApi = false,
   }) {
     final List<int> bytes = [];
 
@@ -126,6 +128,12 @@ class LocalHarnessProto {
       bytes.addAll(encodeVarint((4 << 3) | 2));
       bytes.addAll(encodeVarint(infoBytes.length));
       bytes.addAll(infoBytes);
+    }
+
+    // Tag 6: use_interactions_api (bool, wire type 0)
+    if (useInteractionsApi) {
+      bytes.addAll(encodeVarint((6 << 3) | 0));
+      bytes.add(1);
     }
 
     return Uint8List.fromList(bytes);

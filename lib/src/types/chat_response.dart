@@ -87,3 +87,20 @@ class ChatResponse {
     }
   }
 }
+
+/// Experimental workflow result with all standard response accessors.
+class WorkflowResult extends ChatResponse {
+  final String scriptPath;
+  final String script;
+  final String description;
+  final String output;
+  final String responseText;
+
+  WorkflowResult(super.rawStream,
+      {super.conversation,
+      this.scriptPath = '',
+      this.script = '',
+      this.description = '',
+      this.output = '',
+      this.responseText = ''});
+}

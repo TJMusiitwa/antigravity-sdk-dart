@@ -18,9 +18,13 @@ import '../../utils/string_utils.dart';
 import '../../version.dart';
 import '../connection.dart';
 import 'hook_router.dart';
+import 'interactions_config_converter.dart';
+import 'interactions_step_assembler.dart';
 import 'litert_server_python.dart';
 import 'local_connection_config.dart';
 import 'localharness_proto.dart';
+
+part 'interactions_connection.dart';
 
 final _logger = Logger('antigravity.connection.local');
 
@@ -56,6 +60,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   final List<String> _workspaces;
   final String? _appDataDir;
   final List<String> _skillsPaths;
+  final List<InlineSkill> _inlineSkills;
   final List<McpServerConfig> _mcpServers;
   final List<SubagentConfig> _subagents;
   final DebugConfig? _debugConfig;
@@ -89,6 +94,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     required List<String> workspaces,
     String? appDataDir,
     required List<String> skillsPaths,
+    List<InlineSkill> inlineSkills = const [],
     List<McpServerConfig>? mcpServers,
     List<SubagentConfig>? subagents,
     DebugConfig? debugConfig,
@@ -109,6 +115,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         _workspaces = normalizeWorkspacePaths(workspaces),
         _appDataDir = appDataDir,
         _skillsPaths = skillsPaths,
+        _inlineSkills = inlineSkills,
         _mcpServers = mcpServers ?? const [],
         _subagents = subagents ?? const [],
         _debugConfig = debugConfig,
@@ -179,8 +186,10 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     _connection!._startReaderLoop();
   }
 
-  Future<void> _sendHandshakeInputConfig(Process process) async {
+  Future<void> _sendHandshakeInputConfig(Process process,
+      {bool useInteractionsApi = false}) async {
     final inputConfigBytes = LocalHarnessProto.encodeInputConfig(
+      useInteractionsApi: useInteractionsApi,
       storageDirectory: _saveDir ?? '',
       clientLanguage: 'dart',
       clientVersion: packageVersion,
@@ -408,6 +417,10 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   Map<String, dynamic> buildHarnessConfigForTest() => _buildHarnessConfig();
 
   Map<String, dynamic> _buildHarnessConfig() {
+    if (_skillsPaths.isNotEmpty && _inlineSkills.isNotEmpty) {
+      throw AntigravityValidationException(
+          'LocalHarness supports either skillsPaths or inlineSkills, not both.');
+    }
     final allToolProtos = _buildToolsProtos();
     final systemInstructionsProto =
         _buildSystemInstructionsProto(_systemInstructions);
@@ -446,6 +459,27 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       'models': modelsProtos,
       'workspaces': workspacesProto,
       'skills_paths': _skillsPaths,
+      if (_inlineSkills.isNotEmpty)
+        'skills_config': {
+          'enabled': true,
+          'skills': _inlineSkills
+              .map((s) => {
+                    'skill': {
+                      'name': s.name,
+                      'description': s.description,
+                      'content': s.content,
+                      'allowed_tools': s.allowedTools,
+                      'metadata': {
+                        if (s.dependentTools.isNotEmpty)
+                          'dependent_tools': jsonEncode(s.dependentTools),
+                        if (s.dependentSkills.isNotEmpty)
+                          'dependent_skills': jsonEncode(s.dependentSkills),
+                        ...s.metadata,
+                      },
+                    }
+                  })
+              .toList()
+        },
       'harness_side_tools': harnessSideTools,
       'compaction_threshold': compaction?.tokenThreshold ??
           // ignore: deprecated_member_use_from_same_package
@@ -660,6 +694,10 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     final subagentsEnabled =
         cfg.enableSubagents && activeTools.contains(BuiltinTools.startSubagent);
     return {
+      'run_workflow': {
+        'enabled': cfg.enableSubagents &&
+            activeTools.contains(BuiltinTools.runWorkflow)
+      },
       'subagents': {
         'enabled': subagentsEnabled,
         if (cfg.maxSubagentDepth != null)
@@ -706,6 +744,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         'enabled_tools': s.enabledTools ?? const [],
         'disabled_tools': s.disabledTools ?? const [],
         'timeout_seconds': s.timeoutSeconds ?? 0,
+        'force_all_tools_eager': s.forceAllToolsEager,
       };
       if (s is McpStdioServer) {
         item['stdio'] = {
@@ -749,12 +788,33 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     return enabled;
   }
 
+  Map<String, dynamic> _subagentSkillsProto(SubagentSkillsConfig config) {
+    if (config.overrideConfig?.inlineSkills.isNotEmpty ?? false) {
+      throw AntigravityValidationException(
+          'LocalHarness does not support subagent inline skill overrides; use skillsPaths.');
+    }
+    if (config.noneConfig != null) return {'none_config': <String, dynamic>{}};
+    if (config.inheritConfig != null) {
+      return {'inherit_config': config.inheritConfig!.toMap()};
+    }
+    if (config.overrideConfig != null) {
+      return {
+        'override_config': {'skills_paths': config.overrideConfig!.skillsPaths}
+      };
+    }
+    return {};
+  }
+
   List<Map<String, dynamic>> _buildCustomAgentsProtos(
       List<Map<String, dynamic>> allToolProtos) {
     return _subagents.map((subagent) {
       final subCap = subagent.capabilities;
-      final activeSubTools =
-          subCap?.enabledTools?.toSet() ?? BuiltinTools.readOnly().toSet();
+      final activeSubTools = subCap == null
+          ? BuiltinTools.readOnly().toSet()
+          : (subCap.enabledTools?.toSet() ??
+              BuiltinTools.defaultTools()
+                  .toSet()
+                  .difference(subCap.disabledTools?.toSet() ?? {}));
       final subagentCanSpawn =
           activeSubTools.contains(BuiltinTools.startSubagent);
 
@@ -771,6 +831,9 @@ class LocalConnectionStrategy implements ConnectionStrategy {
           'system_instructions': subagentInstructionsProto,
         'tools': resolvedSubTools,
         'harness_side_tools': {
+          'run_workflow': {
+            'enabled': activeSubTools.contains(BuiltinTools.runWorkflow)
+          },
           'subagents': {
             'enabled': subagentCanSpawn,
             if (subCap?.allowedSubagents != null &&
@@ -819,6 +882,9 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         // Subagents pin a model name only; they always run against the
         // agent-level endpoint.
         if (subagent.model != null) 'model': {'name': subagent.model},
+        if (subagent.skillsConfig != null &&
+            subagent.skillsConfig!.toMap().isNotEmpty)
+          'skills_config': _subagentSkillsProto(subagent.skillsConfig!),
       };
     }).toList();
   }
@@ -973,6 +1039,8 @@ class LocalConnection implements Connection {
   final StreamController<Step> _stepController =
       StreamController<Step>.broadcast();
   final List<String> _stderrLines = [];
+  Future<void>? _stderrDone;
+  static const _processWaitTimeout = Duration(minutes: 3);
   bool _disconnecting = false;
   bool _idleState = true;
   String _convId = '';
@@ -1060,16 +1128,16 @@ class LocalConnection implements Connection {
   }
 
   void _startStderrReader() {
-    _process.stderr
+    _stderrDone = _process.stderr
         .transform(utf8.decoder)
         .transform(const LineSplitter())
-        .listen((line) {
+        .forEach((line) {
       _stderrLines.add(line);
       if (_stderrLines.length > 50) {
         _stderrLines.removeAt(0);
       }
       _logger.fine('[Harness Stderr] $line');
-    }, cancelOnError: false);
+    });
   }
 
   /// Starts the reader loop. Exposed for unit testing.
@@ -1739,10 +1807,39 @@ class LocalConnection implements Connection {
     _disconnecting = true;
     _logger.info('Disconnecting from localharness');
     try {
-      await _ws.close(status.goingAway);
+      await _ws
+          .close(status.goingAway)
+          .timeout(const Duration(milliseconds: 500));
     } catch (_) {}
-    _process.kill();
-    await _stepController.close();
+    try {
+      await _process.stdin.close();
+      int exitCode;
+      try {
+        exitCode = await _process.exitCode.timeout(_processWaitTimeout);
+      } on TimeoutException {
+        _process.kill();
+        try {
+          exitCode =
+              await _process.exitCode.timeout(const Duration(seconds: 1));
+        } on TimeoutException {
+          _process.kill(ProcessSignal.sigkill);
+          exitCode =
+              await _process.exitCode.timeout(const Duration(seconds: 1));
+        }
+      }
+      try {
+        await _stderrDone?.timeout(const Duration(seconds: 1));
+      } on TimeoutException {/* Retain the stderr already collected. */}
+      if (exitCode != 0) {
+        final stderr = _stderrLines.isEmpty
+            ? '(no stderr output)'
+            : _stderrLines.join('\n');
+        throw AntigravityExecutionException(
+            'Harness process exited with code $exitCode.\nHarness stderr:\n$stderr');
+      }
+    } finally {
+      await _stepController.close();
+    }
   }
 
   @override
@@ -1965,6 +2062,7 @@ class LocalOpenAIConnectionStrategy extends LocalConnectionStrategy {
     required super.workspaces,
     super.appDataDir,
     required super.skillsPaths,
+    super.inlineSkills,
     super.mcpServers,
     super.subagents,
     super.debugConfig,
@@ -2035,6 +2133,7 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
     required super.workspaces,
     super.appDataDir,
     required super.skillsPaths,
+    super.inlineSkills,
     super.mcpServers,
     super.subagents,
     super.debugConfig,

@@ -211,11 +211,11 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
       v.agentBehavior;
   static const Field<SubagentCapabilities, AgentBehavior> _f$agentBehavior =
       Field(
-        'agentBehavior',
-        _$agentBehavior,
-        key: r'agent_behavior',
-        opt: true,
-      );
+    'agentBehavior',
+    _$agentBehavior,
+    key: r'agent_behavior',
+    opt: true,
+  );
   static AgentBehavior _$agentMode(SubagentCapabilities v) => v.agentMode;
   static const Field<SubagentCapabilities, AgentBehavior> _f$agentMode = Field(
     'agentMode',
@@ -230,7 +230,7 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
   static List<BuiltinTools>? _$disabledTools(SubagentCapabilities v) =>
       v.disabledTools;
   static const Field<SubagentCapabilities, List<BuiltinTools>>
-  _f$disabledTools = Field(
+      _f$disabledTools = Field(
     'disabledTools',
     _$disabledTools,
     key: r'disabled_tools',
@@ -240,15 +240,15 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
       v.allowedSubagents;
   static const Field<SubagentCapabilities, List<String>> _f$allowedSubagents =
       Field(
-        'allowedSubagents',
-        _$allowedSubagents,
-        key: r'allowed_subagents',
-        opt: true,
-      );
+    'allowedSubagents',
+    _$allowedSubagents,
+    key: r'allowed_subagents',
+    opt: true,
+  );
   static RunCommandConfig? _$runCommandConfig(SubagentCapabilities v) =>
       v.runCommandConfig;
   static const Field<SubagentCapabilities, RunCommandConfig>
-  _f$runCommandConfig = Field(
+      _f$runCommandConfig = Field(
     'runCommandConfig',
     _$runCommandConfig,
     key: r'run_command_config',
@@ -302,16 +302,10 @@ mixin SubagentCapabilitiesMappable {
         .encodeMap<SubagentCapabilities>(this as SubagentCapabilities);
   }
 
-  SubagentCapabilitiesCopyWith<
-    SubagentCapabilities,
-    SubagentCapabilities,
-    SubagentCapabilities
-  >
-  get copyWith =>
-      _SubagentCapabilitiesCopyWithImpl<
-        SubagentCapabilities,
-        SubagentCapabilities
-      >(this as SubagentCapabilities, $identity, $identity);
+  SubagentCapabilitiesCopyWith<SubagentCapabilities, SubagentCapabilities,
+      SubagentCapabilities> get copyWith => _SubagentCapabilitiesCopyWithImpl<
+          SubagentCapabilities, SubagentCapabilities>(
+      this as SubagentCapabilities, $identity, $identity);
   @override
   String toString() {
     return SubagentCapabilitiesMapper.ensureInitialized().stringifyValue(
@@ -339,34 +333,24 @@ mixin SubagentCapabilitiesMappable {
 extension SubagentCapabilitiesValueCopy<$R, $Out>
     on ObjectCopyWith<$R, SubagentCapabilities, $Out> {
   SubagentCapabilitiesCopyWith<$R, SubagentCapabilities, $Out>
-  get $asSubagentCapabilities => $base.as(
-    (v, t, t2) => _SubagentCapabilitiesCopyWithImpl<$R, $Out>(v, t, t2),
-  );
+      get $asSubagentCapabilities => $base.as(
+            (v, t, t2) => _SubagentCapabilitiesCopyWithImpl<$R, $Out>(v, t, t2),
+          );
 }
 
 /// @nodoc
 abstract class SubagentCapabilitiesCopyWith<
-  $R,
-  $In extends SubagentCapabilities,
-  $Out
->
-    implements ClassCopyWith<$R, $In, $Out> {
-  ListCopyWith<
     $R,
-    BuiltinTools,
-    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
-  >?
-  get enabledTools;
-  ListCopyWith<
-    $R,
-    BuiltinTools,
-    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
-  >?
-  get disabledTools;
+    $In extends SubagentCapabilities,
+    $Out> implements ClassCopyWith<$R, $In, $Out> {
+  ListCopyWith<$R, BuiltinTools,
+      ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get enabledTools;
+  ListCopyWith<$R, BuiltinTools,
+      ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>? get disabledTools;
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-  get allowedSubagents;
+      get allowedSubagents;
   RunCommandConfigCopyWith<$R, RunCommandConfig, RunCommandConfig>?
-  get runCommandConfig;
+      get runCommandConfig;
   $R call({
     AgentBehavior? agentBehavior,
     AgentBehavior? agentMode,
@@ -390,45 +374,39 @@ class _SubagentCapabilitiesCopyWithImpl<$R, $Out>
   late final ClassMapperBase<SubagentCapabilities> $mapper =
       SubagentCapabilitiesMapper.ensureInitialized();
   @override
-  ListCopyWith<
-    $R,
-    BuiltinTools,
-    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
-  >?
-  get enabledTools => $value.enabledTools != null
-      ? ListCopyWith(
-          $value.enabledTools!,
-          (v, t) => ObjectCopyWith(v, $identity, t),
-          (v) => call(enabledTools: v),
-        )
-      : null;
+  ListCopyWith<$R, BuiltinTools,
+          ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>?
+      get enabledTools => $value.enabledTools != null
+          ? ListCopyWith(
+              $value.enabledTools!,
+              (v, t) => ObjectCopyWith(v, $identity, t),
+              (v) => call(enabledTools: v),
+            )
+          : null;
   @override
-  ListCopyWith<
-    $R,
-    BuiltinTools,
-    ObjectCopyWith<$R, BuiltinTools, BuiltinTools>
-  >?
-  get disabledTools => $value.disabledTools != null
-      ? ListCopyWith(
-          $value.disabledTools!,
-          (v, t) => ObjectCopyWith(v, $identity, t),
-          (v) => call(disabledTools: v),
-        )
-      : null;
+  ListCopyWith<$R, BuiltinTools,
+          ObjectCopyWith<$R, BuiltinTools, BuiltinTools>>?
+      get disabledTools => $value.disabledTools != null
+          ? ListCopyWith(
+              $value.disabledTools!,
+              (v, t) => ObjectCopyWith(v, $identity, t),
+              (v) => call(disabledTools: v),
+            )
+          : null;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>?
-  get allowedSubagents => $value.allowedSubagents != null
-      ? ListCopyWith(
-          $value.allowedSubagents!,
-          (v, t) => ObjectCopyWith(v, $identity, t),
-          (v) => call(allowedSubagents: v),
-        )
-      : null;
+      get allowedSubagents => $value.allowedSubagents != null
+          ? ListCopyWith(
+              $value.allowedSubagents!,
+              (v, t) => ObjectCopyWith(v, $identity, t),
+              (v) => call(allowedSubagents: v),
+            )
+          : null;
   @override
   RunCommandConfigCopyWith<$R, RunCommandConfig, RunCommandConfig>?
-  get runCommandConfig => $value.runCommandConfig?.copyWith.$chain(
-    (v) => call(runCommandConfig: v),
-  );
+      get runCommandConfig => $value.runCommandConfig?.copyWith.$chain(
+            (v) => call(runCommandConfig: v),
+          );
   @override
   $R call({
     Object? agentBehavior = $none,
@@ -437,30 +415,33 @@ class _SubagentCapabilitiesCopyWithImpl<$R, $Out>
     Object? disabledTools = $none,
     Object? allowedSubagents = $none,
     Object? runCommandConfig = $none,
-  }) => $apply(
-    FieldCopyWithData({
-      if (agentBehavior != $none) #agentBehavior: agentBehavior,
-      if (agentMode != $none) #agentMode: agentMode,
-      if (enabledTools != $none) #enabledTools: enabledTools,
-      if (disabledTools != $none) #disabledTools: disabledTools,
-      if (allowedSubagents != $none) #allowedSubagents: allowedSubagents,
-      if (runCommandConfig != $none) #runCommandConfig: runCommandConfig,
-    }),
-  );
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (agentBehavior != $none) #agentBehavior: agentBehavior,
+          if (agentMode != $none) #agentMode: agentMode,
+          if (enabledTools != $none) #enabledTools: enabledTools,
+          if (disabledTools != $none) #disabledTools: disabledTools,
+          if (allowedSubagents != $none) #allowedSubagents: allowedSubagents,
+          if (runCommandConfig != $none) #runCommandConfig: runCommandConfig,
+        }),
+      );
   @override
   SubagentCapabilities $make(CopyWithData data) => SubagentCapabilities(
-    agentBehavior: data.get(#agentBehavior, or: $value.agentBehavior),
-    agentMode: data.get(#agentMode, or: $value.agentMode),
-    enabledTools: data.get(#enabledTools, or: $value.enabledTools),
-    disabledTools: data.get(#disabledTools, or: $value.disabledTools),
-    allowedSubagents: data.get(#allowedSubagents, or: $value.allowedSubagents),
-    runCommandConfig: data.get(#runCommandConfig, or: $value.runCommandConfig),
-  );
+        agentBehavior: data.get(#agentBehavior, or: $value.agentBehavior),
+        agentMode: data.get(#agentMode, or: $value.agentMode),
+        enabledTools: data.get(#enabledTools, or: $value.enabledTools),
+        disabledTools: data.get(#disabledTools, or: $value.disabledTools),
+        allowedSubagents:
+            data.get(#allowedSubagents, or: $value.allowedSubagents),
+        runCommandConfig:
+            data.get(#runCommandConfig, or: $value.runCommandConfig),
+      );
 
   @override
   SubagentCapabilitiesCopyWith<$R2, SubagentCapabilities, $Out2>
-  $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
-      _SubagentCapabilitiesCopyWithImpl<$R2, $Out2>($value, $cast, t);
+      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+          _SubagentCapabilitiesCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -638,30 +619,965 @@ class _BudgetConfigCopyWithImpl<$R, $Out>
     Object? maxInputTokens = $none,
     Object? maxOutputTokens = $none,
     Object? maxTotalTokens = $none,
-  }) => $apply(
-    FieldCopyWithData({
-      if (scope != null) #scope: scope,
-      if (maxModelCalls != $none) #maxModelCalls: maxModelCalls,
-      if (maxToolCalls != $none) #maxToolCalls: maxToolCalls,
-      if (maxInputTokens != $none) #maxInputTokens: maxInputTokens,
-      if (maxOutputTokens != $none) #maxOutputTokens: maxOutputTokens,
-      if (maxTotalTokens != $none) #maxTotalTokens: maxTotalTokens,
-    }),
-  );
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (scope != null) #scope: scope,
+          if (maxModelCalls != $none) #maxModelCalls: maxModelCalls,
+          if (maxToolCalls != $none) #maxToolCalls: maxToolCalls,
+          if (maxInputTokens != $none) #maxInputTokens: maxInputTokens,
+          if (maxOutputTokens != $none) #maxOutputTokens: maxOutputTokens,
+          if (maxTotalTokens != $none) #maxTotalTokens: maxTotalTokens,
+        }),
+      );
   @override
   BudgetConfig $make(CopyWithData data) => BudgetConfig(
-    scope: data.get(#scope, or: $value.scope),
-    maxModelCalls: data.get(#maxModelCalls, or: $value.maxModelCalls),
-    maxToolCalls: data.get(#maxToolCalls, or: $value.maxToolCalls),
-    maxInputTokens: data.get(#maxInputTokens, or: $value.maxInputTokens),
-    maxOutputTokens: data.get(#maxOutputTokens, or: $value.maxOutputTokens),
-    maxTotalTokens: data.get(#maxTotalTokens, or: $value.maxTotalTokens),
-  );
+        scope: data.get(#scope, or: $value.scope),
+        maxModelCalls: data.get(#maxModelCalls, or: $value.maxModelCalls),
+        maxToolCalls: data.get(#maxToolCalls, or: $value.maxToolCalls),
+        maxInputTokens: data.get(#maxInputTokens, or: $value.maxInputTokens),
+        maxOutputTokens: data.get(#maxOutputTokens, or: $value.maxOutputTokens),
+        maxTotalTokens: data.get(#maxTotalTokens, or: $value.maxTotalTokens),
+      );
 
   @override
   BudgetConfigCopyWith<$R2, BudgetConfig, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) => _BudgetConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) =>
+      _BudgetConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+}
+
+/// @nodoc
+class InlineSkillMapper extends ClassMapperBase<InlineSkill> {
+  InlineSkillMapper._();
+
+  static InlineSkillMapper? _instance;
+  static InlineSkillMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(_instance = InlineSkillMapper._());
+    }
+    return _instance!;
+  }
+
+  @override
+  final String id = 'InlineSkill';
+
+  static String _$name(InlineSkill v) => v.name;
+  static const Field<InlineSkill, String> _f$name = Field('name', _$name);
+  static String _$description(InlineSkill v) => v.description;
+  static const Field<InlineSkill, String> _f$description = Field(
+    'description',
+    _$description,
+  );
+  static String _$content(InlineSkill v) => v.content;
+  static const Field<InlineSkill, String> _f$content = Field(
+    'content',
+    _$content,
+  );
+  static List<String> _$allowedTools(InlineSkill v) => v.allowedTools;
+  static const Field<InlineSkill, List<String>> _f$allowedTools = Field(
+    'allowedTools',
+    _$allowedTools,
+    key: r'allowed_tools',
+    opt: true,
+    def: const [],
+  );
+  static List<String> _$dependentTools(InlineSkill v) => v.dependentTools;
+  static const Field<InlineSkill, List<String>> _f$dependentTools = Field(
+    'dependentTools',
+    _$dependentTools,
+    key: r'dependent_tools',
+    opt: true,
+    def: const [],
+  );
+  static List<String> _$dependentSkills(InlineSkill v) => v.dependentSkills;
+  static const Field<InlineSkill, List<String>> _f$dependentSkills = Field(
+    'dependentSkills',
+    _$dependentSkills,
+    key: r'dependent_skills',
+    opt: true,
+    def: const [],
+  );
+  static Map<String, String> _$metadata(InlineSkill v) => v.metadata;
+  static const Field<InlineSkill, Map<String, String>> _f$metadata = Field(
+    'metadata',
+    _$metadata,
+    opt: true,
+    def: const {},
+  );
+
+  @override
+  final MappableFields<InlineSkill> fields = const {
+    #name: _f$name,
+    #description: _f$description,
+    #content: _f$content,
+    #allowedTools: _f$allowedTools,
+    #dependentTools: _f$dependentTools,
+    #dependentSkills: _f$dependentSkills,
+    #metadata: _f$metadata,
+  };
+  @override
+  final bool ignoreNull = true;
+
+  static InlineSkill _instantiate(DecodingData data) {
+    return InlineSkill(
+      name: data.dec(_f$name),
+      description: data.dec(_f$description),
+      content: data.dec(_f$content),
+      allowedTools: data.dec(_f$allowedTools),
+      dependentTools: data.dec(_f$dependentTools),
+      dependentSkills: data.dec(_f$dependentSkills),
+      metadata: data.dec(_f$metadata),
+    );
+  }
+
+  @override
+  final Function instantiate = _instantiate;
+
+  static InlineSkill fromMap(Map<String, dynamic> map) {
+    return ensureInitialized().decodeMap<InlineSkill>(map);
+  }
+
+  static InlineSkill fromJson(String json) {
+    return ensureInitialized().decodeJson<InlineSkill>(json);
+  }
+}
+
+/// @nodoc
+mixin InlineSkillMappable {
+  String toJson() {
+    return InlineSkillMapper.ensureInitialized().encodeJson<InlineSkill>(
+      this as InlineSkill,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return InlineSkillMapper.ensureInitialized().encodeMap<InlineSkill>(
+      this as InlineSkill,
+    );
+  }
+
+  InlineSkillCopyWith<InlineSkill, InlineSkill, InlineSkill> get copyWith =>
+      _InlineSkillCopyWithImpl<InlineSkill, InlineSkill>(
+        this as InlineSkill,
+        $identity,
+        $identity,
+      );
+  @override
+  String toString() {
+    return InlineSkillMapper.ensureInitialized().stringifyValue(
+      this as InlineSkill,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return InlineSkillMapper.ensureInitialized().equalsValue(
+      this as InlineSkill,
+      other,
+    );
+  }
+
+  @override
+  int get hashCode {
+    return InlineSkillMapper.ensureInitialized().hashValue(this as InlineSkill);
+  }
+}
+
+/// @nodoc
+extension InlineSkillValueCopy<$R, $Out>
+    on ObjectCopyWith<$R, InlineSkill, $Out> {
+  InlineSkillCopyWith<$R, InlineSkill, $Out> get $asInlineSkill =>
+      $base.as((v, t, t2) => _InlineSkillCopyWithImpl<$R, $Out>(v, t, t2));
+}
+
+/// @nodoc
+abstract class InlineSkillCopyWith<$R, $In extends InlineSkill, $Out>
+    implements ClassCopyWith<$R, $In, $Out> {
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get allowedTools;
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>
+      get dependentTools;
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>
+      get dependentSkills;
+  MapCopyWith<$R, String, String, ObjectCopyWith<$R, String, String>>
+      get metadata;
+  $R call({
+    String? name,
+    String? description,
+    String? content,
+    List<String>? allowedTools,
+    List<String>? dependentTools,
+    List<String>? dependentSkills,
+    Map<String, String>? metadata,
+  });
+  InlineSkillCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
+}
+
+/// @nodoc
+class _InlineSkillCopyWithImpl<$R, $Out>
+    extends ClassCopyWithBase<$R, InlineSkill, $Out>
+    implements InlineSkillCopyWith<$R, InlineSkill, $Out> {
+  _InlineSkillCopyWithImpl(super.value, super.then, super.then2);
+
+  @override
+  late final ClassMapperBase<InlineSkill> $mapper =
+      InlineSkillMapper.ensureInitialized();
+  @override
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>
+      get allowedTools => ListCopyWith(
+            $value.allowedTools,
+            (v, t) => ObjectCopyWith(v, $identity, t),
+            (v) => call(allowedTools: v),
+          );
+  @override
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>
+      get dependentTools => ListCopyWith(
+            $value.dependentTools,
+            (v, t) => ObjectCopyWith(v, $identity, t),
+            (v) => call(dependentTools: v),
+          );
+  @override
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>
+      get dependentSkills => ListCopyWith(
+            $value.dependentSkills,
+            (v, t) => ObjectCopyWith(v, $identity, t),
+            (v) => call(dependentSkills: v),
+          );
+  @override
+  MapCopyWith<$R, String, String, ObjectCopyWith<$R, String, String>>
+      get metadata => MapCopyWith(
+            $value.metadata,
+            (v, t) => ObjectCopyWith(v, $identity, t),
+            (v) => call(metadata: v),
+          );
+  @override
+  $R call({
+    String? name,
+    String? description,
+    String? content,
+    List<String>? allowedTools,
+    List<String>? dependentTools,
+    List<String>? dependentSkills,
+    Map<String, String>? metadata,
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (name != null) #name: name,
+          if (description != null) #description: description,
+          if (content != null) #content: content,
+          if (allowedTools != null) #allowedTools: allowedTools,
+          if (dependentTools != null) #dependentTools: dependentTools,
+          if (dependentSkills != null) #dependentSkills: dependentSkills,
+          if (metadata != null) #metadata: metadata,
+        }),
+      );
+  @override
+  InlineSkill $make(CopyWithData data) => InlineSkill(
+        name: data.get(#name, or: $value.name),
+        description: data.get(#description, or: $value.description),
+        content: data.get(#content, or: $value.content),
+        allowedTools: data.get(#allowedTools, or: $value.allowedTools),
+        dependentTools: data.get(#dependentTools, or: $value.dependentTools),
+        dependentSkills: data.get(#dependentSkills, or: $value.dependentSkills),
+        metadata: data.get(#metadata, or: $value.metadata),
+      );
+
+  @override
+  InlineSkillCopyWith<$R2, InlineSkill, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  ) =>
+      _InlineSkillCopyWithImpl<$R2, $Out2>($value, $cast, t);
+}
+
+/// @nodoc
+class SubagentSkillsConfigMapper extends ClassMapperBase<SubagentSkillsConfig> {
+  SubagentSkillsConfigMapper._();
+
+  static SubagentSkillsConfigMapper? _instance;
+  static SubagentSkillsConfigMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(_instance = SubagentSkillsConfigMapper._());
+      SubagentInheritSkillsConfigMapper.ensureInitialized();
+      SubagentNoneSkillsConfigMapper.ensureInitialized();
+      SubagentOverrideSkillsConfigMapper.ensureInitialized();
+    }
+    return _instance!;
+  }
+
+  @override
+  final String id = 'SubagentSkillsConfig';
+
+  static SubagentInheritSkillsConfig? _$inheritConfig(SubagentSkillsConfig v) =>
+      v.inheritConfig;
+  static const Field<SubagentSkillsConfig, SubagentInheritSkillsConfig>
+      _f$inheritConfig = Field(
+    'inheritConfig',
+    _$inheritConfig,
+    key: r'inherit_config',
+    opt: true,
+  );
+  static SubagentNoneSkillsConfig? _$noneConfig(SubagentSkillsConfig v) =>
+      v.noneConfig;
+  static const Field<SubagentSkillsConfig, SubagentNoneSkillsConfig>
+      _f$noneConfig = Field(
+    'noneConfig',
+    _$noneConfig,
+    key: r'none_config',
+    opt: true,
+  );
+  static SubagentOverrideSkillsConfig? _$overrideConfig(
+    SubagentSkillsConfig v,
+  ) =>
+      v.overrideConfig;
+  static const Field<SubagentSkillsConfig, SubagentOverrideSkillsConfig>
+      _f$overrideConfig = Field(
+    'overrideConfig',
+    _$overrideConfig,
+    key: r'override_config',
+    opt: true,
+  );
+
+  @override
+  final MappableFields<SubagentSkillsConfig> fields = const {
+    #inheritConfig: _f$inheritConfig,
+    #noneConfig: _f$noneConfig,
+    #overrideConfig: _f$overrideConfig,
+  };
+  @override
+  final bool ignoreNull = true;
+
+  static SubagentSkillsConfig _instantiate(DecodingData data) {
+    return SubagentSkillsConfig(
+      inheritConfig: data.dec(_f$inheritConfig),
+      noneConfig: data.dec(_f$noneConfig),
+      overrideConfig: data.dec(_f$overrideConfig),
+    );
+  }
+
+  @override
+  final Function instantiate = _instantiate;
+
+  static SubagentSkillsConfig fromMap(Map<String, dynamic> map) {
+    return ensureInitialized().decodeMap<SubagentSkillsConfig>(map);
+  }
+
+  static SubagentSkillsConfig fromJson(String json) {
+    return ensureInitialized().decodeJson<SubagentSkillsConfig>(json);
+  }
+}
+
+/// @nodoc
+mixin SubagentSkillsConfigMappable {
+  String toJson() {
+    return SubagentSkillsConfigMapper.ensureInitialized()
+        .encodeJson<SubagentSkillsConfig>(this as SubagentSkillsConfig);
+  }
+
+  Map<String, dynamic> toMap() {
+    return SubagentSkillsConfigMapper.ensureInitialized()
+        .encodeMap<SubagentSkillsConfig>(this as SubagentSkillsConfig);
+  }
+
+  SubagentSkillsConfigCopyWith<SubagentSkillsConfig, SubagentSkillsConfig,
+      SubagentSkillsConfig> get copyWith => _SubagentSkillsConfigCopyWithImpl<
+          SubagentSkillsConfig, SubagentSkillsConfig>(
+      this as SubagentSkillsConfig, $identity, $identity);
+  @override
+  String toString() {
+    return SubagentSkillsConfigMapper.ensureInitialized().stringifyValue(
+      this as SubagentSkillsConfig,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return SubagentSkillsConfigMapper.ensureInitialized().equalsValue(
+      this as SubagentSkillsConfig,
+      other,
+    );
+  }
+
+  @override
+  int get hashCode {
+    return SubagentSkillsConfigMapper.ensureInitialized().hashValue(
+      this as SubagentSkillsConfig,
+    );
+  }
+}
+
+/// @nodoc
+extension SubagentSkillsConfigValueCopy<$R, $Out>
+    on ObjectCopyWith<$R, SubagentSkillsConfig, $Out> {
+  SubagentSkillsConfigCopyWith<$R, SubagentSkillsConfig, $Out>
+      get $asSubagentSkillsConfig => $base.as(
+            (v, t, t2) => _SubagentSkillsConfigCopyWithImpl<$R, $Out>(v, t, t2),
+          );
+}
+
+/// @nodoc
+abstract class SubagentSkillsConfigCopyWith<
+    $R,
+    $In extends SubagentSkillsConfig,
+    $Out> implements ClassCopyWith<$R, $In, $Out> {
+  SubagentInheritSkillsConfigCopyWith<$R, SubagentInheritSkillsConfig,
+      SubagentInheritSkillsConfig>? get inheritConfig;
+  SubagentNoneSkillsConfigCopyWith<$R, SubagentNoneSkillsConfig,
+      SubagentNoneSkillsConfig>? get noneConfig;
+  SubagentOverrideSkillsConfigCopyWith<$R, SubagentOverrideSkillsConfig,
+      SubagentOverrideSkillsConfig>? get overrideConfig;
+  $R call({
+    SubagentInheritSkillsConfig? inheritConfig,
+    SubagentNoneSkillsConfig? noneConfig,
+    SubagentOverrideSkillsConfig? overrideConfig,
+  });
+  SubagentSkillsConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  );
+}
+
+/// @nodoc
+class _SubagentSkillsConfigCopyWithImpl<$R, $Out>
+    extends ClassCopyWithBase<$R, SubagentSkillsConfig, $Out>
+    implements SubagentSkillsConfigCopyWith<$R, SubagentSkillsConfig, $Out> {
+  _SubagentSkillsConfigCopyWithImpl(super.value, super.then, super.then2);
+
+  @override
+  late final ClassMapperBase<SubagentSkillsConfig> $mapper =
+      SubagentSkillsConfigMapper.ensureInitialized();
+  @override
+  SubagentInheritSkillsConfigCopyWith<$R, SubagentInheritSkillsConfig,
+          SubagentInheritSkillsConfig>?
+      get inheritConfig =>
+          $value.inheritConfig?.copyWith.$chain((v) => call(inheritConfig: v));
+  @override
+  SubagentNoneSkillsConfigCopyWith<$R, SubagentNoneSkillsConfig,
+          SubagentNoneSkillsConfig>?
+      get noneConfig =>
+          $value.noneConfig?.copyWith.$chain((v) => call(noneConfig: v));
+  @override
+  SubagentOverrideSkillsConfigCopyWith<$R, SubagentOverrideSkillsConfig,
+          SubagentOverrideSkillsConfig>?
+      get overrideConfig => $value.overrideConfig?.copyWith
+          .$chain((v) => call(overrideConfig: v));
+  @override
+  $R call({
+    Object? inheritConfig = $none,
+    Object? noneConfig = $none,
+    Object? overrideConfig = $none,
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (inheritConfig != $none) #inheritConfig: inheritConfig,
+          if (noneConfig != $none) #noneConfig: noneConfig,
+          if (overrideConfig != $none) #overrideConfig: overrideConfig,
+        }),
+      );
+  @override
+  SubagentSkillsConfig $make(CopyWithData data) => SubagentSkillsConfig(
+        inheritConfig: data.get(#inheritConfig, or: $value.inheritConfig),
+        noneConfig: data.get(#noneConfig, or: $value.noneConfig),
+        overrideConfig: data.get(#overrideConfig, or: $value.overrideConfig),
+      );
+
+  @override
+  SubagentSkillsConfigCopyWith<$R2, SubagentSkillsConfig, $Out2>
+      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+          _SubagentSkillsConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+}
+
+/// @nodoc
+class SubagentInheritSkillsConfigMapper
+    extends ClassMapperBase<SubagentInheritSkillsConfig> {
+  SubagentInheritSkillsConfigMapper._();
+
+  static SubagentInheritSkillsConfigMapper? _instance;
+  static SubagentInheritSkillsConfigMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(
+        _instance = SubagentInheritSkillsConfigMapper._(),
+      );
+    }
+    return _instance!;
+  }
+
+  @override
+  final String id = 'SubagentInheritSkillsConfig';
+
+  static List<String> _$skillNames(SubagentInheritSkillsConfig v) =>
+      v.skillNames;
+  static const Field<SubagentInheritSkillsConfig, List<String>> _f$skillNames =
+      Field(
+    'skillNames',
+    _$skillNames,
+    key: r'skill_names',
+    opt: true,
+    def: const [],
+  );
+  static List<String> _$extraSkillsPaths(SubagentInheritSkillsConfig v) =>
+      v.extraSkillsPaths;
+  static const Field<SubagentInheritSkillsConfig, List<String>>
+      _f$extraSkillsPaths = Field(
+    'extraSkillsPaths',
+    _$extraSkillsPaths,
+    key: r'extra_skills_paths',
+    opt: true,
+    def: const [],
+  );
+
+  @override
+  final MappableFields<SubagentInheritSkillsConfig> fields = const {
+    #skillNames: _f$skillNames,
+    #extraSkillsPaths: _f$extraSkillsPaths,
+  };
+  @override
+  final bool ignoreNull = true;
+
+  static SubagentInheritSkillsConfig _instantiate(DecodingData data) {
+    return SubagentInheritSkillsConfig(
+      skillNames: data.dec(_f$skillNames),
+      extraSkillsPaths: data.dec(_f$extraSkillsPaths),
+    );
+  }
+
+  @override
+  final Function instantiate = _instantiate;
+
+  static SubagentInheritSkillsConfig fromMap(Map<String, dynamic> map) {
+    return ensureInitialized().decodeMap<SubagentInheritSkillsConfig>(map);
+  }
+
+  static SubagentInheritSkillsConfig fromJson(String json) {
+    return ensureInitialized().decodeJson<SubagentInheritSkillsConfig>(json);
+  }
+}
+
+/// @nodoc
+mixin SubagentInheritSkillsConfigMappable {
+  String toJson() {
+    return SubagentInheritSkillsConfigMapper.ensureInitialized()
+        .encodeJson<SubagentInheritSkillsConfig>(
+      this as SubagentInheritSkillsConfig,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return SubagentInheritSkillsConfigMapper.ensureInitialized()
+        .encodeMap<SubagentInheritSkillsConfig>(
+      this as SubagentInheritSkillsConfig,
+    );
+  }
+
+  SubagentInheritSkillsConfigCopyWith<SubagentInheritSkillsConfig,
+          SubagentInheritSkillsConfig, SubagentInheritSkillsConfig>
+      get copyWith => _SubagentInheritSkillsConfigCopyWithImpl<
+              SubagentInheritSkillsConfig, SubagentInheritSkillsConfig>(
+          this as SubagentInheritSkillsConfig, $identity, $identity);
+  @override
+  String toString() {
+    return SubagentInheritSkillsConfigMapper.ensureInitialized().stringifyValue(
+      this as SubagentInheritSkillsConfig,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return SubagentInheritSkillsConfigMapper.ensureInitialized().equalsValue(
+      this as SubagentInheritSkillsConfig,
+      other,
+    );
+  }
+
+  @override
+  int get hashCode {
+    return SubagentInheritSkillsConfigMapper.ensureInitialized().hashValue(
+      this as SubagentInheritSkillsConfig,
+    );
+  }
+}
+
+/// @nodoc
+extension SubagentInheritSkillsConfigValueCopy<$R, $Out>
+    on ObjectCopyWith<$R, SubagentInheritSkillsConfig, $Out> {
+  SubagentInheritSkillsConfigCopyWith<$R, SubagentInheritSkillsConfig, $Out>
+      get $asSubagentInheritSkillsConfig => $base.as(
+            (v, t, t2) =>
+                _SubagentInheritSkillsConfigCopyWithImpl<$R, $Out>(v, t, t2),
+          );
+}
+
+/// @nodoc
+abstract class SubagentInheritSkillsConfigCopyWith<
+    $R,
+    $In extends SubagentInheritSkillsConfig,
+    $Out> implements ClassCopyWith<$R, $In, $Out> {
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get skillNames;
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>
+      get extraSkillsPaths;
+  $R call({List<String>? skillNames, List<String>? extraSkillsPaths});
+  SubagentInheritSkillsConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  );
+}
+
+/// @nodoc
+class _SubagentInheritSkillsConfigCopyWithImpl<$R, $Out>
+    extends ClassCopyWithBase<$R, SubagentInheritSkillsConfig, $Out>
+    implements
+        SubagentInheritSkillsConfigCopyWith<$R, SubagentInheritSkillsConfig,
+            $Out> {
+  _SubagentInheritSkillsConfigCopyWithImpl(
+    super.value,
+    super.then,
+    super.then2,
+  );
+
+  @override
+  late final ClassMapperBase<SubagentInheritSkillsConfig> $mapper =
+      SubagentInheritSkillsConfigMapper.ensureInitialized();
+  @override
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get skillNames =>
+      ListCopyWith(
+        $value.skillNames,
+        (v, t) => ObjectCopyWith(v, $identity, t),
+        (v) => call(skillNames: v),
+      );
+  @override
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>
+      get extraSkillsPaths => ListCopyWith(
+            $value.extraSkillsPaths,
+            (v, t) => ObjectCopyWith(v, $identity, t),
+            (v) => call(extraSkillsPaths: v),
+          );
+  @override
+  $R call({List<String>? skillNames, List<String>? extraSkillsPaths}) => $apply(
+        FieldCopyWithData({
+          if (skillNames != null) #skillNames: skillNames,
+          if (extraSkillsPaths != null) #extraSkillsPaths: extraSkillsPaths,
+        }),
+      );
+  @override
+  SubagentInheritSkillsConfig $make(CopyWithData data) =>
+      SubagentInheritSkillsConfig(
+        skillNames: data.get(#skillNames, or: $value.skillNames),
+        extraSkillsPaths: data.get(
+          #extraSkillsPaths,
+          or: $value.extraSkillsPaths,
+        ),
+      );
+
+  @override
+  SubagentInheritSkillsConfigCopyWith<$R2, SubagentInheritSkillsConfig, $Out2>
+      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+          _SubagentInheritSkillsConfigCopyWithImpl<$R2, $Out2>(
+              $value, $cast, t);
+}
+
+/// @nodoc
+class SubagentNoneSkillsConfigMapper
+    extends ClassMapperBase<SubagentNoneSkillsConfig> {
+  SubagentNoneSkillsConfigMapper._();
+
+  static SubagentNoneSkillsConfigMapper? _instance;
+  static SubagentNoneSkillsConfigMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(
+        _instance = SubagentNoneSkillsConfigMapper._(),
+      );
+    }
+    return _instance!;
+  }
+
+  @override
+  final String id = 'SubagentNoneSkillsConfig';
+
+  @override
+  final MappableFields<SubagentNoneSkillsConfig> fields = const {};
+  @override
+  final bool ignoreNull = true;
+
+  static SubagentNoneSkillsConfig _instantiate(DecodingData data) {
+    return SubagentNoneSkillsConfig();
+  }
+
+  @override
+  final Function instantiate = _instantiate;
+
+  static SubagentNoneSkillsConfig fromMap(Map<String, dynamic> map) {
+    return ensureInitialized().decodeMap<SubagentNoneSkillsConfig>(map);
+  }
+
+  static SubagentNoneSkillsConfig fromJson(String json) {
+    return ensureInitialized().decodeJson<SubagentNoneSkillsConfig>(json);
+  }
+}
+
+/// @nodoc
+mixin SubagentNoneSkillsConfigMappable {
+  String toJson() {
+    return SubagentNoneSkillsConfigMapper.ensureInitialized()
+        .encodeJson<SubagentNoneSkillsConfig>(this as SubagentNoneSkillsConfig);
+  }
+
+  Map<String, dynamic> toMap() {
+    return SubagentNoneSkillsConfigMapper.ensureInitialized()
+        .encodeMap<SubagentNoneSkillsConfig>(this as SubagentNoneSkillsConfig);
+  }
+
+  SubagentNoneSkillsConfigCopyWith<SubagentNoneSkillsConfig,
+          SubagentNoneSkillsConfig, SubagentNoneSkillsConfig>
+      get copyWith => _SubagentNoneSkillsConfigCopyWithImpl<
+              SubagentNoneSkillsConfig, SubagentNoneSkillsConfig>(
+          this as SubagentNoneSkillsConfig, $identity, $identity);
+  @override
+  String toString() {
+    return SubagentNoneSkillsConfigMapper.ensureInitialized().stringifyValue(
+      this as SubagentNoneSkillsConfig,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return SubagentNoneSkillsConfigMapper.ensureInitialized().equalsValue(
+      this as SubagentNoneSkillsConfig,
+      other,
+    );
+  }
+
+  @override
+  int get hashCode {
+    return SubagentNoneSkillsConfigMapper.ensureInitialized().hashValue(
+      this as SubagentNoneSkillsConfig,
+    );
+  }
+}
+
+/// @nodoc
+extension SubagentNoneSkillsConfigValueCopy<$R, $Out>
+    on ObjectCopyWith<$R, SubagentNoneSkillsConfig, $Out> {
+  SubagentNoneSkillsConfigCopyWith<$R, SubagentNoneSkillsConfig, $Out>
+      get $asSubagentNoneSkillsConfig => $base.as(
+            (v, t, t2) =>
+                _SubagentNoneSkillsConfigCopyWithImpl<$R, $Out>(v, t, t2),
+          );
+}
+
+/// @nodoc
+abstract class SubagentNoneSkillsConfigCopyWith<
+    $R,
+    $In extends SubagentNoneSkillsConfig,
+    $Out> implements ClassCopyWith<$R, $In, $Out> {
+  $R call();
+  SubagentNoneSkillsConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  );
+}
+
+/// @nodoc
+class _SubagentNoneSkillsConfigCopyWithImpl<$R, $Out>
+    extends ClassCopyWithBase<$R, SubagentNoneSkillsConfig, $Out>
+    implements
+        SubagentNoneSkillsConfigCopyWith<$R, SubagentNoneSkillsConfig, $Out> {
+  _SubagentNoneSkillsConfigCopyWithImpl(super.value, super.then, super.then2);
+
+  @override
+  late final ClassMapperBase<SubagentNoneSkillsConfig> $mapper =
+      SubagentNoneSkillsConfigMapper.ensureInitialized();
+  @override
+  $R call() => $apply(FieldCopyWithData({}));
+  @override
+  SubagentNoneSkillsConfig $make(CopyWithData data) =>
+      SubagentNoneSkillsConfig();
+
+  @override
+  SubagentNoneSkillsConfigCopyWith<$R2, SubagentNoneSkillsConfig, $Out2>
+      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+          _SubagentNoneSkillsConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+}
+
+/// @nodoc
+class SubagentOverrideSkillsConfigMapper
+    extends ClassMapperBase<SubagentOverrideSkillsConfig> {
+  SubagentOverrideSkillsConfigMapper._();
+
+  static SubagentOverrideSkillsConfigMapper? _instance;
+  static SubagentOverrideSkillsConfigMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(
+        _instance = SubagentOverrideSkillsConfigMapper._(),
+      );
+      InlineSkillMapper.ensureInitialized();
+    }
+    return _instance!;
+  }
+
+  @override
+  final String id = 'SubagentOverrideSkillsConfig';
+
+  static List<String> _$skillsPaths(SubagentOverrideSkillsConfig v) =>
+      v.skillsPaths;
+  static const Field<SubagentOverrideSkillsConfig, List<String>>
+      _f$skillsPaths = Field(
+    'skillsPaths',
+    _$skillsPaths,
+    key: r'skills_paths',
+    opt: true,
+    def: const [],
+  );
+  static List<InlineSkill> _$inlineSkills(SubagentOverrideSkillsConfig v) =>
+      v.inlineSkills;
+  static const Field<SubagentOverrideSkillsConfig, List<InlineSkill>>
+      _f$inlineSkills = Field(
+    'inlineSkills',
+    _$inlineSkills,
+    key: r'inline_skills',
+    opt: true,
+    def: const [],
+  );
+
+  @override
+  final MappableFields<SubagentOverrideSkillsConfig> fields = const {
+    #skillsPaths: _f$skillsPaths,
+    #inlineSkills: _f$inlineSkills,
+  };
+  @override
+  final bool ignoreNull = true;
+
+  static SubagentOverrideSkillsConfig _instantiate(DecodingData data) {
+    return SubagentOverrideSkillsConfig(
+      skillsPaths: data.dec(_f$skillsPaths),
+      inlineSkills: data.dec(_f$inlineSkills),
+    );
+  }
+
+  @override
+  final Function instantiate = _instantiate;
+
+  static SubagentOverrideSkillsConfig fromMap(Map<String, dynamic> map) {
+    return ensureInitialized().decodeMap<SubagentOverrideSkillsConfig>(map);
+  }
+
+  static SubagentOverrideSkillsConfig fromJson(String json) {
+    return ensureInitialized().decodeJson<SubagentOverrideSkillsConfig>(json);
+  }
+}
+
+/// @nodoc
+mixin SubagentOverrideSkillsConfigMappable {
+  String toJson() {
+    return SubagentOverrideSkillsConfigMapper.ensureInitialized()
+        .encodeJson<SubagentOverrideSkillsConfig>(
+      this as SubagentOverrideSkillsConfig,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return SubagentOverrideSkillsConfigMapper.ensureInitialized()
+        .encodeMap<SubagentOverrideSkillsConfig>(
+      this as SubagentOverrideSkillsConfig,
+    );
+  }
+
+  SubagentOverrideSkillsConfigCopyWith<SubagentOverrideSkillsConfig,
+          SubagentOverrideSkillsConfig, SubagentOverrideSkillsConfig>
+      get copyWith => _SubagentOverrideSkillsConfigCopyWithImpl<
+              SubagentOverrideSkillsConfig, SubagentOverrideSkillsConfig>(
+          this as SubagentOverrideSkillsConfig, $identity, $identity);
+  @override
+  String toString() {
+    return SubagentOverrideSkillsConfigMapper.ensureInitialized()
+        .stringifyValue(this as SubagentOverrideSkillsConfig);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return SubagentOverrideSkillsConfigMapper.ensureInitialized().equalsValue(
+      this as SubagentOverrideSkillsConfig,
+      other,
+    );
+  }
+
+  @override
+  int get hashCode {
+    return SubagentOverrideSkillsConfigMapper.ensureInitialized().hashValue(
+      this as SubagentOverrideSkillsConfig,
+    );
+  }
+}
+
+/// @nodoc
+extension SubagentOverrideSkillsConfigValueCopy<$R, $Out>
+    on ObjectCopyWith<$R, SubagentOverrideSkillsConfig, $Out> {
+  SubagentOverrideSkillsConfigCopyWith<$R, SubagentOverrideSkillsConfig, $Out>
+      get $asSubagentOverrideSkillsConfig => $base.as(
+            (v, t, t2) =>
+                _SubagentOverrideSkillsConfigCopyWithImpl<$R, $Out>(v, t, t2),
+          );
+}
+
+/// @nodoc
+abstract class SubagentOverrideSkillsConfigCopyWith<
+    $R,
+    $In extends SubagentOverrideSkillsConfig,
+    $Out> implements ClassCopyWith<$R, $In, $Out> {
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get skillsPaths;
+  ListCopyWith<$R, InlineSkill,
+      InlineSkillCopyWith<$R, InlineSkill, InlineSkill>> get inlineSkills;
+  $R call({List<String>? skillsPaths, List<InlineSkill>? inlineSkills});
+  SubagentOverrideSkillsConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  );
+}
+
+/// @nodoc
+class _SubagentOverrideSkillsConfigCopyWithImpl<$R, $Out>
+    extends ClassCopyWithBase<$R, SubagentOverrideSkillsConfig, $Out>
+    implements
+        SubagentOverrideSkillsConfigCopyWith<$R, SubagentOverrideSkillsConfig,
+            $Out> {
+  _SubagentOverrideSkillsConfigCopyWithImpl(
+    super.value,
+    super.then,
+    super.then2,
+  );
+
+  @override
+  late final ClassMapperBase<SubagentOverrideSkillsConfig> $mapper =
+      SubagentOverrideSkillsConfigMapper.ensureInitialized();
+  @override
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>
+      get skillsPaths => ListCopyWith(
+            $value.skillsPaths,
+            (v, t) => ObjectCopyWith(v, $identity, t),
+            (v) => call(skillsPaths: v),
+          );
+  @override
+  ListCopyWith<$R, InlineSkill,
+          InlineSkillCopyWith<$R, InlineSkill, InlineSkill>>
+      get inlineSkills => ListCopyWith(
+            $value.inlineSkills,
+            (v, t) => v.copyWith.$chain(t),
+            (v) => call(inlineSkills: v),
+          );
+  @override
+  $R call({List<String>? skillsPaths, List<InlineSkill>? inlineSkills}) =>
+      $apply(
+        FieldCopyWithData({
+          if (skillsPaths != null) #skillsPaths: skillsPaths,
+          if (inlineSkills != null) #inlineSkills: inlineSkills,
+        }),
+      );
+  @override
+  SubagentOverrideSkillsConfig $make(CopyWithData data) =>
+      SubagentOverrideSkillsConfig(
+        skillsPaths: data.get(#skillsPaths, or: $value.skillsPaths),
+        inlineSkills: data.get(#inlineSkills, or: $value.inlineSkills),
+      );
+
+  @override
+  SubagentOverrideSkillsConfigCopyWith<$R2, SubagentOverrideSkillsConfig, $Out2>
+      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+          _SubagentOverrideSkillsConfigCopyWithImpl<$R2, $Out2>(
+              $value, $cast, t);
 }
 
 /// @nodoc
@@ -673,6 +1589,7 @@ class SubagentConfigMapper extends ClassMapperBase<SubagentConfig> {
     if (_instance == null) {
       MapperContainer.globals.use(_instance = SubagentConfigMapper._());
       SubagentCapabilitiesMapper.ensureInitialized();
+      SubagentSkillsConfigMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -710,6 +1627,10 @@ class SubagentConfigMapper extends ClassMapperBase<SubagentConfig> {
     _$model,
     opt: true,
   );
+  static SubagentSkillsConfig? _$skillsConfig(SubagentConfig v) =>
+      v.skillsConfig;
+  static const Field<SubagentConfig, SubagentSkillsConfig> _f$skillsConfig =
+      Field('skillsConfig', _$skillsConfig, key: r'skills_config', opt: true);
 
   @override
   final MappableFields<SubagentConfig> fields = const {
@@ -719,18 +1640,20 @@ class SubagentConfigMapper extends ClassMapperBase<SubagentConfig> {
     #capabilities: _f$capabilities,
     #tools: _f$tools,
     #model: _f$model,
+    #skillsConfig: _f$skillsConfig,
   };
   @override
   final bool ignoreNull = true;
 
   static SubagentConfig _instantiate(DecodingData data) {
-    return SubagentConfig(
+    return SubagentConfig.raw(
       name: data.dec(_f$name),
       description: data.dec(_f$description),
       systemInstructions: data.dec(_f$systemInstructions),
       capabilities: data.dec(_f$capabilities),
       tools: data.dec(_f$tools),
       model: data.dec(_f$model),
+      skillsConfig: data.dec(_f$skillsConfig),
     );
   }
 
@@ -761,11 +1684,12 @@ mixin SubagentConfigMappable {
   }
 
   SubagentConfigCopyWith<SubagentConfig, SubagentConfig, SubagentConfig>
-  get copyWith => _SubagentConfigCopyWithImpl<SubagentConfig, SubagentConfig>(
-    this as SubagentConfig,
-    $identity,
-    $identity,
-  );
+      get copyWith =>
+          _SubagentConfigCopyWithImpl<SubagentConfig, SubagentConfig>(
+            this as SubagentConfig,
+            $identity,
+            $identity,
+          );
   @override
   String toString() {
     return SubagentConfigMapper.ensureInitialized().stringifyValue(
@@ -800,8 +1724,10 @@ extension SubagentConfigValueCopy<$R, $Out>
 abstract class SubagentConfigCopyWith<$R, $In extends SubagentConfig, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   SubagentCapabilitiesCopyWith<$R, SubagentCapabilities, SubagentCapabilities>?
-  get capabilities;
+      get capabilities;
   ListCopyWith<$R, Object, ObjectCopyWith<$R, Object, Object>> get tools;
+  SubagentSkillsConfigCopyWith<$R, SubagentSkillsConfig, SubagentSkillsConfig>?
+      get skillsConfig;
   $R call({
     String? name,
     String? description,
@@ -809,6 +1735,7 @@ abstract class SubagentConfigCopyWith<$R, $In extends SubagentConfig, $Out>
     SubagentCapabilities? capabilities,
     List<Object>? tools,
     String? model,
+    SubagentSkillsConfig? skillsConfig,
   });
   SubagentConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -826,8 +1753,8 @@ class _SubagentConfigCopyWithImpl<$R, $Out>
       SubagentConfigMapper.ensureInitialized();
   @override
   SubagentCapabilitiesCopyWith<$R, SubagentCapabilities, SubagentCapabilities>?
-  get capabilities =>
-      $value.capabilities?.copyWith.$chain((v) => call(capabilities: v));
+      get capabilities =>
+          $value.capabilities?.copyWith.$chain((v) => call(capabilities: v));
   @override
   ListCopyWith<$R, Object, ObjectCopyWith<$R, Object, Object>> get tools =>
       ListCopyWith(
@@ -836,6 +1763,10 @@ class _SubagentConfigCopyWithImpl<$R, $Out>
         (v) => call(tools: v),
       );
   @override
+  SubagentSkillsConfigCopyWith<$R, SubagentSkillsConfig, SubagentSkillsConfig>?
+      get skillsConfig =>
+          $value.skillsConfig?.copyWith.$chain((v) => call(skillsConfig: v));
+  @override
   $R call({
     String? name,
     String? description,
@@ -843,33 +1774,39 @@ class _SubagentConfigCopyWithImpl<$R, $Out>
     Object? capabilities = $none,
     Object? tools = $none,
     Object? model = $none,
-  }) => $apply(
-    FieldCopyWithData({
-      if (name != null) #name: name,
-      if (description != null) #description: description,
-      if (systemInstructions != $none) #systemInstructions: systemInstructions,
-      if (capabilities != $none) #capabilities: capabilities,
-      if (tools != $none) #tools: tools,
-      if (model != $none) #model: model,
-    }),
-  );
+    Object? skillsConfig = $none,
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (name != null) #name: name,
+          if (description != null) #description: description,
+          if (systemInstructions != $none)
+            #systemInstructions: systemInstructions,
+          if (capabilities != $none) #capabilities: capabilities,
+          if (tools != $none) #tools: tools,
+          if (model != $none) #model: model,
+          if (skillsConfig != $none) #skillsConfig: skillsConfig,
+        }),
+      );
   @override
-  SubagentConfig $make(CopyWithData data) => SubagentConfig(
-    name: data.get(#name, or: $value.name),
-    description: data.get(#description, or: $value.description),
-    systemInstructions: data.get(
-      #systemInstructions,
-      or: $value.systemInstructions,
-    ),
-    capabilities: data.get(#capabilities, or: $value.capabilities),
-    tools: data.get(#tools, or: $value.tools),
-    model: data.get(#model, or: $value.model),
-  );
+  SubagentConfig $make(CopyWithData data) => SubagentConfig.raw(
+        name: data.get(#name, or: $value.name),
+        description: data.get(#description, or: $value.description),
+        systemInstructions: data.get(
+          #systemInstructions,
+          or: $value.systemInstructions,
+        ),
+        capabilities: data.get(#capabilities, or: $value.capabilities),
+        tools: data.get(#tools, or: $value.tools),
+        model: data.get(#model, or: $value.model),
+        skillsConfig: data.get(#skillsConfig, or: $value.skillsConfig),
+      );
 
   @override
   SubagentConfigCopyWith<$R2, SubagentConfig, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) => _SubagentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) =>
+      _SubagentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -898,20 +1835,20 @@ class ModelAPIRetryConfigMapper extends ClassMapperBase<ModelAPIRetryConfig> {
       v.initialSleepDurationMs;
   static const Field<ModelAPIRetryConfig, int> _f$initialSleepDurationMs =
       Field(
-        'initialSleepDurationMs',
-        _$initialSleepDurationMs,
-        key: r'initial_sleep_duration_ms',
-        opt: true,
-      );
+    'initialSleepDurationMs',
+    _$initialSleepDurationMs,
+    key: r'initial_sleep_duration_ms',
+    opt: true,
+  );
   static double? _$exponentialMultiplier(ModelAPIRetryConfig v) =>
       v.exponentialMultiplier;
   static const Field<ModelAPIRetryConfig, double> _f$exponentialMultiplier =
       Field(
-        'exponentialMultiplier',
-        _$exponentialMultiplier,
-        key: r'exponential_multiplier',
-        opt: true,
-      );
+    'exponentialMultiplier',
+    _$exponentialMultiplier,
+    key: r'exponential_multiplier',
+    opt: true,
+  );
   static double? _$jitterRange(ModelAPIRetryConfig v) => v.jitterRange;
   static const Field<ModelAPIRetryConfig, double> _f$jitterRange = Field(
     'jitterRange',
@@ -963,16 +1900,10 @@ mixin ModelAPIRetryConfigMappable {
         .encodeMap<ModelAPIRetryConfig>(this as ModelAPIRetryConfig);
   }
 
-  ModelAPIRetryConfigCopyWith<
-    ModelAPIRetryConfig,
-    ModelAPIRetryConfig,
-    ModelAPIRetryConfig
-  >
-  get copyWith =>
-      _ModelAPIRetryConfigCopyWithImpl<
-        ModelAPIRetryConfig,
-        ModelAPIRetryConfig
-      >(this as ModelAPIRetryConfig, $identity, $identity);
+  ModelAPIRetryConfigCopyWith<ModelAPIRetryConfig, ModelAPIRetryConfig,
+      ModelAPIRetryConfig> get copyWith => _ModelAPIRetryConfigCopyWithImpl<
+          ModelAPIRetryConfig, ModelAPIRetryConfig>(
+      this as ModelAPIRetryConfig, $identity, $identity);
   @override
   String toString() {
     return ModelAPIRetryConfigMapper.ensureInitialized().stringifyValue(
@@ -1000,18 +1931,14 @@ mixin ModelAPIRetryConfigMappable {
 extension ModelAPIRetryConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, ModelAPIRetryConfig, $Out> {
   ModelAPIRetryConfigCopyWith<$R, ModelAPIRetryConfig, $Out>
-  get $asModelAPIRetryConfig => $base.as(
-    (v, t, t2) => _ModelAPIRetryConfigCopyWithImpl<$R, $Out>(v, t, t2),
-  );
+      get $asModelAPIRetryConfig => $base.as(
+            (v, t, t2) => _ModelAPIRetryConfigCopyWithImpl<$R, $Out>(v, t, t2),
+          );
 }
 
 /// @nodoc
-abstract class ModelAPIRetryConfigCopyWith<
-  $R,
-  $In extends ModelAPIRetryConfig,
-  $Out
->
-    implements ClassCopyWith<$R, $In, $Out> {
+abstract class ModelAPIRetryConfigCopyWith<$R, $In extends ModelAPIRetryConfig,
+    $Out> implements ClassCopyWith<$R, $In, $Out> {
   $R call({
     int? maxRetries,
     int? initialSleepDurationMs,
@@ -1038,34 +1965,35 @@ class _ModelAPIRetryConfigCopyWithImpl<$R, $Out>
     Object? initialSleepDurationMs = $none,
     Object? exponentialMultiplier = $none,
     Object? jitterRange = $none,
-  }) => $apply(
-    FieldCopyWithData({
-      if (maxRetries != $none) #maxRetries: maxRetries,
-      if (initialSleepDurationMs != $none)
-        #initialSleepDurationMs: initialSleepDurationMs,
-      if (exponentialMultiplier != $none)
-        #exponentialMultiplier: exponentialMultiplier,
-      if (jitterRange != $none) #jitterRange: jitterRange,
-    }),
-  );
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (maxRetries != $none) #maxRetries: maxRetries,
+          if (initialSleepDurationMs != $none)
+            #initialSleepDurationMs: initialSleepDurationMs,
+          if (exponentialMultiplier != $none)
+            #exponentialMultiplier: exponentialMultiplier,
+          if (jitterRange != $none) #jitterRange: jitterRange,
+        }),
+      );
   @override
   ModelAPIRetryConfig $make(CopyWithData data) => ModelAPIRetryConfig.raw(
-    maxRetries: data.get(#maxRetries, or: $value.maxRetries),
-    initialSleepDurationMs: data.get(
-      #initialSleepDurationMs,
-      or: $value.initialSleepDurationMs,
-    ),
-    exponentialMultiplier: data.get(
-      #exponentialMultiplier,
-      or: $value.exponentialMultiplier,
-    ),
-    jitterRange: data.get(#jitterRange, or: $value.jitterRange),
-  );
+        maxRetries: data.get(#maxRetries, or: $value.maxRetries),
+        initialSleepDurationMs: data.get(
+          #initialSleepDurationMs,
+          or: $value.initialSleepDurationMs,
+        ),
+        exponentialMultiplier: data.get(
+          #exponentialMultiplier,
+          or: $value.exponentialMultiplier,
+        ),
+        jitterRange: data.get(#jitterRange, or: $value.jitterRange),
+      );
 
   @override
   ModelAPIRetryConfigCopyWith<$R2, ModelAPIRetryConfig, $Out2>
-  $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
-      _ModelAPIRetryConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+          _ModelAPIRetryConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -1127,16 +2055,11 @@ mixin ModelOutputRetryConfigMappable {
         .encodeMap<ModelOutputRetryConfig>(this as ModelOutputRetryConfig);
   }
 
-  ModelOutputRetryConfigCopyWith<
-    ModelOutputRetryConfig,
-    ModelOutputRetryConfig,
-    ModelOutputRetryConfig
-  >
-  get copyWith =>
-      _ModelOutputRetryConfigCopyWithImpl<
-        ModelOutputRetryConfig,
-        ModelOutputRetryConfig
-      >(this as ModelOutputRetryConfig, $identity, $identity);
+  ModelOutputRetryConfigCopyWith<ModelOutputRetryConfig, ModelOutputRetryConfig,
+          ModelOutputRetryConfig>
+      get copyWith => _ModelOutputRetryConfigCopyWithImpl<
+              ModelOutputRetryConfig, ModelOutputRetryConfig>(
+          this as ModelOutputRetryConfig, $identity, $identity);
   @override
   String toString() {
     return ModelOutputRetryConfigMapper.ensureInitialized().stringifyValue(
@@ -1164,18 +2087,17 @@ mixin ModelOutputRetryConfigMappable {
 extension ModelOutputRetryConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, ModelOutputRetryConfig, $Out> {
   ModelOutputRetryConfigCopyWith<$R, ModelOutputRetryConfig, $Out>
-  get $asModelOutputRetryConfig => $base.as(
-    (v, t, t2) => _ModelOutputRetryConfigCopyWithImpl<$R, $Out>(v, t, t2),
-  );
+      get $asModelOutputRetryConfig => $base.as(
+            (v, t, t2) =>
+                _ModelOutputRetryConfigCopyWithImpl<$R, $Out>(v, t, t2),
+          );
 }
 
 /// @nodoc
 abstract class ModelOutputRetryConfigCopyWith<
-  $R,
-  $In extends ModelOutputRetryConfig,
-  $Out
->
-    implements ClassCopyWith<$R, $In, $Out> {
+    $R,
+    $In extends ModelOutputRetryConfig,
+    $Out> implements ClassCopyWith<$R, $In, $Out> {
   $R call({int? maxRetries});
   ModelOutputRetryConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -1194,17 +2116,17 @@ class _ModelOutputRetryConfigCopyWithImpl<$R, $Out>
       ModelOutputRetryConfigMapper.ensureInitialized();
   @override
   $R call({Object? maxRetries = $none}) => $apply(
-    FieldCopyWithData({if (maxRetries != $none) #maxRetries: maxRetries}),
-  );
+        FieldCopyWithData({if (maxRetries != $none) #maxRetries: maxRetries}),
+      );
   @override
   ModelOutputRetryConfig $make(CopyWithData data) => ModelOutputRetryConfig(
-    maxRetries: data.get(#maxRetries, or: $value.maxRetries),
-  );
+        maxRetries: data.get(#maxRetries, or: $value.maxRetries),
+      );
 
   @override
   ModelOutputRetryConfigCopyWith<$R2, ModelOutputRetryConfig, $Out2>
-  $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
-      _ModelOutputRetryConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+          _ModelOutputRetryConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -1235,11 +2157,11 @@ class RetryConfigMapper extends ClassMapperBase<RetryConfig> {
       v.modelOutputRetry;
   static const Field<RetryConfig, ModelOutputRetryConfig> _f$modelOutputRetry =
       Field(
-        'modelOutputRetry',
-        _$modelOutputRetry,
-        key: r'model_output_retry',
-        opt: true,
-      );
+    'modelOutputRetry',
+    _$modelOutputRetry,
+    key: r'model_output_retry',
+    opt: true,
+  );
 
   @override
   final MappableFields<RetryConfig> fields = const {
@@ -1320,13 +2242,9 @@ extension RetryConfigValueCopy<$R, $Out>
 abstract class RetryConfigCopyWith<$R, $In extends RetryConfig, $Out>
     implements ClassCopyWith<$R, $In, $Out> {
   ModelAPIRetryConfigCopyWith<$R, ModelAPIRetryConfig, ModelAPIRetryConfig>?
-  get apiRetry;
-  ModelOutputRetryConfigCopyWith<
-    $R,
-    ModelOutputRetryConfig,
-    ModelOutputRetryConfig
-  >?
-  get modelOutputRetry;
+      get apiRetry;
+  ModelOutputRetryConfigCopyWith<$R, ModelOutputRetryConfig,
+      ModelOutputRetryConfig>? get modelOutputRetry;
   $R call({
     ModelAPIRetryConfig? apiRetry,
     ModelOutputRetryConfig? modelOutputRetry,
@@ -1345,16 +2263,14 @@ class _RetryConfigCopyWithImpl<$R, $Out>
       RetryConfigMapper.ensureInitialized();
   @override
   ModelAPIRetryConfigCopyWith<$R, ModelAPIRetryConfig, ModelAPIRetryConfig>?
-  get apiRetry => $value.apiRetry?.copyWith.$chain((v) => call(apiRetry: v));
+      get apiRetry =>
+          $value.apiRetry?.copyWith.$chain((v) => call(apiRetry: v));
   @override
-  ModelOutputRetryConfigCopyWith<
-    $R,
-    ModelOutputRetryConfig,
-    ModelOutputRetryConfig
-  >?
-  get modelOutputRetry => $value.modelOutputRetry?.copyWith.$chain(
-    (v) => call(modelOutputRetry: v),
-  );
+  ModelOutputRetryConfigCopyWith<$R, ModelOutputRetryConfig,
+          ModelOutputRetryConfig>?
+      get modelOutputRetry => $value.modelOutputRetry?.copyWith.$chain(
+            (v) => call(modelOutputRetry: v),
+          );
   @override
   $R call({Object? apiRetry = $none, Object? modelOutputRetry = $none}) =>
       $apply(
@@ -1365,13 +2281,14 @@ class _RetryConfigCopyWithImpl<$R, $Out>
       );
   @override
   RetryConfig $make(CopyWithData data) => RetryConfig(
-    apiRetry: data.get(#apiRetry, or: $value.apiRetry),
-    modelOutputRetry: data.get(#modelOutputRetry, or: $value.modelOutputRetry),
-  );
+        apiRetry: data.get(#apiRetry, or: $value.apiRetry),
+        modelOutputRetry:
+            data.get(#modelOutputRetry, or: $value.modelOutputRetry),
+      );
 
   @override
   RetryConfigCopyWith<$R2, RetryConfig, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) => _RetryConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) =>
+      _RetryConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
-

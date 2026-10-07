@@ -9,8 +9,10 @@ import 'package:test/test.dart';
 /// hold a reference for [Connection.disconnect]; it is never started or
 /// inspected by [LocalConnection.sendToolResults].
 class FakeProcess implements Process {
+  final int exitStatus;
+  FakeProcess({this.exitStatus = 0});
   @override
-  Future<int> get exitCode => Completer<int>().future;
+  Future<int> get exitCode => Future.value(exitStatus);
 
   @override
   Stream<List<int>> get stdout => const Stream.empty();
@@ -19,7 +21,11 @@ class FakeProcess implements Process {
   Stream<List<int>> get stderr => const Stream.empty();
 
   @override
-  IOSink get stdin => IOSink(StreamController<List<int>>().sink);
+  IOSink get stdin {
+    final controller = StreamController<List<int>>();
+    controller.stream.listen((_) {});
+    return IOSink(controller.sink);
+  }
 
   @override
   int get pid => -1;
@@ -59,6 +65,24 @@ void main() {
       await clientWs.close();
       await server.close(force: true);
       await received.close();
+    });
+
+    test('disconnect surfaces nonzero harness exit status', () async {
+      final failed = LocalConnection(
+        process: FakeProcess(exitStatus: 7),
+        messageStream: const Stream.empty(),
+        ws: clientWs,
+        toolRunner: ToolRunner(),
+        hookRunner: HookRunner(),
+      );
+      await expectLater(
+          failed.disconnect(),
+          throwsA(isA<AntigravityExecutionException>().having(
+              (e) => e.message, 'message', contains('exited with code 7'))));
+    });
+
+    test('disconnect accepts a successful harness exit', () async {
+      await connection.disconnect();
     });
 
     test('plain result has no supplemental_media key', () async {

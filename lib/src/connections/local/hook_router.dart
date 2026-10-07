@@ -7,7 +7,8 @@ import 'local_connection_config.dart';
 
 final _logger = Logger('antigravity.connection.local.hook_router');
 
-const _protoFieldToSdkName = {
+/// Maps localharness proto tool field names to SDK tool names.
+const protoFieldToSdkName = {
   'create_file': 'create_file',
   'edit_file': 'edit_file',
   'find_file': 'find_file',
@@ -16,20 +17,25 @@ const _protoFieldToSdkName = {
   'search_directory': 'search_directory',
   'view_file': 'view_file',
   'invoke_subagent': 'start_subagent',
+  'run_workflow': 'run_workflow',
   'generate_image': 'generate_image',
   'search_web': 'search_web',
   'read_url_content': 'read_url_content',
   'finish': 'finish',
 };
 
-const _wirePathArgumentKeys = {
+/// Tool argument keys carrying wire-format URIs normalized to filesystem paths.
+const wirePathArgumentKeys = {
   'path',
   'file_path',
   'directory_path',
   'TargetFile',
   'output_path',
+  'script_path',
+  'ScriptPath',
 };
 
+/// Converts `file://` and `cns://` wire URIs into filesystem paths.
 String normalizeWirePath(String path) {
   final uri = Uri.tryParse(path);
   if (uri != null && uri.hasScheme) {
@@ -44,7 +50,7 @@ String normalizeWirePath(String path) {
 }
 
 void _normalizePathArgs(Map<String, dynamic> args) {
-  for (final key in _wirePathArgumentKeys) {
+  for (final key in wirePathArgumentKeys) {
     final val = args[key];
     if (val is String && val.isNotEmpty) {
       args[key] = normalizeWirePath(val);
@@ -319,7 +325,7 @@ class HookRouter {
       final pta = ptaRaw;
       final rawToolName =
           (pta['tool_name'] ?? pta['toolName'] ?? '').toString();
-      toolName = _protoFieldToSdkName[rawToolName] ?? rawToolName;
+      toolName = protoFieldToSdkName[rawToolName] ?? rawToolName;
       args = _extractToolCallArguments(pta);
       serverName = (pta['server_name'] ?? pta['serverName'])?.toString();
       callId = _extractCallId(pta);
@@ -328,7 +334,7 @@ class HookRouter {
     }
 
     String? canonicalPath;
-    for (final key in _wirePathArgumentKeys) {
+    for (final key in wirePathArgumentKeys) {
       final val = args[key];
       if (val is String && val.isNotEmpty) {
         canonicalPath = val;
@@ -376,7 +382,7 @@ class HookRouter {
     if (args is Map) {
       final rawToolName =
           (args['tool_name'] ?? args['toolName'] ?? '').toString();
-      toolName = _protoFieldToSdkName[rawToolName] ?? rawToolName;
+      toolName = protoFieldToSdkName[rawToolName] ?? rawToolName;
       callId = _extractCallId(args);
       stepId = _extractStepId(args);
 
@@ -427,7 +433,7 @@ class HookRouter {
           );
 
     final toolName =
-        _protoFieldToSdkName[extracted.rawToolName] ?? extracted.rawToolName;
+        protoFieldToSdkName[extracted.rawToolName] ?? extracted.rawToolName;
     final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
     await _hookRunner.dispatchOnToolError(
       turnCtx,

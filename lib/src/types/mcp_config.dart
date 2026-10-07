@@ -11,6 +11,9 @@ abstract class McpServerConfig with McpServerConfigMappable {
   final List<String>? enabledTools;
   final List<String>? disabledTools;
 
+  /// Loads all server tools into the prompt instead of discovering them lazily.
+  final bool forceAllToolsEager;
+
   /// Returns the configured timeout as a strongly-typed Dart [Duration].
   Duration? get serverTimeout =>
       timeoutSeconds != null ? Duration(seconds: timeoutSeconds!) : null;
@@ -21,6 +24,7 @@ abstract class McpServerConfig with McpServerConfigMappable {
     Duration? serverTimeout,
     this.enabledTools,
     this.disabledTools,
+    this.forceAllToolsEager = false,
   }) : timeoutSeconds = timeoutSeconds ?? serverTimeout?.inSeconds {
     if (enabledTools != null && disabledTools != null) {
       throw AntigravityValidationException(
@@ -63,6 +67,7 @@ class McpStdioServer extends McpServerConfig with McpStdioServerMappable {
     super.serverTimeout,
     super.enabledTools,
     super.disabledTools,
+    super.forceAllToolsEager,
   }) : args = args ?? [];
 
   static const fromMap = McpStdioServerMapper.fromMap;
@@ -99,6 +104,7 @@ class McpStreamableHttpServer extends McpServerConfig
     super.serverTimeout,
     super.enabledTools,
     super.disabledTools,
+    super.forceAllToolsEager,
   });
 
   /// Factory constructor creating an [McpStreamableHttpServer] from a strongly-typed Dart [Uri].
@@ -113,6 +119,7 @@ class McpStreamableHttpServer extends McpServerConfig
     Duration? serverTimeout,
     List<String>? enabledTools,
     List<String>? disabledTools,
+    bool forceAllToolsEager = false,
   }) =>
       McpStreamableHttpServer(
         name: name,
@@ -125,6 +132,7 @@ class McpStreamableHttpServer extends McpServerConfig
         serverTimeout: serverTimeout,
         enabledTools: enabledTools,
         disabledTools: disabledTools,
+        forceAllToolsEager: forceAllToolsEager,
       );
 
   static const fromMap = McpStreamableHttpServerMapper.fromMap;

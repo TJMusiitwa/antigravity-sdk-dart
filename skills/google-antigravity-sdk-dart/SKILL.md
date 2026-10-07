@@ -24,6 +24,21 @@ Reference implementations for common setups:
 - [`subagents.dart`](file://example/getting_started/subagents.dart): Dynamic delegation, static subagents, and nested subagent hierarchies.
 - [`agent_skills.dart`](file://example/getting_started/agent_skills.dart): Dynamic skill loading and registration.
 
+## Skills and experimental workflows
+
+- Local configs accept either `skillsPaths` or `inlineSkills`, not both.
+- `SubagentConfig.skillsConfig` accepts inherit, none, and override modes. Local
+  overrides require filesystem `skillsPaths`; inline overrides are rejected.
+- Execute existing Python workflow files with `agent.beta.runWorkflow(scriptPath:
+  path)`. See `example/getting_started/workflows.dart`. Enable
+  `BuiltinTools.runWorkflow` and subagents in the capabilities. Scripts are
+  checked with `validateWorkflowSource` (from `package:antigravity/beta.dart`)
+  before the model runs them; Dart functions are not converted to Python.
+- `InteractionsAgentConfig` takes the same options as `LocalAgentConfig` but
+  talks to the harness over the GAOS Interactions protocol. It rejects triggers,
+  `auto()` and dynamic (`when`/`askUser`) policies, and subagent `model`
+  overrides, and ignores root `inlineSkills`.
+
 ## Completion Criteria
 
 - [ ] `antigravity` dependency is resolved in `pubspec.yaml`.

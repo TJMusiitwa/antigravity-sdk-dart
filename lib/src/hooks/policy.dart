@@ -263,6 +263,8 @@ dynamic askUser(
     );
 
 /// Creates a policy that approves all tool calls without confirmation.
+/// For local agents, also disables workspace containment unless [workspaceOnly]
+/// rules are present.
 Policy allowAll() => allow('*', name: 'allow_all');
 
 /// Creates a policy that denies all tool calls.
@@ -399,9 +401,8 @@ List<Policy> workspaceOnly(List<String> workspaces) {
 /// inside [workspacePath].
 ///
 /// This rule never denies: a file call outside [workspacePath] simply does not
-/// match it. Local configs restrict file tools to their `workspaces` in the
-/// harness, and [workspaceOnly] denies file access outside a set of
-/// directories on the client.
+/// match it. Local configs restrict file tools to their `workspaces` by default.
+/// [allowAll] disables that harness restriction unless [workspaceOnly] is used.
 @Deprecated(
   'Allows every non-file tool and never denies. Use the config `workspaces` '
   '(enforced by the harness) or workspaceOnly() instead.',
@@ -603,7 +604,7 @@ class PolicyDecideHook extends PreToolCallDecideHook {
 /// Invokes [policy]'s ask-user handler, passing [reason] when the callback
 /// accepts it.
 ///
-/// [AskUserHandler] only requires the tool call, so pre-0.15.0 one-argument
+/// [AskUserHandler] only requires the tool call, so legacy one-argument
 /// handlers stay valid. A handler that also declares an optional positional
 /// `reason` (`[String reason = '']` or `[String? reason]`) receives it, as does
 /// one declaring a named `{String reason = ''}` or `{String? reason}`. The
@@ -703,6 +704,8 @@ String _decisionProto(Decision decision) => switch (decision) {
   final dynamicPolicies = <String, Policy>{};
   final rules = <Map<String, dynamic>>[];
   AutoPolicy? autoPolicy;
+  var hasWorkspaceOnly = false;
+  var hasAllowAll = false;
 
   for (var i = 0; i < flat.length; i++) {
     final p = flat[i];
@@ -719,6 +722,12 @@ String _decisionProto(Decision decision) => switch (decision) {
 
     final target = _parseToolTarget(p.tool);
     final isWorkspaceOnly = p.name == workspaceOnlyPolicyName;
+    hasWorkspaceOnly = hasWorkspaceOnly || isWorkspaceOnly;
+    hasAllowAll = hasAllowAll ||
+        (p.name == 'allow_all' &&
+            p.tool == '*' &&
+            p.decision == Decision.approve &&
+            p.when == null);
     final isDynamic =
         (p.when != null || p.decision == Decision.askUser) && !isWorkspaceOnly;
     final ruleId = isDynamic ? 'rule_$i' : '';
@@ -748,6 +757,9 @@ String _decisionProto(Decision decision) => switch (decision) {
   return (
     config: {
       'rules': rules,
+      'workspace_containment': hasAllowAll && !hasWorkspaceOnly
+          ? 'WORKSPACE_CONTAINMENT_DISABLED'
+          : 'WORKSPACE_CONTAINMENT_UNSPECIFIED',
       if (autoConfig != null) 'auto_config': autoConfig,
     },
     dynamicPolicies: dynamicPolicies,

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'beta.dart';
 import 'connections/connection.dart';
 import 'conversation/conversation.dart';
 import 'hooks/hooks.dart';
@@ -45,16 +46,14 @@ class Agent {
     _pendingTriggers.addAll(_config.triggers);
   }
 
+  /// Experimental operations for this agent.
+  late final AgentBeta beta = AgentBeta(this, _config);
+
   /// Starts the agent session.
   Future<Agent> start() async {
     try {
       _config.debugConfig?.applyLogging();
-      _hookRunner = HookRunner();
-
-      // Register pending hooks
-      for (final hook in _pendingHooks) {
-        _hookRunner!.registerHook(hook);
-      }
+      _hookRunner = HookRunner(hooks: _pendingHooks);
       _pendingHooks.clear();
 
       // Apply policies

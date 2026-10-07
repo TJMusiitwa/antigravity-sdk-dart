@@ -78,6 +78,7 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
       McpServerConfigMapper.ensureInitialized();
       SubagentConfigMapper.ensureInitialized();
       SessionContinuationModeMapper.ensureInitialized();
+      InlineSkillMapper.ensureInitialized();
       DebugConfigMapper.ensureInitialized();
       RetryConfigMapper.ensureInitialized();
       BudgetConfigMapper.ensureInitialized();
@@ -119,16 +120,15 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
   );
   static List<FutureOr<void> Function(TriggerContext)> _$triggers(
     BaseLocalAgentConfig v,
-  ) => v.triggers;
-  static const Field<
-    BaseLocalAgentConfig,
-    List<FutureOr<void> Function(TriggerContext)>
-  >
-  _f$triggers = Field('triggers', _$triggers, opt: true);
+  ) =>
+      v.triggers;
+  static const Field<BaseLocalAgentConfig,
+          List<FutureOr<void> Function(TriggerContext)>> _f$triggers =
+      Field('triggers', _$triggers, opt: true);
   static List<McpServerConfig> _$mcpServers(BaseLocalAgentConfig v) =>
       v.mcpServers;
   static const Field<BaseLocalAgentConfig, List<McpServerConfig>>
-  _f$mcpServers = Field('mcpServers', _$mcpServers, opt: true);
+      _f$mcpServers = Field('mcpServers', _$mcpServers, opt: true);
   static List<SubagentConfig> _$subagents(BaseLocalAgentConfig v) =>
       v.subagents;
   static const Field<BaseLocalAgentConfig, List<SubagentConfig>> _f$subagents =
@@ -147,9 +147,10 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
   );
   static SessionContinuationMode? _$sessionContinuationMode(
     BaseLocalAgentConfig v,
-  ) => v.sessionContinuationMode;
+  ) =>
+      v.sessionContinuationMode;
   static const Field<BaseLocalAgentConfig, SessionContinuationMode>
-  _f$sessionContinuationMode = Field(
+      _f$sessionContinuationMode = Field(
     'sessionContinuationMode',
     _$sessionContinuationMode,
     opt: true,
@@ -178,6 +179,10 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
     _$skillsPaths,
     opt: true,
   );
+  static List<InlineSkill> _$inlineSkills(BaseLocalAgentConfig v) =>
+      v.inlineSkills;
+  static const Field<BaseLocalAgentConfig, List<InlineSkill>> _f$inlineSkills =
+      Field('inlineSkills', _$inlineSkills, opt: true, def: const []);
   static DebugConfig? _$debugConfig(BaseLocalAgentConfig v) => v.debugConfig;
   static const Field<BaseLocalAgentConfig, DebugConfig> _f$debugConfig = Field(
     'debugConfig',
@@ -196,7 +201,7 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
   static CompactionConfig? _$compactionConfig(BaseLocalAgentConfig v) =>
       v.compactionConfig;
   static const Field<BaseLocalAgentConfig, CompactionConfig>
-  _f$compactionConfig = Field(
+      _f$compactionConfig = Field(
     'compactionConfig',
     _$compactionConfig,
     opt: true,
@@ -219,6 +224,7 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
     #appDataDir: _f$appDataDir,
     #responseSchema: _f$responseSchema,
     #skillsPaths: _f$skillsPaths,
+    #inlineSkills: _f$inlineSkills,
     #debugConfig: _f$debugConfig,
     #retryConfig: _f$retryConfig,
     #budgetConfig: _f$budgetConfig,
@@ -245,50 +251,35 @@ class BaseLocalAgentConfigMapper extends ClassMapperBase<BaseLocalAgentConfig> {
 mixin BaseLocalAgentConfigMappable {
   String toJson();
   Map<String, dynamic> toMap();
-  BaseLocalAgentConfigCopyWith<
-    BaseLocalAgentConfig,
-    BaseLocalAgentConfig,
-    BaseLocalAgentConfig
-  >
-  get copyWith;
+  BaseLocalAgentConfigCopyWith<BaseLocalAgentConfig, BaseLocalAgentConfig,
+      BaseLocalAgentConfig> get copyWith;
 }
 
 /// @nodoc
 abstract class BaseLocalAgentConfigCopyWith<
-  $R,
-  $In extends BaseLocalAgentConfig,
-  $Out
->
-    implements AgentConfigCopyWith<$R, $In, $Out> {
+    $R,
+    $In extends BaseLocalAgentConfig,
+    $Out> implements AgentConfigCopyWith<$R, $In, $Out> {
   CapabilitiesConfigCopyWith<$R, CapabilitiesConfig, CapabilitiesConfig>
-  get capabilities;
+      get capabilities;
   ListCopyWith<$R, Tool, ObjectCopyWith<$R, Tool, Tool>> get tools;
   ListCopyWith<$R, dynamic, ObjectCopyWith<$R, dynamic, dynamic>?> get policies;
   ListCopyWith<$R, Hook, ObjectCopyWith<$R, Hook, Hook>> get hooks;
   ListCopyWith<
-    $R,
-    FutureOr<void> Function(TriggerContext),
-    ObjectCopyWith<
       $R,
       FutureOr<void> Function(TriggerContext),
-      FutureOr<void> Function(TriggerContext)
-    >
-  >
-  get triggers;
-  ListCopyWith<
-    $R,
-    McpServerConfig,
-    McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>
-  >
-  get mcpServers;
-  ListCopyWith<
-    $R,
-    SubagentConfig,
-    SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>
-  >
-  get subagents;
+      ObjectCopyWith<$R, FutureOr<void> Function(TriggerContext),
+          FutureOr<void> Function(TriggerContext)>> get triggers;
+  ListCopyWith<$R, McpServerConfig,
+          McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>>
+      get mcpServers;
+  ListCopyWith<$R, SubagentConfig,
+      SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>> get subagents;
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get workspaces;
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get skillsPaths;
+  @override
+  ListCopyWith<$R, InlineSkill,
+      InlineSkillCopyWith<$R, InlineSkill, InlineSkill>> get inlineSkills;
   @override
   DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig;
   @override
@@ -297,7 +288,7 @@ abstract class BaseLocalAgentConfigCopyWith<
   BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig;
   @override
   CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
-  get compactionConfig;
+      get compactionConfig;
   @override
   $R call({
     dynamic systemInstructions,
@@ -315,6 +306,7 @@ abstract class BaseLocalAgentConfigCopyWith<
     String? appDataDir,
     dynamic responseSchema,
     List<String>? skillsPaths,
+    List<InlineSkill>? inlineSkills,
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
     BudgetConfig? budgetConfig,
@@ -340,10 +332,12 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
         HookMapper(),
         TriggerMapper(),
       ]);
+      InteractionsAgentConfigMapper.ensureInitialized();
       CapabilitiesConfigMapper.ensureInitialized();
       McpServerConfigMapper.ensureInitialized();
       SubagentConfigMapper.ensureInitialized();
       SessionContinuationModeMapper.ensureInitialized();
+      InlineSkillMapper.ensureInitialized();
       DebugConfigMapper.ensureInitialized();
       RetryConfigMapper.ensureInitialized();
       BudgetConfigMapper.ensureInitialized();
@@ -389,12 +383,11 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
   );
   static List<FutureOr<void> Function(TriggerContext)> _$triggers(
     LocalAgentConfig v,
-  ) => v.triggers;
-  static const Field<
-    LocalAgentConfig,
-    List<FutureOr<void> Function(TriggerContext)>
-  >
-  _f$triggers = Field('triggers', _$triggers, opt: true);
+  ) =>
+      v.triggers;
+  static const Field<LocalAgentConfig,
+          List<FutureOr<void> Function(TriggerContext)>> _f$triggers =
+      Field('triggers', _$triggers, opt: true);
   static List<McpServerConfig> _$mcpServers(LocalAgentConfig v) => v.mcpServers;
   static const Field<LocalAgentConfig, List<McpServerConfig>> _f$mcpServers =
       Field('mcpServers', _$mcpServers, opt: true);
@@ -415,9 +408,10 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
   );
   static SessionContinuationMode? _$sessionContinuationMode(
     LocalAgentConfig v,
-  ) => v.sessionContinuationMode;
+  ) =>
+      v.sessionContinuationMode;
   static const Field<LocalAgentConfig, SessionContinuationMode>
-  _f$sessionContinuationMode = Field(
+      _f$sessionContinuationMode = Field(
     'sessionContinuationMode',
     _$sessionContinuationMode,
     opt: true,
@@ -446,6 +440,9 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
     _$skillsPaths,
     opt: true,
   );
+  static List<InlineSkill> _$inlineSkills(LocalAgentConfig v) => v.inlineSkills;
+  static const Field<LocalAgentConfig, List<InlineSkill>> _f$inlineSkills =
+      Field('inlineSkills', _$inlineSkills, opt: true, def: const []);
   static DebugConfig? _$debugConfig(LocalAgentConfig v) => v.debugConfig;
   static const Field<LocalAgentConfig, DebugConfig> _f$debugConfig = Field(
     'debugConfig',
@@ -528,6 +525,7 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
     #appDataDir: _f$appDataDir,
     #responseSchema: _f$responseSchema,
     #skillsPaths: _f$skillsPaths,
+    #inlineSkills: _f$inlineSkills,
     #debugConfig: _f$debugConfig,
     #retryConfig: _f$retryConfig,
     #budgetConfig: _f$budgetConfig,
@@ -558,6 +556,7 @@ class LocalAgentConfigMapper extends ClassMapperBase<LocalAgentConfig> {
       appDataDir: data.dec(_f$appDataDir),
       responseSchema: data.dec(_f$responseSchema),
       skillsPaths: data.dec(_f$skillsPaths),
+      inlineSkills: data.dec(_f$inlineSkills),
       debugConfig: data.dec(_f$debugConfig),
       retryConfig: data.dec(_f$retryConfig),
       budgetConfig: data.dec(_f$budgetConfig),
@@ -597,12 +596,12 @@ mixin LocalAgentConfigMappable {
   }
 
   LocalAgentConfigCopyWith<LocalAgentConfig, LocalAgentConfig, LocalAgentConfig>
-  get copyWith =>
-      _LocalAgentConfigCopyWithImpl<LocalAgentConfig, LocalAgentConfig>(
-        this as LocalAgentConfig,
-        $identity,
-        $identity,
-      );
+      get copyWith =>
+          _LocalAgentConfigCopyWithImpl<LocalAgentConfig, LocalAgentConfig>(
+            this as LocalAgentConfig,
+            $identity,
+            $identity,
+          );
   @override
   String toString() {
     return LocalAgentConfigMapper.ensureInitialized().stringifyValue(
@@ -630,8 +629,8 @@ mixin LocalAgentConfigMappable {
 extension LocalAgentConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, LocalAgentConfig, $Out> {
   LocalAgentConfigCopyWith<$R, LocalAgentConfig, $Out>
-  get $asLocalAgentConfig =>
-      $base.as((v, t, t2) => _LocalAgentConfigCopyWithImpl<$R, $Out>(v, t, t2));
+      get $asLocalAgentConfig => $base
+          .as((v, t, t2) => _LocalAgentConfigCopyWithImpl<$R, $Out>(v, t, t2));
 }
 
 /// @nodoc
@@ -639,7 +638,7 @@ abstract class LocalAgentConfigCopyWith<$R, $In extends LocalAgentConfig, $Out>
     implements BaseLocalAgentConfigCopyWith<$R, $In, $Out> {
   @override
   CapabilitiesConfigCopyWith<$R, CapabilitiesConfig, CapabilitiesConfig>
-  get capabilities;
+      get capabilities;
   @override
   ListCopyWith<$R, Tool, ObjectCopyWith<$R, Tool, Tool>> get tools;
   @override
@@ -648,33 +647,24 @@ abstract class LocalAgentConfigCopyWith<$R, $In extends LocalAgentConfig, $Out>
   ListCopyWith<$R, Hook, ObjectCopyWith<$R, Hook, Hook>> get hooks;
   @override
   ListCopyWith<
-    $R,
-    FutureOr<void> Function(TriggerContext),
-    ObjectCopyWith<
       $R,
       FutureOr<void> Function(TriggerContext),
-      FutureOr<void> Function(TriggerContext)
-    >
-  >
-  get triggers;
+      ObjectCopyWith<$R, FutureOr<void> Function(TriggerContext),
+          FutureOr<void> Function(TriggerContext)>> get triggers;
   @override
-  ListCopyWith<
-    $R,
-    McpServerConfig,
-    McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>
-  >
-  get mcpServers;
+  ListCopyWith<$R, McpServerConfig,
+          McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>>
+      get mcpServers;
   @override
-  ListCopyWith<
-    $R,
-    SubagentConfig,
-    SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>
-  >
-  get subagents;
+  ListCopyWith<$R, SubagentConfig,
+      SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>> get subagents;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get workspaces;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get skillsPaths;
+  @override
+  ListCopyWith<$R, InlineSkill,
+      InlineSkillCopyWith<$R, InlineSkill, InlineSkill>> get inlineSkills;
   @override
   DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig;
   @override
@@ -683,13 +673,9 @@ abstract class LocalAgentConfigCopyWith<$R, $In extends LocalAgentConfig, $Out>
   BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig;
   @override
   CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
-  get compactionConfig;
-  ListCopyWith<
-    $R,
-    ModelTarget,
-    ModelTargetCopyWith<$R, ModelTarget, ModelTarget>
-  >?
-  get models;
+      get compactionConfig;
+  ListCopyWith<$R, ModelTarget,
+      ModelTargetCopyWith<$R, ModelTarget, ModelTarget>>? get models;
   @override
   $R call({
     dynamic systemInstructions,
@@ -707,6 +693,7 @@ abstract class LocalAgentConfigCopyWith<$R, $In extends LocalAgentConfig, $Out>
     String? appDataDir,
     dynamic responseSchema,
     List<String>? skillsPaths,
+    List<InlineSkill>? inlineSkills,
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
     BudgetConfig? budgetConfig,
@@ -735,8 +722,9 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
       LocalAgentConfigMapper.ensureInitialized();
   @override
   CapabilitiesConfigCopyWith<$R, CapabilitiesConfig, CapabilitiesConfig>
-  get capabilities => ($value.capabilities as CapabilitiesConfig).copyWith
-      .$chain((v) => call(capabilities: v));
+      get capabilities => ($value.capabilities as CapabilitiesConfig)
+          .copyWith
+          .$chain((v) => call(capabilities: v));
   @override
   ListCopyWith<$R, Tool, ObjectCopyWith<$R, Tool, Tool>> get tools =>
       ListCopyWith(
@@ -746,11 +734,11 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
       );
   @override
   ListCopyWith<$R, dynamic, ObjectCopyWith<$R, dynamic, dynamic>?>
-  get policies => ListCopyWith(
-    $value.policies,
-    (v, t) => ObjectCopyWith(v, $identity, t),
-    (v) => call(policies: v),
-  );
+      get policies => ListCopyWith(
+            $value.policies,
+            (v, t) => ObjectCopyWith(v, $identity, t),
+            (v) => call(policies: v),
+          );
   @override
   ListCopyWith<$R, Hook, ObjectCopyWith<$R, Hook, Hook>> get hooks =>
       ListCopyWith(
@@ -760,41 +748,31 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
       );
   @override
   ListCopyWith<
-    $R,
-    FutureOr<void> Function(TriggerContext),
-    ObjectCopyWith<
       $R,
       FutureOr<void> Function(TriggerContext),
-      FutureOr<void> Function(TriggerContext)
-    >
-  >
-  get triggers => ListCopyWith(
-    $value.triggers,
-    (v, t) => ObjectCopyWith(v, $identity, t),
-    (v) => call(triggers: v),
-  );
+      ObjectCopyWith<$R, FutureOr<void> Function(TriggerContext),
+          FutureOr<void> Function(TriggerContext)>> get triggers =>
+      ListCopyWith(
+        $value.triggers,
+        (v, t) => ObjectCopyWith(v, $identity, t),
+        (v) => call(triggers: v),
+      );
   @override
-  ListCopyWith<
-    $R,
-    McpServerConfig,
-    McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>
-  >
-  get mcpServers => ListCopyWith(
-    $value.mcpServers,
-    (v, t) => v.copyWith.$chain(t),
-    (v) => call(mcpServers: v),
-  );
+  ListCopyWith<$R, McpServerConfig,
+          McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>>
+      get mcpServers => ListCopyWith(
+            $value.mcpServers,
+            (v, t) => v.copyWith.$chain(t),
+            (v) => call(mcpServers: v),
+          );
   @override
-  ListCopyWith<
-    $R,
-    SubagentConfig,
-    SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>
-  >
-  get subagents => ListCopyWith(
-    $value.subagents,
-    (v, t) => v.copyWith.$chain(t),
-    (v) => call(subagents: v),
-  );
+  ListCopyWith<$R, SubagentConfig,
+          SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>>
+      get subagents => ListCopyWith(
+            $value.subagents,
+            (v, t) => v.copyWith.$chain(t),
+            (v) => call(subagents: v),
+          );
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get workspaces =>
       ListCopyWith(
@@ -804,11 +782,19 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
       );
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>
-  get skillsPaths => ListCopyWith(
-    $value.skillsPaths,
-    (v, t) => ObjectCopyWith(v, $identity, t),
-    (v) => call(skillsPaths: v),
-  );
+      get skillsPaths => ListCopyWith(
+            $value.skillsPaths,
+            (v, t) => ObjectCopyWith(v, $identity, t),
+            (v) => call(skillsPaths: v),
+          );
+  @override
+  ListCopyWith<$R, InlineSkill,
+          InlineSkillCopyWith<$R, InlineSkill, InlineSkill>>
+      get inlineSkills => ListCopyWith(
+            $value.inlineSkills,
+            (v, t) => v.copyWith.$chain(t),
+            (v) => call(inlineSkills: v),
+          );
   @override
   DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig =>
       $value.debugConfig?.copyWith.$chain((v) => call(debugConfig: v));
@@ -820,22 +806,19 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
       $value.budgetConfig?.copyWith.$chain((v) => call(budgetConfig: v));
   @override
   CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
-  get compactionConfig => $value.compactionConfig?.copyWith.$chain(
-    (v) => call(compactionConfig: v),
-  );
+      get compactionConfig => $value.compactionConfig?.copyWith.$chain(
+            (v) => call(compactionConfig: v),
+          );
   @override
-  ListCopyWith<
-    $R,
-    ModelTarget,
-    ModelTargetCopyWith<$R, ModelTarget, ModelTarget>
-  >?
-  get models => $value.models != null
-      ? ListCopyWith(
-          $value.models!,
-          (v, t) => v.copyWith.$chain(t),
-          (v) => call(models: v),
-        )
-      : null;
+  ListCopyWith<$R, ModelTarget,
+          ModelTargetCopyWith<$R, ModelTarget, ModelTarget>>?
+      get models => $value.models != null
+          ? ListCopyWith(
+              $value.models!,
+              (v, t) => v.copyWith.$chain(t),
+              (v) => call(models: v),
+            )
+          : null;
   @override
   $R call({
     Object? systemInstructions = $none,
@@ -853,6 +836,7 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
     Object? appDataDir = $none,
     Object? responseSchema = $none,
     Object? skillsPaths = $none,
+    List<InlineSkill>? inlineSkills,
     Object? debugConfig = $none,
     Object? retryConfig = $none,
     Object? budgetConfig = $none,
@@ -864,77 +848,685 @@ class _LocalAgentConfigCopyWithImpl<$R, $Out>
     Object? project = $none,
     Object? location = $none,
     Object? binaryPath = $none,
-  }) => $apply(
-    FieldCopyWithData({
-      if (systemInstructions != $none) #systemInstructions: systemInstructions,
-      if (capabilities != $none) #capabilities: capabilities,
-      if (tools != $none) #tools: tools,
-      if (policies != $none) #policies: policies,
-      if (hooks != $none) #hooks: hooks,
-      if (triggers != $none) #triggers: triggers,
-      if (mcpServers != $none) #mcpServers: mcpServers,
-      if (subagents != $none) #subagents: subagents,
-      if (workspaces != $none) #workspaces: workspaces,
-      if (conversationId != $none) #conversationId: conversationId,
-      if (sessionContinuationMode != $none)
-        #sessionContinuationMode: sessionContinuationMode,
-      if (saveDir != $none) #saveDir: saveDir,
-      if (appDataDir != $none) #appDataDir: appDataDir,
-      if (responseSchema != $none) #responseSchema: responseSchema,
-      if (skillsPaths != $none) #skillsPaths: skillsPaths,
-      if (debugConfig != $none) #debugConfig: debugConfig,
-      if (retryConfig != $none) #retryConfig: retryConfig,
-      if (budgetConfig != $none) #budgetConfig: budgetConfig,
-      if (compactionConfig != $none) #compactionConfig: compactionConfig,
-      if (model != $none) #model: model,
-      if (models != $none) #models: models,
-      if (apiKey != $none) #apiKey: apiKey,
-      if (vertex != $none) #vertex: vertex,
-      if (project != $none) #project: project,
-      if (location != $none) #location: location,
-      if (binaryPath != $none) #binaryPath: binaryPath,
-    }),
-  );
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (systemInstructions != $none)
+            #systemInstructions: systemInstructions,
+          if (capabilities != $none) #capabilities: capabilities,
+          if (tools != $none) #tools: tools,
+          if (policies != $none) #policies: policies,
+          if (hooks != $none) #hooks: hooks,
+          if (triggers != $none) #triggers: triggers,
+          if (mcpServers != $none) #mcpServers: mcpServers,
+          if (subagents != $none) #subagents: subagents,
+          if (workspaces != $none) #workspaces: workspaces,
+          if (conversationId != $none) #conversationId: conversationId,
+          if (sessionContinuationMode != $none)
+            #sessionContinuationMode: sessionContinuationMode,
+          if (saveDir != $none) #saveDir: saveDir,
+          if (appDataDir != $none) #appDataDir: appDataDir,
+          if (responseSchema != $none) #responseSchema: responseSchema,
+          if (skillsPaths != $none) #skillsPaths: skillsPaths,
+          if (inlineSkills != null) #inlineSkills: inlineSkills,
+          if (debugConfig != $none) #debugConfig: debugConfig,
+          if (retryConfig != $none) #retryConfig: retryConfig,
+          if (budgetConfig != $none) #budgetConfig: budgetConfig,
+          if (compactionConfig != $none) #compactionConfig: compactionConfig,
+          if (model != $none) #model: model,
+          if (models != $none) #models: models,
+          if (apiKey != $none) #apiKey: apiKey,
+          if (vertex != $none) #vertex: vertex,
+          if (project != $none) #project: project,
+          if (location != $none) #location: location,
+          if (binaryPath != $none) #binaryPath: binaryPath,
+        }),
+      );
   @override
   LocalAgentConfig $make(CopyWithData data) => LocalAgentConfig(
-    systemInstructions: data.get(
-      #systemInstructions,
-      or: $value.systemInstructions,
-    ),
-    capabilities: data.get(#capabilities, or: $value.capabilities),
-    tools: data.get(#tools, or: $value.tools),
-    policies: data.get(#policies, or: $value.policies),
-    hooks: data.get(#hooks, or: $value.hooks),
-    triggers: data.get(#triggers, or: $value.triggers),
-    mcpServers: data.get(#mcpServers, or: $value.mcpServers),
-    subagents: data.get(#subagents, or: $value.subagents),
-    workspaces: data.get(#workspaces, or: $value.workspaces),
-    conversationId: data.get(#conversationId, or: $value.conversationId),
-    sessionContinuationMode: data.get(
-      #sessionContinuationMode,
-      or: $value.sessionContinuationMode,
-    ),
-    saveDir: data.get(#saveDir, or: $value.saveDir),
-    appDataDir: data.get(#appDataDir, or: $value.appDataDir),
-    responseSchema: data.get(#responseSchema, or: $value.responseSchema),
-    skillsPaths: data.get(#skillsPaths, or: $value.skillsPaths),
-    debugConfig: data.get(#debugConfig, or: $value.debugConfig),
-    retryConfig: data.get(#retryConfig, or: $value.retryConfig),
-    budgetConfig: data.get(#budgetConfig, or: $value.budgetConfig),
-    compactionConfig: data.get(#compactionConfig, or: $value.compactionConfig),
-    model: data.get(#model, or: $value.model),
-    models: data.get(#models, or: $value.models),
-    apiKey: data.get(#apiKey, or: $value.apiKey),
-    vertex: data.get(#vertex, or: $value.vertex),
-    project: data.get(#project, or: $value.project),
-    location: data.get(#location, or: $value.location),
-    binaryPath: data.get(#binaryPath, or: $value.binaryPath),
-  );
+        systemInstructions: data.get(
+          #systemInstructions,
+          or: $value.systemInstructions,
+        ),
+        capabilities: data.get(#capabilities, or: $value.capabilities),
+        tools: data.get(#tools, or: $value.tools),
+        policies: data.get(#policies, or: $value.policies),
+        hooks: data.get(#hooks, or: $value.hooks),
+        triggers: data.get(#triggers, or: $value.triggers),
+        mcpServers: data.get(#mcpServers, or: $value.mcpServers),
+        subagents: data.get(#subagents, or: $value.subagents),
+        workspaces: data.get(#workspaces, or: $value.workspaces),
+        conversationId: data.get(#conversationId, or: $value.conversationId),
+        sessionContinuationMode: data.get(
+          #sessionContinuationMode,
+          or: $value.sessionContinuationMode,
+        ),
+        saveDir: data.get(#saveDir, or: $value.saveDir),
+        appDataDir: data.get(#appDataDir, or: $value.appDataDir),
+        responseSchema: data.get(#responseSchema, or: $value.responseSchema),
+        skillsPaths: data.get(#skillsPaths, or: $value.skillsPaths),
+        inlineSkills: data.get(#inlineSkills, or: $value.inlineSkills),
+        debugConfig: data.get(#debugConfig, or: $value.debugConfig),
+        retryConfig: data.get(#retryConfig, or: $value.retryConfig),
+        budgetConfig: data.get(#budgetConfig, or: $value.budgetConfig),
+        compactionConfig:
+            data.get(#compactionConfig, or: $value.compactionConfig),
+        model: data.get(#model, or: $value.model),
+        models: data.get(#models, or: $value.models),
+        apiKey: data.get(#apiKey, or: $value.apiKey),
+        vertex: data.get(#vertex, or: $value.vertex),
+        project: data.get(#project, or: $value.project),
+        location: data.get(#location, or: $value.location),
+        binaryPath: data.get(#binaryPath, or: $value.binaryPath),
+      );
 
   @override
   LocalAgentConfigCopyWith<$R2, LocalAgentConfig, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) => _LocalAgentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) =>
+      _LocalAgentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+}
+
+/// @nodoc
+class InteractionsAgentConfigMapper
+    extends ClassMapperBase<InteractionsAgentConfig> {
+  InteractionsAgentConfigMapper._();
+
+  static InteractionsAgentConfigMapper? _instance;
+  static InteractionsAgentConfigMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(
+        _instance = InteractionsAgentConfigMapper._(),
+      );
+      LocalAgentConfigMapper.ensureInitialized();
+      MapperContainer.globals.useAll([
+        ToolMapper(),
+        PolicyMapper(),
+        HookMapper(),
+        TriggerMapper(),
+      ]);
+      CapabilitiesConfigMapper.ensureInitialized();
+      McpServerConfigMapper.ensureInitialized();
+      SubagentConfigMapper.ensureInitialized();
+      SessionContinuationModeMapper.ensureInitialized();
+      InlineSkillMapper.ensureInitialized();
+      DebugConfigMapper.ensureInitialized();
+      RetryConfigMapper.ensureInitialized();
+      BudgetConfigMapper.ensureInitialized();
+      CompactionConfigMapper.ensureInitialized();
+      ModelTargetMapper.ensureInitialized();
+    }
+    return _instance!;
+  }
+
+  @override
+  final String id = 'InteractionsAgentConfig';
+
+  static dynamic _$systemInstructions(InteractionsAgentConfig v) =>
+      v.systemInstructions;
+  static const Field<InteractionsAgentConfig, dynamic> _f$systemInstructions =
+      Field('systemInstructions', _$systemInstructions, opt: true);
+  static CapabilitiesConfig _$capabilities(InteractionsAgentConfig v) =>
+      v.capabilities;
+  static const Field<InteractionsAgentConfig, CapabilitiesConfig>
+      _f$capabilities = Field('capabilities', _$capabilities, opt: true);
+  static List<Tool> _$tools(InteractionsAgentConfig v) => v.tools;
+  static const Field<InteractionsAgentConfig, List<Tool>> _f$tools = Field(
+    'tools',
+    _$tools,
+    opt: true,
+  );
+  static List<Policy> _$policies(InteractionsAgentConfig v) => v.policies;
+  static dynamic _arg$policies(f) => f<List<Policy>>();
+  static const Field<InteractionsAgentConfig, List<dynamic>> _f$policies =
+      Field('policies', _$policies, opt: true, arg: _arg$policies);
+  static List<Hook> _$hooks(InteractionsAgentConfig v) => v.hooks;
+  static const Field<InteractionsAgentConfig, List<Hook>> _f$hooks = Field(
+    'hooks',
+    _$hooks,
+    opt: true,
+  );
+  static List<FutureOr<void> Function(TriggerContext)> _$triggers(
+    InteractionsAgentConfig v,
+  ) =>
+      v.triggers;
+  static const Field<InteractionsAgentConfig,
+          List<FutureOr<void> Function(TriggerContext)>> _f$triggers =
+      Field('triggers', _$triggers, opt: true);
+  static List<McpServerConfig> _$mcpServers(InteractionsAgentConfig v) =>
+      v.mcpServers;
+  static const Field<InteractionsAgentConfig, List<McpServerConfig>>
+      _f$mcpServers = Field('mcpServers', _$mcpServers, opt: true);
+  static List<SubagentConfig> _$subagents(InteractionsAgentConfig v) =>
+      v.subagents;
+  static const Field<InteractionsAgentConfig, List<SubagentConfig>>
+      _f$subagents = Field('subagents', _$subagents, opt: true);
+  static List<String> _$workspaces(InteractionsAgentConfig v) => v.workspaces;
+  static const Field<InteractionsAgentConfig, List<String>> _f$workspaces =
+      Field('workspaces', _$workspaces, opt: true);
+  static String? _$conversationId(InteractionsAgentConfig v) =>
+      v.conversationId;
+  static const Field<InteractionsAgentConfig, String> _f$conversationId = Field(
+    'conversationId',
+    _$conversationId,
+    opt: true,
+  );
+  static SessionContinuationMode? _$sessionContinuationMode(
+    InteractionsAgentConfig v,
+  ) =>
+      v.sessionContinuationMode;
+  static const Field<InteractionsAgentConfig, SessionContinuationMode>
+      _f$sessionContinuationMode = Field(
+    'sessionContinuationMode',
+    _$sessionContinuationMode,
+    opt: true,
+  );
+  static String? _$saveDir(InteractionsAgentConfig v) => v.saveDir;
+  static const Field<InteractionsAgentConfig, String> _f$saveDir = Field(
+    'saveDir',
+    _$saveDir,
+    opt: true,
+  );
+  static String? _$appDataDir(InteractionsAgentConfig v) => v.appDataDir;
+  static const Field<InteractionsAgentConfig, String> _f$appDataDir = Field(
+    'appDataDir',
+    _$appDataDir,
+    opt: true,
+  );
+  static dynamic _$responseSchema(InteractionsAgentConfig v) =>
+      v.responseSchema;
+  static const Field<InteractionsAgentConfig, dynamic> _f$responseSchema =
+      Field('responseSchema', _$responseSchema, opt: true);
+  static List<String> _$skillsPaths(InteractionsAgentConfig v) => v.skillsPaths;
+  static const Field<InteractionsAgentConfig, List<String>> _f$skillsPaths =
+      Field('skillsPaths', _$skillsPaths, opt: true);
+  static List<InlineSkill> _$inlineSkills(InteractionsAgentConfig v) =>
+      v.inlineSkills;
+  static const Field<InteractionsAgentConfig, List<InlineSkill>>
+      _f$inlineSkills = Field(
+    'inlineSkills',
+    _$inlineSkills,
+    opt: true,
+    def: const [],
+  );
+  static DebugConfig? _$debugConfig(InteractionsAgentConfig v) => v.debugConfig;
+  static const Field<InteractionsAgentConfig, DebugConfig> _f$debugConfig =
+      Field('debugConfig', _$debugConfig, opt: true);
+  static RetryConfig? _$retryConfig(InteractionsAgentConfig v) => v.retryConfig;
+  static const Field<InteractionsAgentConfig, RetryConfig> _f$retryConfig =
+      Field('retryConfig', _$retryConfig, opt: true);
+  static BudgetConfig? _$budgetConfig(InteractionsAgentConfig v) =>
+      v.budgetConfig;
+  static const Field<InteractionsAgentConfig, BudgetConfig> _f$budgetConfig =
+      Field('budgetConfig', _$budgetConfig, opt: true);
+  static CompactionConfig? _$compactionConfig(InteractionsAgentConfig v) =>
+      v.compactionConfig;
+  static const Field<InteractionsAgentConfig, CompactionConfig>
+      _f$compactionConfig = Field(
+    'compactionConfig',
+    _$compactionConfig,
+    opt: true,
+  );
+  static dynamic _$model(InteractionsAgentConfig v) => v.model;
+  static const Field<InteractionsAgentConfig, dynamic> _f$model = Field(
+    'model',
+    _$model,
+    opt: true,
+  );
+  static List<ModelTarget>? _$models(InteractionsAgentConfig v) => v.models;
+  static const Field<InteractionsAgentConfig, List<ModelTarget>> _f$models =
+      Field('models', _$models, opt: true);
+  static String? _$apiKey(InteractionsAgentConfig v) => v.apiKey;
+  static const Field<InteractionsAgentConfig, String> _f$apiKey = Field(
+    'apiKey',
+    _$apiKey,
+    opt: true,
+  );
+  static bool _$vertex(InteractionsAgentConfig v) => v.vertex;
+  static const Field<InteractionsAgentConfig, bool> _f$vertex = Field(
+    'vertex',
+    _$vertex,
+    opt: true,
+  );
+  static String? _$project(InteractionsAgentConfig v) => v.project;
+  static const Field<InteractionsAgentConfig, String> _f$project = Field(
+    'project',
+    _$project,
+    opt: true,
+  );
+  static String? _$location(InteractionsAgentConfig v) => v.location;
+  static const Field<InteractionsAgentConfig, String> _f$location = Field(
+    'location',
+    _$location,
+    opt: true,
+  );
+  static String? _$binaryPath(InteractionsAgentConfig v) => v.binaryPath;
+  static const Field<InteractionsAgentConfig, String> _f$binaryPath = Field(
+    'binaryPath',
+    _$binaryPath,
+    opt: true,
+  );
+
+  @override
+  final MappableFields<InteractionsAgentConfig> fields = const {
+    #systemInstructions: _f$systemInstructions,
+    #capabilities: _f$capabilities,
+    #tools: _f$tools,
+    #policies: _f$policies,
+    #hooks: _f$hooks,
+    #triggers: _f$triggers,
+    #mcpServers: _f$mcpServers,
+    #subagents: _f$subagents,
+    #workspaces: _f$workspaces,
+    #conversationId: _f$conversationId,
+    #sessionContinuationMode: _f$sessionContinuationMode,
+    #saveDir: _f$saveDir,
+    #appDataDir: _f$appDataDir,
+    #responseSchema: _f$responseSchema,
+    #skillsPaths: _f$skillsPaths,
+    #inlineSkills: _f$inlineSkills,
+    #debugConfig: _f$debugConfig,
+    #retryConfig: _f$retryConfig,
+    #budgetConfig: _f$budgetConfig,
+    #compactionConfig: _f$compactionConfig,
+    #model: _f$model,
+    #models: _f$models,
+    #apiKey: _f$apiKey,
+    #vertex: _f$vertex,
+    #project: _f$project,
+    #location: _f$location,
+    #binaryPath: _f$binaryPath,
+  };
+
+  static InteractionsAgentConfig _instantiate(DecodingData data) {
+    return InteractionsAgentConfig(
+      systemInstructions: data.dec(_f$systemInstructions),
+      capabilities: data.dec(_f$capabilities),
+      tools: data.dec(_f$tools),
+      policies: data.dec(_f$policies),
+      hooks: data.dec(_f$hooks),
+      triggers: data.dec(_f$triggers),
+      mcpServers: data.dec(_f$mcpServers),
+      subagents: data.dec(_f$subagents),
+      workspaces: data.dec(_f$workspaces),
+      conversationId: data.dec(_f$conversationId),
+      sessionContinuationMode: data.dec(_f$sessionContinuationMode),
+      saveDir: data.dec(_f$saveDir),
+      appDataDir: data.dec(_f$appDataDir),
+      responseSchema: data.dec(_f$responseSchema),
+      skillsPaths: data.dec(_f$skillsPaths),
+      inlineSkills: data.dec(_f$inlineSkills),
+      debugConfig: data.dec(_f$debugConfig),
+      retryConfig: data.dec(_f$retryConfig),
+      budgetConfig: data.dec(_f$budgetConfig),
+      compactionConfig: data.dec(_f$compactionConfig),
+      model: data.dec(_f$model),
+      models: data.dec(_f$models),
+      apiKey: data.dec(_f$apiKey),
+      vertex: data.dec(_f$vertex),
+      project: data.dec(_f$project),
+      location: data.dec(_f$location),
+      binaryPath: data.dec(_f$binaryPath),
+    );
+  }
+
+  @override
+  final Function instantiate = _instantiate;
+
+  static InteractionsAgentConfig fromMap(Map<String, dynamic> map) {
+    return ensureInitialized().decodeMap<InteractionsAgentConfig>(map);
+  }
+
+  static InteractionsAgentConfig fromJson(String json) {
+    return ensureInitialized().decodeJson<InteractionsAgentConfig>(json);
+  }
+}
+
+/// @nodoc
+mixin InteractionsAgentConfigMappable {
+  String toJson() {
+    return InteractionsAgentConfigMapper.ensureInitialized()
+        .encodeJson<InteractionsAgentConfig>(this as InteractionsAgentConfig);
+  }
+
+  Map<String, dynamic> toMap() {
+    return InteractionsAgentConfigMapper.ensureInitialized()
+        .encodeMap<InteractionsAgentConfig>(this as InteractionsAgentConfig);
+  }
+
+  InteractionsAgentConfigCopyWith<InteractionsAgentConfig,
+          InteractionsAgentConfig, InteractionsAgentConfig>
+      get copyWith => _InteractionsAgentConfigCopyWithImpl<
+              InteractionsAgentConfig, InteractionsAgentConfig>(
+          this as InteractionsAgentConfig, $identity, $identity);
+  @override
+  String toString() {
+    return InteractionsAgentConfigMapper.ensureInitialized().stringifyValue(
+      this as InteractionsAgentConfig,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return InteractionsAgentConfigMapper.ensureInitialized().equalsValue(
+      this as InteractionsAgentConfig,
+      other,
+    );
+  }
+
+  @override
+  int get hashCode {
+    return InteractionsAgentConfigMapper.ensureInitialized().hashValue(
+      this as InteractionsAgentConfig,
+    );
+  }
+}
+
+/// @nodoc
+extension InteractionsAgentConfigValueCopy<$R, $Out>
+    on ObjectCopyWith<$R, InteractionsAgentConfig, $Out> {
+  InteractionsAgentConfigCopyWith<$R, InteractionsAgentConfig, $Out>
+      get $asInteractionsAgentConfig => $base.as(
+            (v, t, t2) =>
+                _InteractionsAgentConfigCopyWithImpl<$R, $Out>(v, t, t2),
+          );
+}
+
+/// @nodoc
+abstract class InteractionsAgentConfigCopyWith<
+    $R,
+    $In extends InteractionsAgentConfig,
+    $Out> implements LocalAgentConfigCopyWith<$R, $In, $Out> {
+  @override
+  CapabilitiesConfigCopyWith<$R, CapabilitiesConfig, CapabilitiesConfig>
+      get capabilities;
+  @override
+  ListCopyWith<$R, Tool, ObjectCopyWith<$R, Tool, Tool>> get tools;
+  @override
+  ListCopyWith<$R, dynamic, ObjectCopyWith<$R, dynamic, dynamic>?> get policies;
+  @override
+  ListCopyWith<$R, Hook, ObjectCopyWith<$R, Hook, Hook>> get hooks;
+  @override
+  ListCopyWith<
+      $R,
+      FutureOr<void> Function(TriggerContext),
+      ObjectCopyWith<$R, FutureOr<void> Function(TriggerContext),
+          FutureOr<void> Function(TriggerContext)>> get triggers;
+  @override
+  ListCopyWith<$R, McpServerConfig,
+          McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>>
+      get mcpServers;
+  @override
+  ListCopyWith<$R, SubagentConfig,
+      SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>> get subagents;
+  @override
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get workspaces;
+  @override
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get skillsPaths;
+  @override
+  ListCopyWith<$R, InlineSkill,
+      InlineSkillCopyWith<$R, InlineSkill, InlineSkill>> get inlineSkills;
+  @override
+  DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig;
+  @override
+  RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig;
+  @override
+  BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig;
+  @override
+  CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
+      get compactionConfig;
+  @override
+  ListCopyWith<$R, ModelTarget,
+      ModelTargetCopyWith<$R, ModelTarget, ModelTarget>>? get models;
+  @override
+  $R call({
+    dynamic systemInstructions,
+    CapabilitiesConfig? capabilities,
+    List<Tool>? tools,
+    List<dynamic>? policies,
+    List<Hook>? hooks,
+    List<FutureOr<void> Function(TriggerContext)>? triggers,
+    List<McpServerConfig>? mcpServers,
+    List<SubagentConfig>? subagents,
+    List<String>? workspaces,
+    String? conversationId,
+    SessionContinuationMode? sessionContinuationMode,
+    String? saveDir,
+    String? appDataDir,
+    dynamic responseSchema,
+    List<String>? skillsPaths,
+    List<InlineSkill>? inlineSkills,
+    DebugConfig? debugConfig,
+    RetryConfig? retryConfig,
+    BudgetConfig? budgetConfig,
+    CompactionConfig? compactionConfig,
+    dynamic model,
+    List<ModelTarget>? models,
+    String? apiKey,
+    bool? vertex,
+    String? project,
+    String? location,
+    String? binaryPath,
+  });
+  InteractionsAgentConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  );
+}
+
+/// @nodoc
+class _InteractionsAgentConfigCopyWithImpl<$R, $Out>
+    extends ClassCopyWithBase<$R, InteractionsAgentConfig, $Out>
+    implements
+        InteractionsAgentConfigCopyWith<$R, InteractionsAgentConfig, $Out> {
+  _InteractionsAgentConfigCopyWithImpl(super.value, super.then, super.then2);
+
+  @override
+  late final ClassMapperBase<InteractionsAgentConfig> $mapper =
+      InteractionsAgentConfigMapper.ensureInitialized();
+  @override
+  CapabilitiesConfigCopyWith<$R, CapabilitiesConfig, CapabilitiesConfig>
+      get capabilities => ($value.capabilities as CapabilitiesConfig)
+          .copyWith
+          .$chain((v) => call(capabilities: v));
+  @override
+  ListCopyWith<$R, Tool, ObjectCopyWith<$R, Tool, Tool>> get tools =>
+      ListCopyWith(
+        $value.tools,
+        (v, t) => ObjectCopyWith(v, $identity, t),
+        (v) => call(tools: v),
+      );
+  @override
+  ListCopyWith<$R, dynamic, ObjectCopyWith<$R, dynamic, dynamic>?>
+      get policies => ListCopyWith(
+            $value.policies,
+            (v, t) => ObjectCopyWith(v, $identity, t),
+            (v) => call(policies: v),
+          );
+  @override
+  ListCopyWith<$R, Hook, ObjectCopyWith<$R, Hook, Hook>> get hooks =>
+      ListCopyWith(
+        $value.hooks,
+        (v, t) => ObjectCopyWith(v, $identity, t),
+        (v) => call(hooks: v),
+      );
+  @override
+  ListCopyWith<
+      $R,
+      FutureOr<void> Function(TriggerContext),
+      ObjectCopyWith<$R, FutureOr<void> Function(TriggerContext),
+          FutureOr<void> Function(TriggerContext)>> get triggers =>
+      ListCopyWith(
+        $value.triggers,
+        (v, t) => ObjectCopyWith(v, $identity, t),
+        (v) => call(triggers: v),
+      );
+  @override
+  ListCopyWith<$R, McpServerConfig,
+          McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>>
+      get mcpServers => ListCopyWith(
+            $value.mcpServers,
+            (v, t) => v.copyWith.$chain(t),
+            (v) => call(mcpServers: v),
+          );
+  @override
+  ListCopyWith<$R, SubagentConfig,
+          SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>>
+      get subagents => ListCopyWith(
+            $value.subagents,
+            (v, t) => v.copyWith.$chain(t),
+            (v) => call(subagents: v),
+          );
+  @override
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get workspaces =>
+      ListCopyWith(
+        $value.workspaces,
+        (v, t) => ObjectCopyWith(v, $identity, t),
+        (v) => call(workspaces: v),
+      );
+  @override
+  ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>
+      get skillsPaths => ListCopyWith(
+            $value.skillsPaths,
+            (v, t) => ObjectCopyWith(v, $identity, t),
+            (v) => call(skillsPaths: v),
+          );
+  @override
+  ListCopyWith<$R, InlineSkill,
+          InlineSkillCopyWith<$R, InlineSkill, InlineSkill>>
+      get inlineSkills => ListCopyWith(
+            $value.inlineSkills,
+            (v, t) => v.copyWith.$chain(t),
+            (v) => call(inlineSkills: v),
+          );
+  @override
+  DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig =>
+      $value.debugConfig?.copyWith.$chain((v) => call(debugConfig: v));
+  @override
+  RetryConfigCopyWith<$R, RetryConfig, RetryConfig>? get retryConfig =>
+      $value.retryConfig?.copyWith.$chain((v) => call(retryConfig: v));
+  @override
+  BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig =>
+      $value.budgetConfig?.copyWith.$chain((v) => call(budgetConfig: v));
+  @override
+  CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
+      get compactionConfig => $value.compactionConfig?.copyWith.$chain(
+            (v) => call(compactionConfig: v),
+          );
+  @override
+  ListCopyWith<$R, ModelTarget,
+          ModelTargetCopyWith<$R, ModelTarget, ModelTarget>>?
+      get models => $value.models != null
+          ? ListCopyWith(
+              $value.models!,
+              (v, t) => v.copyWith.$chain(t),
+              (v) => call(models: v),
+            )
+          : null;
+  @override
+  $R call({
+    Object? systemInstructions = $none,
+    Object? capabilities = $none,
+    Object? tools = $none,
+    Object? policies = $none,
+    Object? hooks = $none,
+    Object? triggers = $none,
+    Object? mcpServers = $none,
+    Object? subagents = $none,
+    Object? workspaces = $none,
+    Object? conversationId = $none,
+    Object? sessionContinuationMode = $none,
+    Object? saveDir = $none,
+    Object? appDataDir = $none,
+    Object? responseSchema = $none,
+    Object? skillsPaths = $none,
+    List<InlineSkill>? inlineSkills,
+    Object? debugConfig = $none,
+    Object? retryConfig = $none,
+    Object? budgetConfig = $none,
+    Object? compactionConfig = $none,
+    Object? model = $none,
+    Object? models = $none,
+    Object? apiKey = $none,
+    Object? vertex = $none,
+    Object? project = $none,
+    Object? location = $none,
+    Object? binaryPath = $none,
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (systemInstructions != $none)
+            #systemInstructions: systemInstructions,
+          if (capabilities != $none) #capabilities: capabilities,
+          if (tools != $none) #tools: tools,
+          if (policies != $none) #policies: policies,
+          if (hooks != $none) #hooks: hooks,
+          if (triggers != $none) #triggers: triggers,
+          if (mcpServers != $none) #mcpServers: mcpServers,
+          if (subagents != $none) #subagents: subagents,
+          if (workspaces != $none) #workspaces: workspaces,
+          if (conversationId != $none) #conversationId: conversationId,
+          if (sessionContinuationMode != $none)
+            #sessionContinuationMode: sessionContinuationMode,
+          if (saveDir != $none) #saveDir: saveDir,
+          if (appDataDir != $none) #appDataDir: appDataDir,
+          if (responseSchema != $none) #responseSchema: responseSchema,
+          if (skillsPaths != $none) #skillsPaths: skillsPaths,
+          if (inlineSkills != null) #inlineSkills: inlineSkills,
+          if (debugConfig != $none) #debugConfig: debugConfig,
+          if (retryConfig != $none) #retryConfig: retryConfig,
+          if (budgetConfig != $none) #budgetConfig: budgetConfig,
+          if (compactionConfig != $none) #compactionConfig: compactionConfig,
+          if (model != $none) #model: model,
+          if (models != $none) #models: models,
+          if (apiKey != $none) #apiKey: apiKey,
+          if (vertex != $none) #vertex: vertex,
+          if (project != $none) #project: project,
+          if (location != $none) #location: location,
+          if (binaryPath != $none) #binaryPath: binaryPath,
+        }),
+      );
+  @override
+  InteractionsAgentConfig $make(CopyWithData data) => InteractionsAgentConfig(
+        systemInstructions: data.get(
+          #systemInstructions,
+          or: $value.systemInstructions,
+        ),
+        capabilities: data.get(#capabilities, or: $value.capabilities),
+        tools: data.get(#tools, or: $value.tools),
+        policies: data.get(#policies, or: $value.policies),
+        hooks: data.get(#hooks, or: $value.hooks),
+        triggers: data.get(#triggers, or: $value.triggers),
+        mcpServers: data.get(#mcpServers, or: $value.mcpServers),
+        subagents: data.get(#subagents, or: $value.subagents),
+        workspaces: data.get(#workspaces, or: $value.workspaces),
+        conversationId: data.get(#conversationId, or: $value.conversationId),
+        sessionContinuationMode: data.get(
+          #sessionContinuationMode,
+          or: $value.sessionContinuationMode,
+        ),
+        saveDir: data.get(#saveDir, or: $value.saveDir),
+        appDataDir: data.get(#appDataDir, or: $value.appDataDir),
+        responseSchema: data.get(#responseSchema, or: $value.responseSchema),
+        skillsPaths: data.get(#skillsPaths, or: $value.skillsPaths),
+        inlineSkills: data.get(#inlineSkills, or: $value.inlineSkills),
+        debugConfig: data.get(#debugConfig, or: $value.debugConfig),
+        retryConfig: data.get(#retryConfig, or: $value.retryConfig),
+        budgetConfig: data.get(#budgetConfig, or: $value.budgetConfig),
+        compactionConfig:
+            data.get(#compactionConfig, or: $value.compactionConfig),
+        model: data.get(#model, or: $value.model),
+        models: data.get(#models, or: $value.models),
+        apiKey: data.get(#apiKey, or: $value.apiKey),
+        vertex: data.get(#vertex, or: $value.vertex),
+        project: data.get(#project, or: $value.project),
+        location: data.get(#location, or: $value.location),
+        binaryPath: data.get(#binaryPath, or: $value.binaryPath),
+      );
+
+  @override
+  InteractionsAgentConfigCopyWith<$R2, InteractionsAgentConfig, $Out2>
+      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+          _InteractionsAgentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -951,6 +1543,7 @@ class LocalOpenAIAgentConfigMapper
       McpServerConfigMapper.ensureInitialized();
       SubagentConfigMapper.ensureInitialized();
       SessionContinuationModeMapper.ensureInitialized();
+      InlineSkillMapper.ensureInitialized();
       DebugConfigMapper.ensureInitialized();
       RetryConfigMapper.ensureInitialized();
       BudgetConfigMapper.ensureInitialized();
@@ -981,7 +1574,7 @@ class LocalOpenAIAgentConfigMapper
   static CapabilitiesConfig _$capabilities(LocalOpenAIAgentConfig v) =>
       v.capabilities;
   static const Field<LocalOpenAIAgentConfig, CapabilitiesConfig>
-  _f$capabilities = Field('capabilities', _$capabilities, opt: true);
+      _f$capabilities = Field('capabilities', _$capabilities, opt: true);
   static List<Tool> _$tools(LocalOpenAIAgentConfig v) => v.tools;
   static const Field<LocalOpenAIAgentConfig, List<Tool>> _f$tools = Field(
     'tools',
@@ -1004,20 +1597,19 @@ class LocalOpenAIAgentConfigMapper
   );
   static List<FutureOr<void> Function(TriggerContext)> _$triggers(
     LocalOpenAIAgentConfig v,
-  ) => v.triggers;
-  static const Field<
-    LocalOpenAIAgentConfig,
-    List<FutureOr<void> Function(TriggerContext)>
-  >
-  _f$triggers = Field('triggers', _$triggers, opt: true);
+  ) =>
+      v.triggers;
+  static const Field<LocalOpenAIAgentConfig,
+          List<FutureOr<void> Function(TriggerContext)>> _f$triggers =
+      Field('triggers', _$triggers, opt: true);
   static List<McpServerConfig> _$mcpServers(LocalOpenAIAgentConfig v) =>
       v.mcpServers;
   static const Field<LocalOpenAIAgentConfig, List<McpServerConfig>>
-  _f$mcpServers = Field('mcpServers', _$mcpServers, opt: true);
+      _f$mcpServers = Field('mcpServers', _$mcpServers, opt: true);
   static List<SubagentConfig> _$subagents(LocalOpenAIAgentConfig v) =>
       v.subagents;
   static const Field<LocalOpenAIAgentConfig, List<SubagentConfig>>
-  _f$subagents = Field('subagents', _$subagents, opt: true);
+      _f$subagents = Field('subagents', _$subagents, opt: true);
   static List<String> _$workspaces(LocalOpenAIAgentConfig v) => v.workspaces;
   static const Field<LocalOpenAIAgentConfig, List<String>> _f$workspaces =
       Field('workspaces', _$workspaces, opt: true);
@@ -1029,9 +1621,10 @@ class LocalOpenAIAgentConfigMapper
   );
   static SessionContinuationMode? _$sessionContinuationMode(
     LocalOpenAIAgentConfig v,
-  ) => v.sessionContinuationMode;
+  ) =>
+      v.sessionContinuationMode;
   static const Field<LocalOpenAIAgentConfig, SessionContinuationMode>
-  _f$sessionContinuationMode = Field(
+      _f$sessionContinuationMode = Field(
     'sessionContinuationMode',
     _$sessionContinuationMode,
     opt: true,
@@ -1057,6 +1650,15 @@ class LocalOpenAIAgentConfigMapper
   static List<String> _$skillsPaths(LocalOpenAIAgentConfig v) => v.skillsPaths;
   static const Field<LocalOpenAIAgentConfig, List<String>> _f$skillsPaths =
       Field('skillsPaths', _$skillsPaths, opt: true);
+  static List<InlineSkill> _$inlineSkills(LocalOpenAIAgentConfig v) =>
+      v.inlineSkills;
+  static const Field<LocalOpenAIAgentConfig, List<InlineSkill>>
+      _f$inlineSkills = Field(
+    'inlineSkills',
+    _$inlineSkills,
+    opt: true,
+    def: const [],
+  );
   static DebugConfig? _$debugConfig(LocalOpenAIAgentConfig v) => v.debugConfig;
   static const Field<LocalOpenAIAgentConfig, DebugConfig> _f$debugConfig =
       Field('debugConfig', _$debugConfig, opt: true);
@@ -1070,7 +1672,7 @@ class LocalOpenAIAgentConfigMapper
   static CompactionConfig? _$compactionConfig(LocalOpenAIAgentConfig v) =>
       v.compactionConfig;
   static const Field<LocalOpenAIAgentConfig, CompactionConfig>
-  _f$compactionConfig = Field(
+      _f$compactionConfig = Field(
     'compactionConfig',
     _$compactionConfig,
     opt: true,
@@ -1095,6 +1697,7 @@ class LocalOpenAIAgentConfigMapper
     #appDataDir: _f$appDataDir,
     #responseSchema: _f$responseSchema,
     #skillsPaths: _f$skillsPaths,
+    #inlineSkills: _f$inlineSkills,
     #debugConfig: _f$debugConfig,
     #retryConfig: _f$retryConfig,
     #budgetConfig: _f$budgetConfig,
@@ -1120,6 +1723,7 @@ class LocalOpenAIAgentConfigMapper
       appDataDir: data.dec(_f$appDataDir),
       responseSchema: data.dec(_f$responseSchema),
       skillsPaths: data.dec(_f$skillsPaths),
+      inlineSkills: data.dec(_f$inlineSkills),
       debugConfig: data.dec(_f$debugConfig),
       retryConfig: data.dec(_f$retryConfig),
       budgetConfig: data.dec(_f$budgetConfig),
@@ -1151,16 +1755,11 @@ mixin LocalOpenAIAgentConfigMappable {
         .encodeMap<LocalOpenAIAgentConfig>(this as LocalOpenAIAgentConfig);
   }
 
-  LocalOpenAIAgentConfigCopyWith<
-    LocalOpenAIAgentConfig,
-    LocalOpenAIAgentConfig,
-    LocalOpenAIAgentConfig
-  >
-  get copyWith =>
-      _LocalOpenAIAgentConfigCopyWithImpl<
-        LocalOpenAIAgentConfig,
-        LocalOpenAIAgentConfig
-      >(this as LocalOpenAIAgentConfig, $identity, $identity);
+  LocalOpenAIAgentConfigCopyWith<LocalOpenAIAgentConfig, LocalOpenAIAgentConfig,
+          LocalOpenAIAgentConfig>
+      get copyWith => _LocalOpenAIAgentConfigCopyWithImpl<
+              LocalOpenAIAgentConfig, LocalOpenAIAgentConfig>(
+          this as LocalOpenAIAgentConfig, $identity, $identity);
   @override
   String toString() {
     return LocalOpenAIAgentConfigMapper.ensureInitialized().stringifyValue(
@@ -1188,21 +1787,20 @@ mixin LocalOpenAIAgentConfigMappable {
 extension LocalOpenAIAgentConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, LocalOpenAIAgentConfig, $Out> {
   LocalOpenAIAgentConfigCopyWith<$R, LocalOpenAIAgentConfig, $Out>
-  get $asLocalOpenAIAgentConfig => $base.as(
-    (v, t, t2) => _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>(v, t, t2),
-  );
+      get $asLocalOpenAIAgentConfig => $base.as(
+            (v, t, t2) =>
+                _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>(v, t, t2),
+          );
 }
 
 /// @nodoc
 abstract class LocalOpenAIAgentConfigCopyWith<
-  $R,
-  $In extends LocalOpenAIAgentConfig,
-  $Out
->
-    implements BaseLocalAgentConfigCopyWith<$R, $In, $Out> {
+    $R,
+    $In extends LocalOpenAIAgentConfig,
+    $Out> implements BaseLocalAgentConfigCopyWith<$R, $In, $Out> {
   @override
   CapabilitiesConfigCopyWith<$R, CapabilitiesConfig, CapabilitiesConfig>
-  get capabilities;
+      get capabilities;
   @override
   ListCopyWith<$R, Tool, ObjectCopyWith<$R, Tool, Tool>> get tools;
   @override
@@ -1211,33 +1809,24 @@ abstract class LocalOpenAIAgentConfigCopyWith<
   ListCopyWith<$R, Hook, ObjectCopyWith<$R, Hook, Hook>> get hooks;
   @override
   ListCopyWith<
-    $R,
-    FutureOr<void> Function(TriggerContext),
-    ObjectCopyWith<
       $R,
       FutureOr<void> Function(TriggerContext),
-      FutureOr<void> Function(TriggerContext)
-    >
-  >
-  get triggers;
+      ObjectCopyWith<$R, FutureOr<void> Function(TriggerContext),
+          FutureOr<void> Function(TriggerContext)>> get triggers;
   @override
-  ListCopyWith<
-    $R,
-    McpServerConfig,
-    McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>
-  >
-  get mcpServers;
+  ListCopyWith<$R, McpServerConfig,
+          McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>>
+      get mcpServers;
   @override
-  ListCopyWith<
-    $R,
-    SubagentConfig,
-    SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>
-  >
-  get subagents;
+  ListCopyWith<$R, SubagentConfig,
+      SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>> get subagents;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get workspaces;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get skillsPaths;
+  @override
+  ListCopyWith<$R, InlineSkill,
+      InlineSkillCopyWith<$R, InlineSkill, InlineSkill>> get inlineSkills;
   @override
   DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig;
   @override
@@ -1246,7 +1835,7 @@ abstract class LocalOpenAIAgentConfigCopyWith<
   BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig;
   @override
   CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
-  get compactionConfig;
+      get compactionConfig;
   @override
   $R call({
     dynamic model,
@@ -1266,6 +1855,7 @@ abstract class LocalOpenAIAgentConfigCopyWith<
     String? appDataDir,
     dynamic responseSchema,
     List<String>? skillsPaths,
+    List<InlineSkill>? inlineSkills,
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
     BudgetConfig? budgetConfig,
@@ -1288,8 +1878,9 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
       LocalOpenAIAgentConfigMapper.ensureInitialized();
   @override
   CapabilitiesConfigCopyWith<$R, CapabilitiesConfig, CapabilitiesConfig>
-  get capabilities => ($value.capabilities as CapabilitiesConfig).copyWith
-      .$chain((v) => call(capabilities: v));
+      get capabilities => ($value.capabilities as CapabilitiesConfig)
+          .copyWith
+          .$chain((v) => call(capabilities: v));
   @override
   ListCopyWith<$R, Tool, ObjectCopyWith<$R, Tool, Tool>> get tools =>
       ListCopyWith(
@@ -1299,11 +1890,11 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
       );
   @override
   ListCopyWith<$R, dynamic, ObjectCopyWith<$R, dynamic, dynamic>?>
-  get policies => ListCopyWith(
-    $value.policies,
-    (v, t) => ObjectCopyWith(v, $identity, t),
-    (v) => call(policies: v),
-  );
+      get policies => ListCopyWith(
+            $value.policies,
+            (v, t) => ObjectCopyWith(v, $identity, t),
+            (v) => call(policies: v),
+          );
   @override
   ListCopyWith<$R, Hook, ObjectCopyWith<$R, Hook, Hook>> get hooks =>
       ListCopyWith(
@@ -1313,41 +1904,31 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
       );
   @override
   ListCopyWith<
-    $R,
-    FutureOr<void> Function(TriggerContext),
-    ObjectCopyWith<
       $R,
       FutureOr<void> Function(TriggerContext),
-      FutureOr<void> Function(TriggerContext)
-    >
-  >
-  get triggers => ListCopyWith(
-    $value.triggers,
-    (v, t) => ObjectCopyWith(v, $identity, t),
-    (v) => call(triggers: v),
-  );
+      ObjectCopyWith<$R, FutureOr<void> Function(TriggerContext),
+          FutureOr<void> Function(TriggerContext)>> get triggers =>
+      ListCopyWith(
+        $value.triggers,
+        (v, t) => ObjectCopyWith(v, $identity, t),
+        (v) => call(triggers: v),
+      );
   @override
-  ListCopyWith<
-    $R,
-    McpServerConfig,
-    McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>
-  >
-  get mcpServers => ListCopyWith(
-    $value.mcpServers,
-    (v, t) => v.copyWith.$chain(t),
-    (v) => call(mcpServers: v),
-  );
+  ListCopyWith<$R, McpServerConfig,
+          McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>>
+      get mcpServers => ListCopyWith(
+            $value.mcpServers,
+            (v, t) => v.copyWith.$chain(t),
+            (v) => call(mcpServers: v),
+          );
   @override
-  ListCopyWith<
-    $R,
-    SubagentConfig,
-    SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>
-  >
-  get subagents => ListCopyWith(
-    $value.subagents,
-    (v, t) => v.copyWith.$chain(t),
-    (v) => call(subagents: v),
-  );
+  ListCopyWith<$R, SubagentConfig,
+          SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>>
+      get subagents => ListCopyWith(
+            $value.subagents,
+            (v, t) => v.copyWith.$chain(t),
+            (v) => call(subagents: v),
+          );
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get workspaces =>
       ListCopyWith(
@@ -1357,11 +1938,19 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
       );
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>
-  get skillsPaths => ListCopyWith(
-    $value.skillsPaths,
-    (v, t) => ObjectCopyWith(v, $identity, t),
-    (v) => call(skillsPaths: v),
-  );
+      get skillsPaths => ListCopyWith(
+            $value.skillsPaths,
+            (v, t) => ObjectCopyWith(v, $identity, t),
+            (v) => call(skillsPaths: v),
+          );
+  @override
+  ListCopyWith<$R, InlineSkill,
+          InlineSkillCopyWith<$R, InlineSkill, InlineSkill>>
+      get inlineSkills => ListCopyWith(
+            $value.inlineSkills,
+            (v, t) => v.copyWith.$chain(t),
+            (v) => call(inlineSkills: v),
+          );
   @override
   DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig =>
       $value.debugConfig?.copyWith.$chain((v) => call(debugConfig: v));
@@ -1373,9 +1962,9 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
       $value.budgetConfig?.copyWith.$chain((v) => call(budgetConfig: v));
   @override
   CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
-  get compactionConfig => $value.compactionConfig?.copyWith.$chain(
-    (v) => call(compactionConfig: v),
-  );
+      get compactionConfig => $value.compactionConfig?.copyWith.$chain(
+            (v) => call(compactionConfig: v),
+          );
   @override
   $R call({
     Object? model = $none,
@@ -1395,71 +1984,77 @@ class _LocalOpenAIAgentConfigCopyWithImpl<$R, $Out>
     Object? appDataDir = $none,
     Object? responseSchema = $none,
     Object? skillsPaths = $none,
+    List<InlineSkill>? inlineSkills,
     Object? debugConfig = $none,
     Object? retryConfig = $none,
     Object? budgetConfig = $none,
     Object? compactionConfig = $none,
-  }) => $apply(
-    FieldCopyWithData({
-      if (model != $none) #model: model,
-      if (baseUrl != $none) #baseUrl: baseUrl,
-      if (systemInstructions != $none) #systemInstructions: systemInstructions,
-      if (capabilities != $none) #capabilities: capabilities,
-      if (tools != $none) #tools: tools,
-      if (policies != $none) #policies: policies,
-      if (hooks != $none) #hooks: hooks,
-      if (triggers != $none) #triggers: triggers,
-      if (mcpServers != $none) #mcpServers: mcpServers,
-      if (subagents != $none) #subagents: subagents,
-      if (workspaces != $none) #workspaces: workspaces,
-      if (conversationId != $none) #conversationId: conversationId,
-      if (sessionContinuationMode != $none)
-        #sessionContinuationMode: sessionContinuationMode,
-      if (saveDir != $none) #saveDir: saveDir,
-      if (appDataDir != $none) #appDataDir: appDataDir,
-      if (responseSchema != $none) #responseSchema: responseSchema,
-      if (skillsPaths != $none) #skillsPaths: skillsPaths,
-      if (debugConfig != $none) #debugConfig: debugConfig,
-      if (retryConfig != $none) #retryConfig: retryConfig,
-      if (budgetConfig != $none) #budgetConfig: budgetConfig,
-      if (compactionConfig != $none) #compactionConfig: compactionConfig,
-    }),
-  );
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (model != $none) #model: model,
+          if (baseUrl != $none) #baseUrl: baseUrl,
+          if (systemInstructions != $none)
+            #systemInstructions: systemInstructions,
+          if (capabilities != $none) #capabilities: capabilities,
+          if (tools != $none) #tools: tools,
+          if (policies != $none) #policies: policies,
+          if (hooks != $none) #hooks: hooks,
+          if (triggers != $none) #triggers: triggers,
+          if (mcpServers != $none) #mcpServers: mcpServers,
+          if (subagents != $none) #subagents: subagents,
+          if (workspaces != $none) #workspaces: workspaces,
+          if (conversationId != $none) #conversationId: conversationId,
+          if (sessionContinuationMode != $none)
+            #sessionContinuationMode: sessionContinuationMode,
+          if (saveDir != $none) #saveDir: saveDir,
+          if (appDataDir != $none) #appDataDir: appDataDir,
+          if (responseSchema != $none) #responseSchema: responseSchema,
+          if (skillsPaths != $none) #skillsPaths: skillsPaths,
+          if (inlineSkills != null) #inlineSkills: inlineSkills,
+          if (debugConfig != $none) #debugConfig: debugConfig,
+          if (retryConfig != $none) #retryConfig: retryConfig,
+          if (budgetConfig != $none) #budgetConfig: budgetConfig,
+          if (compactionConfig != $none) #compactionConfig: compactionConfig,
+        }),
+      );
   @override
   LocalOpenAIAgentConfig $make(CopyWithData data) => LocalOpenAIAgentConfig(
-    model: data.get(#model, or: $value.model),
-    baseUrl: data.get(#baseUrl, or: $value.baseUrl),
-    systemInstructions: data.get(
-      #systemInstructions,
-      or: $value.systemInstructions,
-    ),
-    capabilities: data.get(#capabilities, or: $value.capabilities),
-    tools: data.get(#tools, or: $value.tools),
-    policies: data.get(#policies, or: $value.policies),
-    hooks: data.get(#hooks, or: $value.hooks),
-    triggers: data.get(#triggers, or: $value.triggers),
-    mcpServers: data.get(#mcpServers, or: $value.mcpServers),
-    subagents: data.get(#subagents, or: $value.subagents),
-    workspaces: data.get(#workspaces, or: $value.workspaces),
-    conversationId: data.get(#conversationId, or: $value.conversationId),
-    sessionContinuationMode: data.get(
-      #sessionContinuationMode,
-      or: $value.sessionContinuationMode,
-    ),
-    saveDir: data.get(#saveDir, or: $value.saveDir),
-    appDataDir: data.get(#appDataDir, or: $value.appDataDir),
-    responseSchema: data.get(#responseSchema, or: $value.responseSchema),
-    skillsPaths: data.get(#skillsPaths, or: $value.skillsPaths),
-    debugConfig: data.get(#debugConfig, or: $value.debugConfig),
-    retryConfig: data.get(#retryConfig, or: $value.retryConfig),
-    budgetConfig: data.get(#budgetConfig, or: $value.budgetConfig),
-    compactionConfig: data.get(#compactionConfig, or: $value.compactionConfig),
-  );
+        model: data.get(#model, or: $value.model),
+        baseUrl: data.get(#baseUrl, or: $value.baseUrl),
+        systemInstructions: data.get(
+          #systemInstructions,
+          or: $value.systemInstructions,
+        ),
+        capabilities: data.get(#capabilities, or: $value.capabilities),
+        tools: data.get(#tools, or: $value.tools),
+        policies: data.get(#policies, or: $value.policies),
+        hooks: data.get(#hooks, or: $value.hooks),
+        triggers: data.get(#triggers, or: $value.triggers),
+        mcpServers: data.get(#mcpServers, or: $value.mcpServers),
+        subagents: data.get(#subagents, or: $value.subagents),
+        workspaces: data.get(#workspaces, or: $value.workspaces),
+        conversationId: data.get(#conversationId, or: $value.conversationId),
+        sessionContinuationMode: data.get(
+          #sessionContinuationMode,
+          or: $value.sessionContinuationMode,
+        ),
+        saveDir: data.get(#saveDir, or: $value.saveDir),
+        appDataDir: data.get(#appDataDir, or: $value.appDataDir),
+        responseSchema: data.get(#responseSchema, or: $value.responseSchema),
+        skillsPaths: data.get(#skillsPaths, or: $value.skillsPaths),
+        inlineSkills: data.get(#inlineSkills, or: $value.inlineSkills),
+        debugConfig: data.get(#debugConfig, or: $value.debugConfig),
+        retryConfig: data.get(#retryConfig, or: $value.retryConfig),
+        budgetConfig: data.get(#budgetConfig, or: $value.budgetConfig),
+        compactionConfig:
+            data.get(#compactionConfig, or: $value.compactionConfig),
+      );
 
   @override
   LocalOpenAIAgentConfigCopyWith<$R2, LocalOpenAIAgentConfig, $Out2>
-  $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
-      _LocalOpenAIAgentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+      $chain<$R2, $Out2>(Then<$Out2, $R2> t) =>
+          _LocalOpenAIAgentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
 
 /// @nodoc
@@ -1476,6 +2071,7 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
       McpServerConfigMapper.ensureInitialized();
       SubagentConfigMapper.ensureInitialized();
       SessionContinuationModeMapper.ensureInitialized();
+      InlineSkillMapper.ensureInitialized();
       DebugConfigMapper.ensureInitialized();
       RetryConfigMapper.ensureInitialized();
       BudgetConfigMapper.ensureInitialized();
@@ -1503,11 +2099,11 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
       v.enableSpeculativeDecoding;
   static const Field<LiteRTAgentConfig, bool> _f$enableSpeculativeDecoding =
       Field(
-        'enableSpeculativeDecoding',
-        _$enableSpeculativeDecoding,
-        opt: true,
-        def: false,
-      );
+    'enableSpeculativeDecoding',
+    _$enableSpeculativeDecoding,
+    opt: true,
+    def: false,
+  );
   static String? _$cacheDir(LiteRTAgentConfig v) => v.cacheDir;
   static const Field<LiteRTAgentConfig, String> _f$cacheDir = Field(
     'cacheDir',
@@ -1579,12 +2175,11 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
   );
   static List<FutureOr<void> Function(TriggerContext)> _$triggers(
     LiteRTAgentConfig v,
-  ) => v.triggers;
-  static const Field<
-    LiteRTAgentConfig,
-    List<FutureOr<void> Function(TriggerContext)>
-  >
-  _f$triggers = Field('triggers', _$triggers, opt: true);
+  ) =>
+      v.triggers;
+  static const Field<LiteRTAgentConfig,
+          List<FutureOr<void> Function(TriggerContext)>> _f$triggers =
+      Field('triggers', _$triggers, opt: true);
   static List<McpServerConfig> _$mcpServers(LiteRTAgentConfig v) =>
       v.mcpServers;
   static const Field<LiteRTAgentConfig, List<McpServerConfig>> _f$mcpServers =
@@ -1606,9 +2201,10 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
   );
   static SessionContinuationMode? _$sessionContinuationMode(
     LiteRTAgentConfig v,
-  ) => v.sessionContinuationMode;
+  ) =>
+      v.sessionContinuationMode;
   static const Field<LiteRTAgentConfig, SessionContinuationMode>
-  _f$sessionContinuationMode = Field(
+      _f$sessionContinuationMode = Field(
     'sessionContinuationMode',
     _$sessionContinuationMode,
     opt: true,
@@ -1637,6 +2233,10 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
     _$skillsPaths,
     opt: true,
   );
+  static List<InlineSkill> _$inlineSkills(LiteRTAgentConfig v) =>
+      v.inlineSkills;
+  static const Field<LiteRTAgentConfig, List<InlineSkill>> _f$inlineSkills =
+      Field('inlineSkills', _$inlineSkills, opt: true, def: const []);
   static DebugConfig? _$debugConfig(LiteRTAgentConfig v) => v.debugConfig;
   static const Field<LiteRTAgentConfig, DebugConfig> _f$debugConfig = Field(
     'debugConfig',
@@ -1686,6 +2286,7 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
     #appDataDir: _f$appDataDir,
     #responseSchema: _f$responseSchema,
     #skillsPaths: _f$skillsPaths,
+    #inlineSkills: _f$inlineSkills,
     #debugConfig: _f$debugConfig,
     #retryConfig: _f$retryConfig,
     #budgetConfig: _f$budgetConfig,
@@ -1718,6 +2319,7 @@ class LiteRTAgentConfigMapper extends ClassMapperBase<LiteRTAgentConfig> {
       appDataDir: data.dec(_f$appDataDir),
       responseSchema: data.dec(_f$responseSchema),
       skillsPaths: data.dec(_f$skillsPaths),
+      inlineSkills: data.dec(_f$inlineSkills),
       debugConfig: data.dec(_f$debugConfig),
       retryConfig: data.dec(_f$retryConfig),
       budgetConfig: data.dec(_f$budgetConfig),
@@ -1749,17 +2351,14 @@ mixin LiteRTAgentConfigMappable {
         .encodeMap<LiteRTAgentConfig>(this as LiteRTAgentConfig);
   }
 
-  LiteRTAgentConfigCopyWith<
-    LiteRTAgentConfig,
-    LiteRTAgentConfig,
-    LiteRTAgentConfig
-  >
-  get copyWith =>
-      _LiteRTAgentConfigCopyWithImpl<LiteRTAgentConfig, LiteRTAgentConfig>(
-        this as LiteRTAgentConfig,
-        $identity,
-        $identity,
-      );
+  LiteRTAgentConfigCopyWith<LiteRTAgentConfig, LiteRTAgentConfig,
+          LiteRTAgentConfig>
+      get copyWith =>
+          _LiteRTAgentConfigCopyWithImpl<LiteRTAgentConfig, LiteRTAgentConfig>(
+            this as LiteRTAgentConfig,
+            $identity,
+            $identity,
+          );
   @override
   String toString() {
     return LiteRTAgentConfigMapper.ensureInitialized().stringifyValue(
@@ -1787,21 +2386,17 @@ mixin LiteRTAgentConfigMappable {
 extension LiteRTAgentConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, LiteRTAgentConfig, $Out> {
   LiteRTAgentConfigCopyWith<$R, LiteRTAgentConfig, $Out>
-  get $asLiteRTAgentConfig => $base.as(
-    (v, t, t2) => _LiteRTAgentConfigCopyWithImpl<$R, $Out>(v, t, t2),
-  );
+      get $asLiteRTAgentConfig => $base.as(
+            (v, t, t2) => _LiteRTAgentConfigCopyWithImpl<$R, $Out>(v, t, t2),
+          );
 }
 
 /// @nodoc
-abstract class LiteRTAgentConfigCopyWith<
-  $R,
-  $In extends LiteRTAgentConfig,
-  $Out
->
-    implements BaseLocalAgentConfigCopyWith<$R, $In, $Out> {
+abstract class LiteRTAgentConfigCopyWith<$R, $In extends LiteRTAgentConfig,
+    $Out> implements BaseLocalAgentConfigCopyWith<$R, $In, $Out> {
   @override
   CapabilitiesConfigCopyWith<$R, CapabilitiesConfig, CapabilitiesConfig>
-  get capabilities;
+      get capabilities;
   @override
   ListCopyWith<$R, Tool, ObjectCopyWith<$R, Tool, Tool>> get tools;
   @override
@@ -1810,33 +2405,24 @@ abstract class LiteRTAgentConfigCopyWith<
   ListCopyWith<$R, Hook, ObjectCopyWith<$R, Hook, Hook>> get hooks;
   @override
   ListCopyWith<
-    $R,
-    FutureOr<void> Function(TriggerContext),
-    ObjectCopyWith<
       $R,
       FutureOr<void> Function(TriggerContext),
-      FutureOr<void> Function(TriggerContext)
-    >
-  >
-  get triggers;
+      ObjectCopyWith<$R, FutureOr<void> Function(TriggerContext),
+          FutureOr<void> Function(TriggerContext)>> get triggers;
   @override
-  ListCopyWith<
-    $R,
-    McpServerConfig,
-    McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>
-  >
-  get mcpServers;
+  ListCopyWith<$R, McpServerConfig,
+          McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>>
+      get mcpServers;
   @override
-  ListCopyWith<
-    $R,
-    SubagentConfig,
-    SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>
-  >
-  get subagents;
+  ListCopyWith<$R, SubagentConfig,
+      SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>> get subagents;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get workspaces;
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get skillsPaths;
+  @override
+  ListCopyWith<$R, InlineSkill,
+      InlineSkillCopyWith<$R, InlineSkill, InlineSkill>> get inlineSkills;
   @override
   DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig;
   @override
@@ -1845,7 +2431,7 @@ abstract class LiteRTAgentConfigCopyWith<
   BudgetConfigCopyWith<$R, BudgetConfig, BudgetConfig>? get budgetConfig;
   @override
   CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
-  get compactionConfig;
+      get compactionConfig;
   @override
   $R call({
     String? modelPath,
@@ -1872,6 +2458,7 @@ abstract class LiteRTAgentConfigCopyWith<
     String? appDataDir,
     dynamic responseSchema,
     List<String>? skillsPaths,
+    List<InlineSkill>? inlineSkills,
     DebugConfig? debugConfig,
     RetryConfig? retryConfig,
     BudgetConfig? budgetConfig,
@@ -1893,8 +2480,9 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
       LiteRTAgentConfigMapper.ensureInitialized();
   @override
   CapabilitiesConfigCopyWith<$R, CapabilitiesConfig, CapabilitiesConfig>
-  get capabilities => ($value.capabilities as CapabilitiesConfig).copyWith
-      .$chain((v) => call(capabilities: v));
+      get capabilities => ($value.capabilities as CapabilitiesConfig)
+          .copyWith
+          .$chain((v) => call(capabilities: v));
   @override
   ListCopyWith<$R, Tool, ObjectCopyWith<$R, Tool, Tool>> get tools =>
       ListCopyWith(
@@ -1904,11 +2492,11 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
       );
   @override
   ListCopyWith<$R, dynamic, ObjectCopyWith<$R, dynamic, dynamic>?>
-  get policies => ListCopyWith(
-    $value.policies,
-    (v, t) => ObjectCopyWith(v, $identity, t),
-    (v) => call(policies: v),
-  );
+      get policies => ListCopyWith(
+            $value.policies,
+            (v, t) => ObjectCopyWith(v, $identity, t),
+            (v) => call(policies: v),
+          );
   @override
   ListCopyWith<$R, Hook, ObjectCopyWith<$R, Hook, Hook>> get hooks =>
       ListCopyWith(
@@ -1918,41 +2506,31 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
       );
   @override
   ListCopyWith<
-    $R,
-    FutureOr<void> Function(TriggerContext),
-    ObjectCopyWith<
       $R,
       FutureOr<void> Function(TriggerContext),
-      FutureOr<void> Function(TriggerContext)
-    >
-  >
-  get triggers => ListCopyWith(
-    $value.triggers,
-    (v, t) => ObjectCopyWith(v, $identity, t),
-    (v) => call(triggers: v),
-  );
+      ObjectCopyWith<$R, FutureOr<void> Function(TriggerContext),
+          FutureOr<void> Function(TriggerContext)>> get triggers =>
+      ListCopyWith(
+        $value.triggers,
+        (v, t) => ObjectCopyWith(v, $identity, t),
+        (v) => call(triggers: v),
+      );
   @override
-  ListCopyWith<
-    $R,
-    McpServerConfig,
-    McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>
-  >
-  get mcpServers => ListCopyWith(
-    $value.mcpServers,
-    (v, t) => v.copyWith.$chain(t),
-    (v) => call(mcpServers: v),
-  );
+  ListCopyWith<$R, McpServerConfig,
+          McpServerConfigCopyWith<$R, McpServerConfig, McpServerConfig>>
+      get mcpServers => ListCopyWith(
+            $value.mcpServers,
+            (v, t) => v.copyWith.$chain(t),
+            (v) => call(mcpServers: v),
+          );
   @override
-  ListCopyWith<
-    $R,
-    SubagentConfig,
-    SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>
-  >
-  get subagents => ListCopyWith(
-    $value.subagents,
-    (v, t) => v.copyWith.$chain(t),
-    (v) => call(subagents: v),
-  );
+  ListCopyWith<$R, SubagentConfig,
+          SubagentConfigCopyWith<$R, SubagentConfig, SubagentConfig>>
+      get subagents => ListCopyWith(
+            $value.subagents,
+            (v, t) => v.copyWith.$chain(t),
+            (v) => call(subagents: v),
+          );
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>> get workspaces =>
       ListCopyWith(
@@ -1962,11 +2540,19 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
       );
   @override
   ListCopyWith<$R, String, ObjectCopyWith<$R, String, String>>
-  get skillsPaths => ListCopyWith(
-    $value.skillsPaths,
-    (v, t) => ObjectCopyWith(v, $identity, t),
-    (v) => call(skillsPaths: v),
-  );
+      get skillsPaths => ListCopyWith(
+            $value.skillsPaths,
+            (v, t) => ObjectCopyWith(v, $identity, t),
+            (v) => call(skillsPaths: v),
+          );
+  @override
+  ListCopyWith<$R, InlineSkill,
+          InlineSkillCopyWith<$R, InlineSkill, InlineSkill>>
+      get inlineSkills => ListCopyWith(
+            $value.inlineSkills,
+            (v, t) => v.copyWith.$chain(t),
+            (v) => call(inlineSkills: v),
+          );
   @override
   DebugConfigCopyWith<$R, DebugConfig, DebugConfig>? get debugConfig =>
       $value.debugConfig?.copyWith.$chain((v) => call(debugConfig: v));
@@ -1978,9 +2564,9 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
       $value.budgetConfig?.copyWith.$chain((v) => call(budgetConfig: v));
   @override
   CompactionConfigCopyWith<$R, CompactionConfig, CompactionConfig>?
-  get compactionConfig => $value.compactionConfig?.copyWith.$chain(
-    (v) => call(compactionConfig: v),
-  );
+      get compactionConfig => $value.compactionConfig?.copyWith.$chain(
+            (v) => call(compactionConfig: v),
+          );
   @override
   $R call({
     String? modelPath,
@@ -2007,91 +2593,98 @@ class _LiteRTAgentConfigCopyWithImpl<$R, $Out>
     Object? appDataDir = $none,
     Object? responseSchema = $none,
     Object? skillsPaths = $none,
+    List<InlineSkill>? inlineSkills,
     Object? debugConfig = $none,
     Object? retryConfig = $none,
     Object? budgetConfig = $none,
     Object? compactionConfig = $none,
-  }) => $apply(
-    FieldCopyWithData({
-      if (modelPath != null) #modelPath: modelPath,
-      if (backend != null) #backend: backend,
-      if (enableSpeculativeDecoding != null)
-        #enableSpeculativeDecoding: enableSpeculativeDecoding,
-      if (cacheDir != $none) #cacheDir: cacheDir,
-      if (audioBackend != $none) #audioBackend: audioBackend,
-      if (visionBackend != $none) #visionBackend: visionBackend,
-      if (port != null) #port: port,
-      if (downloadIfMissing != null) #downloadIfMissing: downloadIfMissing,
-      if (maxContextTokens != $none) #maxContextTokens: maxContextTokens,
-      if (systemInstructions != $none) #systemInstructions: systemInstructions,
-      if (capabilities != $none) #capabilities: capabilities,
-      if (tools != $none) #tools: tools,
-      if (policies != $none) #policies: policies,
-      if (hooks != $none) #hooks: hooks,
-      if (triggers != $none) #triggers: triggers,
-      if (mcpServers != $none) #mcpServers: mcpServers,
-      if (subagents != $none) #subagents: subagents,
-      if (workspaces != $none) #workspaces: workspaces,
-      if (conversationId != $none) #conversationId: conversationId,
-      if (sessionContinuationMode != $none)
-        #sessionContinuationMode: sessionContinuationMode,
-      if (saveDir != $none) #saveDir: saveDir,
-      if (appDataDir != $none) #appDataDir: appDataDir,
-      if (responseSchema != $none) #responseSchema: responseSchema,
-      if (skillsPaths != $none) #skillsPaths: skillsPaths,
-      if (debugConfig != $none) #debugConfig: debugConfig,
-      if (retryConfig != $none) #retryConfig: retryConfig,
-      if (budgetConfig != $none) #budgetConfig: budgetConfig,
-      if (compactionConfig != $none) #compactionConfig: compactionConfig,
-    }),
-  );
+  }) =>
+      $apply(
+        FieldCopyWithData({
+          if (modelPath != null) #modelPath: modelPath,
+          if (backend != null) #backend: backend,
+          if (enableSpeculativeDecoding != null)
+            #enableSpeculativeDecoding: enableSpeculativeDecoding,
+          if (cacheDir != $none) #cacheDir: cacheDir,
+          if (audioBackend != $none) #audioBackend: audioBackend,
+          if (visionBackend != $none) #visionBackend: visionBackend,
+          if (port != null) #port: port,
+          if (downloadIfMissing != null) #downloadIfMissing: downloadIfMissing,
+          if (maxContextTokens != $none) #maxContextTokens: maxContextTokens,
+          if (systemInstructions != $none)
+            #systemInstructions: systemInstructions,
+          if (capabilities != $none) #capabilities: capabilities,
+          if (tools != $none) #tools: tools,
+          if (policies != $none) #policies: policies,
+          if (hooks != $none) #hooks: hooks,
+          if (triggers != $none) #triggers: triggers,
+          if (mcpServers != $none) #mcpServers: mcpServers,
+          if (subagents != $none) #subagents: subagents,
+          if (workspaces != $none) #workspaces: workspaces,
+          if (conversationId != $none) #conversationId: conversationId,
+          if (sessionContinuationMode != $none)
+            #sessionContinuationMode: sessionContinuationMode,
+          if (saveDir != $none) #saveDir: saveDir,
+          if (appDataDir != $none) #appDataDir: appDataDir,
+          if (responseSchema != $none) #responseSchema: responseSchema,
+          if (skillsPaths != $none) #skillsPaths: skillsPaths,
+          if (inlineSkills != null) #inlineSkills: inlineSkills,
+          if (debugConfig != $none) #debugConfig: debugConfig,
+          if (retryConfig != $none) #retryConfig: retryConfig,
+          if (budgetConfig != $none) #budgetConfig: budgetConfig,
+          if (compactionConfig != $none) #compactionConfig: compactionConfig,
+        }),
+      );
   @override
   LiteRTAgentConfig $make(CopyWithData data) => LiteRTAgentConfig(
-    modelPath: data.get(#modelPath, or: $value.modelPath),
-    backend: data.get(#backend, or: $value.backend),
-    enableSpeculativeDecoding: data.get(
-      #enableSpeculativeDecoding,
-      or: $value.enableSpeculativeDecoding,
-    ),
-    cacheDir: data.get(#cacheDir, or: $value.cacheDir),
-    audioBackend: data.get(#audioBackend, or: $value.audioBackend),
-    visionBackend: data.get(#visionBackend, or: $value.visionBackend),
-    port: data.get(#port, or: $value.port),
-    downloadIfMissing: data.get(
-      #downloadIfMissing,
-      or: $value.downloadIfMissing,
-    ),
-    maxContextTokens: data.get(#maxContextTokens, or: $value.maxContextTokens),
-    systemInstructions: data.get(
-      #systemInstructions,
-      or: $value.systemInstructions,
-    ),
-    capabilities: data.get(#capabilities, or: $value.capabilities),
-    tools: data.get(#tools, or: $value.tools),
-    policies: data.get(#policies, or: $value.policies),
-    hooks: data.get(#hooks, or: $value.hooks),
-    triggers: data.get(#triggers, or: $value.triggers),
-    mcpServers: data.get(#mcpServers, or: $value.mcpServers),
-    subagents: data.get(#subagents, or: $value.subagents),
-    workspaces: data.get(#workspaces, or: $value.workspaces),
-    conversationId: data.get(#conversationId, or: $value.conversationId),
-    sessionContinuationMode: data.get(
-      #sessionContinuationMode,
-      or: $value.sessionContinuationMode,
-    ),
-    saveDir: data.get(#saveDir, or: $value.saveDir),
-    appDataDir: data.get(#appDataDir, or: $value.appDataDir),
-    responseSchema: data.get(#responseSchema, or: $value.responseSchema),
-    skillsPaths: data.get(#skillsPaths, or: $value.skillsPaths),
-    debugConfig: data.get(#debugConfig, or: $value.debugConfig),
-    retryConfig: data.get(#retryConfig, or: $value.retryConfig),
-    budgetConfig: data.get(#budgetConfig, or: $value.budgetConfig),
-    compactionConfig: data.get(#compactionConfig, or: $value.compactionConfig),
-  );
+        modelPath: data.get(#modelPath, or: $value.modelPath),
+        backend: data.get(#backend, or: $value.backend),
+        enableSpeculativeDecoding: data.get(
+          #enableSpeculativeDecoding,
+          or: $value.enableSpeculativeDecoding,
+        ),
+        cacheDir: data.get(#cacheDir, or: $value.cacheDir),
+        audioBackend: data.get(#audioBackend, or: $value.audioBackend),
+        visionBackend: data.get(#visionBackend, or: $value.visionBackend),
+        port: data.get(#port, or: $value.port),
+        downloadIfMissing: data.get(
+          #downloadIfMissing,
+          or: $value.downloadIfMissing,
+        ),
+        maxContextTokens:
+            data.get(#maxContextTokens, or: $value.maxContextTokens),
+        systemInstructions: data.get(
+          #systemInstructions,
+          or: $value.systemInstructions,
+        ),
+        capabilities: data.get(#capabilities, or: $value.capabilities),
+        tools: data.get(#tools, or: $value.tools),
+        policies: data.get(#policies, or: $value.policies),
+        hooks: data.get(#hooks, or: $value.hooks),
+        triggers: data.get(#triggers, or: $value.triggers),
+        mcpServers: data.get(#mcpServers, or: $value.mcpServers),
+        subagents: data.get(#subagents, or: $value.subagents),
+        workspaces: data.get(#workspaces, or: $value.workspaces),
+        conversationId: data.get(#conversationId, or: $value.conversationId),
+        sessionContinuationMode: data.get(
+          #sessionContinuationMode,
+          or: $value.sessionContinuationMode,
+        ),
+        saveDir: data.get(#saveDir, or: $value.saveDir),
+        appDataDir: data.get(#appDataDir, or: $value.appDataDir),
+        responseSchema: data.get(#responseSchema, or: $value.responseSchema),
+        skillsPaths: data.get(#skillsPaths, or: $value.skillsPaths),
+        inlineSkills: data.get(#inlineSkills, or: $value.inlineSkills),
+        debugConfig: data.get(#debugConfig, or: $value.debugConfig),
+        retryConfig: data.get(#retryConfig, or: $value.retryConfig),
+        budgetConfig: data.get(#budgetConfig, or: $value.budgetConfig),
+        compactionConfig:
+            data.get(#compactionConfig, or: $value.compactionConfig),
+      );
 
   @override
   LiteRTAgentConfigCopyWith<$R2, LiteRTAgentConfig, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) => _LiteRTAgentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) =>
+      _LiteRTAgentConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
-

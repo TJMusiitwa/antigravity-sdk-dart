@@ -306,7 +306,7 @@ class Conversation {
     final isModel = step.source == StepSource.model;
     final isTargetUser = step.target == StepTarget.user;
 
-    if (isModel && isTargetUser) {
+    if (isModel && isTargetUser && step.status != StepStatus.error) {
       if (step.thinkingDelta.isNotEmpty) {
         controller
             .add(Thought(stepIndex: step.stepIndex, text: step.thinkingDelta));
