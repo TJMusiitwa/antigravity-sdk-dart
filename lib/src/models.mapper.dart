@@ -284,11 +284,19 @@ class GeminiModelOptionsMapper extends ClassMapperBase<GeminiModelOptions> {
     key: r'service_tier',
     opt: true,
   );
+  static int? _$maxOutputTokens(GeminiModelOptions v) => v.maxOutputTokens;
+  static const Field<GeminiModelOptions, int> _f$maxOutputTokens = Field(
+    'maxOutputTokens',
+    _$maxOutputTokens,
+    key: r'max_output_tokens',
+    opt: true,
+  );
 
   @override
   final MappableFields<GeminiModelOptions> fields = const {
     #thinkingLevel: _f$thinkingLevel,
     #serviceTier: _f$serviceTier,
+    #maxOutputTokens: _f$maxOutputTokens,
   };
   @override
   final bool ignoreNull = true;
@@ -297,6 +305,7 @@ class GeminiModelOptionsMapper extends ClassMapperBase<GeminiModelOptions> {
     return GeminiModelOptions(
       thinkingLevel: data.dec(_f$thinkingLevel),
       serviceTier: data.dec(_f$serviceTier),
+      maxOutputTokens: data.dec(_f$maxOutputTokens),
     );
   }
 
@@ -366,7 +375,11 @@ extension GeminiModelOptionsValueCopy<$R, $Out>
 /// @nodoc
 abstract class GeminiModelOptionsCopyWith<$R, $In extends GeminiModelOptions,
     $Out> implements ClassCopyWith<$R, $In, $Out> {
-  $R call({ThinkingLevel? thinkingLevel, ServiceTier? serviceTier});
+  $R call({
+    ThinkingLevel? thinkingLevel,
+    ServiceTier? serviceTier,
+    int? maxOutputTokens,
+  });
   GeminiModelOptionsCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
   );
@@ -382,17 +395,23 @@ class _GeminiModelOptionsCopyWithImpl<$R, $Out>
   late final ClassMapperBase<GeminiModelOptions> $mapper =
       GeminiModelOptionsMapper.ensureInitialized();
   @override
-  $R call({Object? thinkingLevel = $none, Object? serviceTier = $none}) =>
+  $R call({
+    Object? thinkingLevel = $none,
+    Object? serviceTier = $none,
+    Object? maxOutputTokens = $none,
+  }) =>
       $apply(
         FieldCopyWithData({
           if (thinkingLevel != $none) #thinkingLevel: thinkingLevel,
           if (serviceTier != $none) #serviceTier: serviceTier,
+          if (maxOutputTokens != $none) #maxOutputTokens: maxOutputTokens,
         }),
       );
   @override
   GeminiModelOptions $make(CopyWithData data) => GeminiModelOptions(
         thinkingLevel: data.get(#thinkingLevel, or: $value.thinkingLevel),
         serviceTier: data.get(#serviceTier, or: $value.serviceTier),
+        maxOutputTokens: data.get(#maxOutputTokens, or: $value.maxOutputTokens),
       );
 
   @override

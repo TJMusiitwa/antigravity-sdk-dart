@@ -45,8 +45,8 @@ class BuiltinToolsMapper extends EnumMapper<BuiltinTools> {
         return BuiltinTools.runCommand;
       case 'ask_question':
         return BuiltinTools.askQuestion;
-      case 'start_subagent':
-        return BuiltinTools.startSubagent;
+      case 'invoke_subagent':
+        return BuiltinTools.invokeSubagent;
       case 'run_workflow':
         return BuiltinTools.runWorkflow;
       case 'generate_image':
@@ -83,8 +83,8 @@ class BuiltinToolsMapper extends EnumMapper<BuiltinTools> {
         return 'run_command';
       case BuiltinTools.askQuestion:
         return 'ask_question';
-      case BuiltinTools.startSubagent:
-        return 'start_subagent';
+      case BuiltinTools.invokeSubagent:
+        return 'invoke_subagent';
       case BuiltinTools.runWorkflow:
         return 'run_workflow';
       case BuiltinTools.generateImage:
@@ -511,7 +511,13 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
   static List<BuiltinTools>? _$enabledTools(CapabilitiesConfig v) =>
       v.enabledTools;
   static const Field<CapabilitiesConfig, List<BuiltinTools>> _f$enabledTools =
-      Field('enabledTools', _$enabledTools, key: r'enabled_tools', opt: true);
+      Field(
+    'enabledTools',
+    _$enabledTools,
+    key: r'enabled_tools',
+    opt: true,
+    hook: BuiltinToolListHook(),
+  );
   static List<BuiltinTools>? _$disabledTools(CapabilitiesConfig v) =>
       v.disabledTools;
   static const Field<CapabilitiesConfig, List<BuiltinTools>> _f$disabledTools =
@@ -520,6 +526,7 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
     _$disabledTools,
     key: r'disabled_tools',
     opt: true,
+    hook: BuiltinToolListHook(),
   );
   static int? _$compactionThreshold(CapabilitiesConfig v) =>
       v.compactionThreshold;
@@ -574,6 +581,13 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
     key: r'tool_output_truncation_config',
     opt: true,
   );
+  static int? _$mcpMaxOutputBytes(CapabilitiesConfig v) => v.mcpMaxOutputBytes;
+  static const Field<CapabilitiesConfig, int> _f$mcpMaxOutputBytes = Field(
+    'mcpMaxOutputBytes',
+    _$mcpMaxOutputBytes,
+    key: r'mcp_max_output_bytes',
+    opt: true,
+  );
 
   @override
   final MappableFields<CapabilitiesConfig> fields = const {
@@ -588,6 +602,7 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
     #allowedSubagents: _f$allowedSubagents,
     #runCommandConfig: _f$runCommandConfig,
     #toolOutputTruncationConfig: _f$toolOutputTruncationConfig,
+    #mcpMaxOutputBytes: _f$mcpMaxOutputBytes,
   };
   @override
   final bool ignoreNull = true;
@@ -605,6 +620,7 @@ class CapabilitiesConfigMapper extends ClassMapperBase<CapabilitiesConfig> {
       allowedSubagents: data.dec(_f$allowedSubagents),
       runCommandConfig: data.dec(_f$runCommandConfig),
       toolOutputTruncationConfig: data.dec(_f$toolOutputTruncationConfig),
+      mcpMaxOutputBytes: data.dec(_f$mcpMaxOutputBytes),
     );
   }
 
@@ -696,6 +712,7 @@ abstract class CapabilitiesConfigCopyWith<$R, $In extends CapabilitiesConfig,
     List<String>? allowedSubagents,
     RunCommandConfig? runCommandConfig,
     ToolOutputTruncationConfig? toolOutputTruncationConfig,
+    int? mcpMaxOutputBytes,
   });
   CapabilitiesConfigCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
@@ -764,6 +781,7 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
     Object? allowedSubagents = $none,
     Object? runCommandConfig = $none,
     Object? toolOutputTruncationConfig = $none,
+    Object? mcpMaxOutputBytes = $none,
   }) =>
       $apply(
         FieldCopyWithData({
@@ -781,6 +799,7 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
           if (runCommandConfig != $none) #runCommandConfig: runCommandConfig,
           if (toolOutputTruncationConfig != $none)
             #toolOutputTruncationConfig: toolOutputTruncationConfig,
+          if (mcpMaxOutputBytes != $none) #mcpMaxOutputBytes: mcpMaxOutputBytes,
         }),
       );
   @override
@@ -807,6 +826,10 @@ class _CapabilitiesConfigCopyWithImpl<$R, $Out>
         toolOutputTruncationConfig: data.get(
           #toolOutputTruncationConfig,
           or: $value.toolOutputTruncationConfig,
+        ),
+        mcpMaxOutputBytes: data.get(
+          #mcpMaxOutputBytes,
+          or: $value.mcpMaxOutputBytes,
         ),
       );
 

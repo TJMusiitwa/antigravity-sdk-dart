@@ -492,6 +492,7 @@ class Step with StepMappable {
     'search_web': 'search_web',
     'read_url_content': 'read_url_content',
     'finish': 'finish',
+    'skill_lookup': 'skill_lookup',
   };
 
   static List<Map<String, dynamic>> _extractToolCalls(

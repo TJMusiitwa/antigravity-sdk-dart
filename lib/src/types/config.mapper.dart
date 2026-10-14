@@ -226,7 +226,13 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
   static List<BuiltinTools>? _$enabledTools(SubagentCapabilities v) =>
       v.enabledTools;
   static const Field<SubagentCapabilities, List<BuiltinTools>> _f$enabledTools =
-      Field('enabledTools', _$enabledTools, key: r'enabled_tools', opt: true);
+      Field(
+    'enabledTools',
+    _$enabledTools,
+    key: r'enabled_tools',
+    opt: true,
+    hook: BuiltinToolListHook(),
+  );
   static List<BuiltinTools>? _$disabledTools(SubagentCapabilities v) =>
       v.disabledTools;
   static const Field<SubagentCapabilities, List<BuiltinTools>>
@@ -235,6 +241,7 @@ class SubagentCapabilitiesMapper extends ClassMapperBase<SubagentCapabilities> {
     _$disabledTools,
     key: r'disabled_tools',
     opt: true,
+    hook: BuiltinToolListHook(),
   );
   static List<String>? _$allowedSubagents(SubagentCapabilities v) =>
       v.allowedSubagents;

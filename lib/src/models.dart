@@ -98,13 +98,35 @@ abstract class ModelEndpoint with ModelEndpointMappable {
   void validateEndpoint();
 }
 
+/// Upper bound for [GeminiModelOptions.maxOutputTokens] (protobuf int32 max).
+const int maxGeminiOutputTokens = 2147483647;
+
 /// Gemini-specific model options.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class GeminiModelOptions with GeminiModelOptionsMappable {
   final ThinkingLevel? thinkingLevel;
   final ServiceTier? serviceTier;
 
-  GeminiModelOptions({this.thinkingLevel, this.serviceTier});
+  /// Maximum number of output tokens the model may generate per step.
+  ///
+  /// Must be in `(0, 2147483647]` when specified. When null, the harness
+  /// default (65,536 tokens) applies. Set a larger value for decodes longer
+  /// than 64k tokens.
+  final int? maxOutputTokens;
+
+  GeminiModelOptions({
+    this.thinkingLevel,
+    this.serviceTier,
+    this.maxOutputTokens,
+  }) {
+    final tokens = maxOutputTokens;
+    if (tokens != null && (tokens <= 0 || tokens > maxGeminiOutputTokens)) {
+      throw AntigravityValidationException(
+        'maxOutputTokens must be greater than 0 and at most '
+        '$maxGeminiOutputTokens, got $tokens',
+      );
+    }
+  }
 }
 
 /// Endpoint for the Gemini Developer API.

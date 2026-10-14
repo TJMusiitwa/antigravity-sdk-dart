@@ -527,6 +527,18 @@ void main() {
       expect(await stateless.run(ctx, 10), equals('stateless: 10'));
     });
   });
+
+  test('bulk hooks execute in registration order', () async {
+    final calls = <int>[];
+    final runner =
+        HookRunner(hooks: [_RecordingPostTurnHook((_) => calls.add(1))]);
+    runner.registerHooks([
+      _RecordingPostTurnHook((_) => calls.add(2)),
+      _RecordingPostTurnHook((_) => calls.add(3))
+    ]);
+    await runner.dispatchPostTurn(runner.createTurnContext(), 'done');
+    expect(calls, [1, 2, 3]);
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -658,3 +670,11 @@ OnInteractionHook _makeInteractionHook(
       fn,
 ) =>
     _SimpleInteractionHook(fn);
+
+class _RecordingPostTurnHook extends PostTurnHook {
+  final void Function(String) onCalled;
+  _RecordingPostTurnHook(this.onCalled);
+
+  @override
+  Future<void> run(HookContext context, String data) async => onCalled(data);
+}

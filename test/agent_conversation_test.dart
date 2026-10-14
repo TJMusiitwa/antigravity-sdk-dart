@@ -535,6 +535,26 @@ void main() {
       expect(indexedStepIndices, equals([3, 9]));
     });
   });
+
+  group('Conversation step filtering', () {
+    test('error step text and thoughts are not emitted', () async {
+      final connection = WorkflowConnection('error_text');
+      final conversation = Conversation(connection);
+      final response = await conversation.chat('test');
+      expect(await response.text(), isEmpty);
+      expect(await response.thoughts.toList(), isEmpty);
+      await connection.disconnect();
+    });
+
+    test('empty tool IDs are never deduplicated but named IDs are', () async {
+      final connection = WorkflowConnection('dedup');
+      final conversation = Conversation(connection);
+      final response = await conversation.chat('test');
+      final calls = await response.toolCalls.toList();
+      expect(calls.map((call) => call.id), ['', '', 'same']);
+      await connection.disconnect();
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -743,4 +763,72 @@ class TestPostTurnHook extends PostTurnHook {
   Future<void> run(HookContext context, String data) async {
     onCalled(data);
   }
+}
+
+/// A [FakeConnection] that emits a scripted run for [mode]: `success`,
+/// `error`, `missing` (no workflow step), `error_text`, or `dedup`.
+class WorkflowConnection extends FakeConnection {
+  final String mode;
+  WorkflowConnection(this.mode);
+  final controller = StreamController<Step>.broadcast();
+  @override
+  Stream<Step> receiveSteps() => controller.stream;
+  @override
+  Future<void> send(ContentPrimitive? prompt,
+      {Map<String, dynamic>? kwargs}) async {
+    scheduleMicrotask(() {
+      if (mode == 'error_text') {
+        controller.add(Step(
+            source: StepSource.model,
+            target: StepTarget.user,
+            status: StepStatus.error,
+            contentDelta: 'bad text',
+            thinkingDelta: 'bad thought'));
+        return;
+      }
+      if (mode == 'dedup') {
+        for (final id in ['', '', 'same', 'same']) {
+          controller.add(
+              Step(toolCalls: [ToolCall(id: id, name: 'example', args: {})]));
+        }
+        controller.add(Step(id: 'idle_sentinel', type: StepType.finish));
+        return;
+      }
+      if (mode != 'missing') {
+        controller.add(Step.fromMap({
+          'step_index': 1,
+          'run_workflow': {'output': 'workflow output'},
+          'state': mode == 'error' ? 'STATE_ERROR' : 'STATE_DONE',
+          'error': mode == 'error' ? 'failed' : ''
+        }));
+      }
+      controller.add(Step(
+          stepIndex: 2,
+          type: StepType.textResponse,
+          source: StepSource.model,
+          target: StepTarget.user,
+          contentDelta: 'finished',
+          status: StepStatus.done));
+      controller.add(Step(
+          id: 'idle_sentinel',
+          stepIndex: -1,
+          type: StepType.finish,
+          status: StepStatus.done));
+    });
+  }
+
+  @override
+  Future<void> disconnect() async {
+    await controller.close();
+    await super.disconnect();
+  }
+}
+
+class WorkflowConnectionStrategy extends FakeConnectionStrategy {
+  final WorkflowConnection custom;
+  WorkflowConnectionStrategy(this.custom);
+  @override
+  Connection connect() => custom;
+  @override
+  Future<void> stop() => custom.disconnect();
 }

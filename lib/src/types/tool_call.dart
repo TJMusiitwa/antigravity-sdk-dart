@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:dart_mappable/dart_mappable.dart';
 
+import 'capabilities.dart';
+
 part 'tool_call.mapper.dart';
 
 @MappableClass(ignoreNull: true)
@@ -13,6 +15,10 @@ class ToolCall with ToolCallMappable {
   @MappableField(key: 'step_id')
   final String? stepId;
 
+  /// The tool name.
+  ///
+  /// For builtin tools (no [serverName]), the deprecated `start_subagent`
+  /// name is normalized to `invoke_subagent`.
   final String name;
 
   @MappableField(key: 'arguments_json', hook: ArgumentsHook())
@@ -26,14 +32,15 @@ class ToolCall with ToolCallMappable {
   final String? serverName;
 
   ToolCall({
-    this.name = '',
+    String name = '',
     Map<String, dynamic>? args,
     this.id,
     this.callId,
     this.stepId,
     this.canonicalPath,
     this.serverName,
-  }) : args = args ?? {};
+  })  : name = normalizeBuiltinToolName(name, serverName: serverName),
+        args = args ?? {};
 
   /// Returns effective correlation ID (either [callId] or [id]).
   String? get effectiveCallId => callId ?? id;
@@ -91,6 +98,7 @@ class ToolResult with ToolResultMappable {
   @MappableField(key: 'server_name')
   final String? serverName;
 
+  /// The tool name, normalized the same way as [ToolCall.name].
   final String name;
   final dynamic result;
   final String? error;
@@ -99,7 +107,7 @@ class ToolResult with ToolResultMappable {
   final Exception? exception;
 
   ToolResult({
-    required this.name,
+    required String name,
     this.id,
     this.callId,
     this.stepId,
@@ -107,7 +115,7 @@ class ToolResult with ToolResultMappable {
     this.result,
     this.error,
     this.exception,
-  });
+  }) : name = normalizeBuiltinToolName(name, serverName: serverName);
 
   /// Returns effective correlation ID (either [callId] or [id]).
   String? get effectiveCallId => callId ?? id;

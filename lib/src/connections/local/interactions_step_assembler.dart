@@ -16,6 +16,7 @@
 library;
 
 import 'dart:collection';
+import 'dart:convert';
 
 import '../../types.dart';
 import 'hook_router.dart';
@@ -250,6 +251,19 @@ String extractTextFromContent(dynamic content) {
   return (args: normalized, canonicalPath: canonicalPath);
 }
 
+/// Resolves the SDK tool name for a GAOS tool call or result step.
+///
+/// Builtin wire names (e.g. `invoke_subagent`) are mapped through
+/// [protoFieldToSdkName]; MCP tool names are kept verbatim.
+String _resolveDefaultToolName(
+    String kind, String subtype, Map<String, dynamic> stepMap) {
+  final name = _stringValue(stepMap['name']);
+  if (name.isNotEmpty) {
+    return kind == 'mcp_server_tool' ? name : protoFieldToSdkName[name] ?? name;
+  }
+  return _resultKindDefaultToolName[kind] ?? subtype;
+}
+
 /// Extracts the question batch prefix from `<conv>-question-<step>-<index>`.
 String extractElicitationGroupKey(String elicitationId) {
   const marker = '-question-';
@@ -419,18 +433,32 @@ class InteractionsStepAssembler {
         return started(state, thinkingDelta: thinking);
       case 'model_output':
         final text = extractTextFromContent(stepMap['content'] ?? const []);
-        final state = newState(type: StepType.textResponse, content: text);
+        final state = newState(
+          type:
+              description == 'Finish' ? StepType.finish : StepType.textResponse,
+          content: text,
+        );
         return started(state, contentDelta: text);
+      case 'compaction':
+        final text =
+            description.isNotEmpty ? description : 'Context compaction';
+        final state = newState(
+          type: StepType.compaction,
+          source: StepSource.system,
+          content: text,
+        );
+        return started(state);
       case 'elicitation_call':
         final elicitation =
             _parseElicitationCall(stepMap, traj.trajectoryId, index);
+        final callId = elicitation?.elicitationId ?? stepId;
         final call = ToolCall(
           name: BuiltinTools.askQuestion.value,
           args: elicitation == null
               ? {}
               : {'question': elicitation.question.question},
-          id: elicitation?.elicitationId ?? stepId,
-          stepId: stepId,
+          id: callId,
+          stepId: callId,
         );
         _pendingCallsById[call.id!] = call;
         final state = newState(
@@ -443,12 +471,13 @@ class InteractionsStepAssembler {
             status: StepStatus.waitingForUser, elicitation: elicitation);
       case 'elicitation_result':
         final id = _stringValue(stepMap['elicitation_id']);
+        final callId = id.isEmpty ? stepId : id;
         final call = (id.isEmpty ? null : _pendingCallsById.remove(id)) ??
             ToolCall(
               name: BuiltinTools.askQuestion.value,
               args: {},
-              id: id.isEmpty ? stepId : id,
-              stepId: stepId,
+              id: callId,
+              stepId: callId,
             );
         newState(
           type: StepType.toolCall,
@@ -571,6 +600,7 @@ class InteractionsStepAssembler {
     }
 
     if (state.subtype == 'model_output' &&
+        state.type != StepType.finish &&
         state.content.isEmpty &&
         !state.isError) {
       state.type = StepType.unknown;
@@ -590,6 +620,16 @@ class InteractionsStepAssembler {
     String contentDelta = '',
     String thinkingDelta = '',
   }) {
+    dynamic structuredOutput;
+    if (state.type == StepType.finish &&
+        status == StepStatus.done &&
+        state.content.isNotEmpty) {
+      try {
+        structuredOutput = jsonDecode(state.content);
+      } on FormatException {
+        // Non-JSON finish output leaves structuredOutput unset.
+      }
+    }
     return Step(
       id: interactionsStepId(state.trajectoryId, state.stepIndex),
       stepIndex: state.stepIndex,
@@ -606,6 +646,7 @@ class InteractionsStepAssembler {
       thinkingDelta: thinkingDelta,
       toolCalls: List.of(state.toolCalls),
       error: state.errorMessage,
+      structuredOutput: structuredOutput,
       isCompleteResponse: state.source == StepSource.model &&
           status == StepStatus.done &&
           state.content.isNotEmpty &&
@@ -623,7 +664,6 @@ class InteractionsStepAssembler {
     final stepId = interactionsStepId(trajectoryId, index);
     final callId = _stringValue(stepMap['id']);
     final kind = _callToResultKind[subtype] ?? subtype;
-    final name = _stringValue(stepMap['name']);
     final serverName = _stringValue(stepMap['server_name']);
 
     // Keep every non-envelope field, then merge nested `arguments`, so new
@@ -655,13 +695,12 @@ class InteractionsStepAssembler {
     }
 
     final normalized = _normalizeToolArgs(rawArgs);
+    final resolvedId = callId.isNotEmpty ? callId : stepId;
     return ToolCall(
-      name: name.isNotEmpty
-          ? name
-          : (_resultKindDefaultToolName[kind] ?? subtype),
+      name: _resolveDefaultToolName(kind, subtype, stepMap),
       args: normalized.args,
-      id: callId.isNotEmpty ? callId : stepId,
-      stepId: stepId,
+      id: resolvedId,
+      stepId: resolvedId,
       canonicalPath: normalized.canonicalPath,
       serverName: serverName.isEmpty ? null : serverName,
     );
@@ -688,15 +727,13 @@ class InteractionsStepAssembler {
 
     if (matched == null) {
       final stepId = interactionsStepId(trajectoryId, index);
-      final name = _stringValue(stepMap['name']);
+      final resolvedId = callId.isNotEmpty ? callId : stepId;
       final serverName = _stringValue(stepMap['server_name']);
       matched = ToolCall(
-        name: name.isNotEmpty
-            ? name
-            : (_resultKindDefaultToolName[kind] ?? subtype),
+        name: _resolveDefaultToolName(kind, subtype, stepMap),
         args: {},
-        id: callId.isNotEmpty ? callId : stepId,
-        stepId: stepId,
+        id: resolvedId,
+        stepId: resolvedId,
         serverName: serverName.isEmpty ? null : serverName,
       );
     }

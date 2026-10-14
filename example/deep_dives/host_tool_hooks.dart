@@ -62,7 +62,7 @@ class LogPreToolCallDecide extends PreToolCallDecideHook {
   @override
   Future<HookResult> run(HookContext context, ToolCall data) async {
     print('[Hook] Pre-tool-call (decide) — tool: ${data.name}');
-    if (data.name == BuiltinTools.startSubagent.value) {
+    if (data.name == BuiltinTools.invokeSubagent.value) {
       print('[Hook] Pre-subagent-call — tool_call: ${data.name}');
     }
     return HookResult(allow: true);
@@ -73,7 +73,7 @@ class LogPostToolCall extends PostToolCallHook {
   @override
   Future<void> run(HookContext context, ToolResult data) async {
     print('[Hook] Post-tool-call — result: ${data.result}');
-    if (data.name == BuiltinTools.startSubagent.value) {
+    if (data.name == BuiltinTools.invokeSubagent.value) {
       print('[Hook] Post-subagent-call — result: ${data.result}');
     }
   }

@@ -62,7 +62,7 @@ bool _subagentActive = false;
 class LogPreToolHook extends PreToolCallDecideHook {
   @override
   Future<HookResult> run(HookContext context, ToolCall data) async {
-    if (data.name == BuiltinTools.startSubagent.value) {
+    if (data.name == BuiltinTools.invokeSubagent.value) {
       _subagentActive = true;
       print('\n  --- 🤖 [Hook] Spawning Subagent ---');
       print('  Arguments: ${data.args}\n');
@@ -77,7 +77,7 @@ class LogPreToolHook extends PreToolCallDecideHook {
 class LogPostToolHook extends PostToolCallHook {
   @override
   Future<void> run(HookContext context, ToolResult data) async {
-    if (data.name == BuiltinTools.startSubagent.value) {
+    if (data.name == BuiltinTools.invokeSubagent.value) {
       _subagentActive = false;
       print('\n  --- 🤖 [Hook] Subagent Finished ---');
       print('  Result: ${data.result}\n');
@@ -230,7 +230,7 @@ Future<void> runNestedSubagentHierarchy() async {
         BuiltinTools.viewFile,
         BuiltinTools.findFile,
         BuiltinTools.listDirectory,
-        BuiltinTools.startSubagent,
+        BuiltinTools.invokeSubagent,
       ],
       allowedSubagents: ['fact_checker'],
     ),

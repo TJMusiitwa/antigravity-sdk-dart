@@ -99,3 +99,17 @@ final config = LocalAgentConfig(
 );
 ```
 
+### MCP output size limit
+
+MCP tool outputs and resource reads larger than 4096 bytes are written to a
+temporary file instead of being inlined into the model context. Raise the limit
+for servers that return large payloads, or when `view_file` is disabled:
+
+```dart
+final config = LocalAgentConfig(
+  capabilities: CapabilitiesConfig(
+    mcpMaxOutputBytes: 65536, // Inline MCP outputs up to 64 KiB.
+  ),
+);
+```
+

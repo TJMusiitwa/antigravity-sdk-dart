@@ -1,5 +1,11 @@
+import 'dart:io';
+
+import 'package:antigravity/antigravity.dart';
 import 'package:antigravity/beta.dart';
 import 'package:test/test.dart';
+
+import 'agent_conversation_test.dart'
+    show FakeAgentConfig, WorkflowConnection, WorkflowConnectionStrategy;
 
 Matcher _rejects(String message) => throwsA(isA<WorkflowException>()
     .having((e) => e.message, 'message', contains(message)));
@@ -102,5 +108,91 @@ log(text.upper(), data, total)
           _rejects('workflow syntax error'),
           reason: source);
     }
+  });
+
+  group('agent.beta.runWorkflow', () {
+    test('workflow steps normalize paths and keep output out of tool arguments',
+        () {
+      final step = Step.fromMap({
+        'run_workflow': {
+          'scriptPath': 'file:///tmp/a.py',
+          'script': 'log("ok")',
+          'description': 'audit',
+          'output': 'ok'
+        },
+        'state': 'STATE_DONE'
+      });
+      expect(step.workflowProgress!.scriptPath, '/tmp/a.py');
+      expect(step.workflowProgress!.output, 'ok');
+      expect(step.toolCalls.single.name, 'run_workflow');
+      expect(step.toolCalls.single.args, {
+        'script_path': '/tmp/a.py',
+        'script': 'log("ok")',
+        'description': 'audit'
+      });
+      expect(
+          Step.fromMap(step.toMap()).workflowProgress, step.workflowProgress);
+    });
+
+    test(
+        'beta workflow resolves response and reports errors or missing invocation',
+        () async {
+      final directory = await Directory.systemTemp.createTemp('workflow_test_');
+      addTearDown(() => directory.delete(recursive: true));
+      final file = File('${directory.path}/workflow.py');
+      await file.writeAsString('log("done")');
+      for (final mode in ['success', 'error', 'missing']) {
+        final connection = WorkflowConnection(mode);
+        final agent = Agent(FakeAgentConfig(
+            WorkflowConnectionStrategy(connection),
+            capabilities: CapabilitiesConfig(),
+            policies: [allowAll()]));
+        await agent.start();
+        try {
+          if (mode == 'success') {
+            final result = await agent.beta.runWorkflow(scriptPath: file.path);
+            expect(result, isA<WorkflowResult>());
+            expect(result.output, 'workflow output');
+            expect(await result.text(), 'finished');
+            expect(result.responseText, 'finished');
+            expect(result.scriptPath, await file.resolveSymbolicLinks());
+            expect(await result.toolCalls.toList(), hasLength(1));
+          } else {
+            await expectLater(agent.beta.runWorkflow(scriptPath: file.path),
+                throwsA(isA<ToolExecutionException>()));
+          }
+          await expectLater(
+              agent.beta.runWorkflow(scriptPath: ''), throwsArgumentError);
+          await expectLater(
+              agent.beta
+                  .runWorkflow(scriptPath: '${directory.path}/missing.py'),
+              throwsA(isA<FileSystemException>()));
+        } finally {
+          await agent.stop();
+        }
+      }
+    });
+
+    test('beta workflow validates the script before asking the model',
+        () async {
+      final directory = await Directory.systemTemp.createTemp('workflow_test_');
+      addTearDown(() => directory.delete(recursive: true));
+      final file = File('${directory.path}/bad.py');
+      await file.writeAsString('import os\nlog("x")\n');
+      final agent = Agent(FakeAgentConfig(
+          WorkflowConnectionStrategy(WorkflowConnection('success')),
+          capabilities: CapabilitiesConfig(),
+          policies: [allowAll()]));
+      await agent.start();
+      try {
+        await expectLater(
+            agent.beta.runWorkflow(scriptPath: file.path),
+            throwsA(isA<WorkflowException>().having((e) => e.message, 'message',
+                contains('import statements are not allowed'))));
+        expect(agent.conversation.history, isEmpty);
+      } finally {
+        await agent.stop();
+      }
+    });
   });
 }

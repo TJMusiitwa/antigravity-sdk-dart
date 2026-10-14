@@ -397,6 +397,47 @@ void main() {
       expect(call.serverName, equals('math'));
       expect(call.args, isEmpty);
     });
+
+    test('Step carries parentTrajectoryId and depth, parsed via Step.fromMap',
+        () {
+      final step = Step(
+        id: 'step_1',
+        parentTrajectoryId: 'parent_traj_999',
+        depth: 2,
+      );
+      expect(step.parentTrajectoryId, equals('parent_traj_999'));
+      expect(step.depth, equals(2));
+
+      final parsed = Step.fromMap({
+        'id': 'step_2',
+        'parent_trajectory_id': 'traj_root',
+        'depth': 3,
+      });
+      expect(parsed.parentTrajectoryId, equals('traj_root'));
+      expect(parsed.depth, equals(3));
+    });
+
+    test('Step.fromMap normalizes output_path in tool calls', () {
+      final parsed = Step.fromMap({
+        'id': 'step_img',
+        'tool_calls': [
+          {
+            'name': 'generate_image',
+            'arguments_json': jsonEncode({
+              'prompt': 'A beautiful sunrise',
+              'output_path': 'file:///tmp/generated/image.png',
+            }),
+          }
+        ],
+      });
+      expect(parsed.toolCalls.length, equals(1));
+      expect(parsed.toolCalls.first.canonicalPath,
+          equals('/tmp/generated/image.png'));
+      expect(
+        parsed.toolCalls.first.args['output_path'],
+        equals('/tmp/generated/image.png'),
+      );
+    });
   });
 
   group('UsageMetadata.fromMap()', () {
@@ -544,6 +585,92 @@ void main() {
       );
       expect(ToolOutputTruncationConfig(maxTokens: 0).maxTokens, equals(0));
     });
+
+    test(
+        'CapabilitiesConfig supports agentBehavior, maxSubagentDepth, and allowedSubagents',
+        () {
+      final caps = CapabilitiesConfig(
+        agentBehavior: AgentBehavior.interactive,
+        maxSubagentDepth: 3,
+        allowedSubagents: ['helper', 'reviewer'],
+      );
+      expect(caps.agentBehavior, equals(AgentBehavior.interactive));
+      expect(caps.agentMode, equals(AgentBehavior.interactive));
+      expect(caps.maxSubagentDepth, equals(3));
+      expect(caps.allowedSubagents, equals(['helper', 'reviewer']));
+
+      // Legacy agentMode parameter constructor support
+      final legacyCaps = CapabilitiesConfig(
+        agentMode: AgentBehavior.interactive,
+      );
+      expect(legacyCaps.agentBehavior, equals(AgentBehavior.interactive));
+      expect(legacyCaps.agentMode, equals(AgentBehavior.interactive));
+    });
+
+    test(
+        'CapabilitiesConfig validation for maxSubagentDepth and disabled subagents',
+        () {
+      expect(
+        () => CapabilitiesConfig(maxSubagentDepth: 0),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      // Subagents disabled via enableSubagents=false
+      expect(
+        () => CapabilitiesConfig(
+          enableSubagents: false,
+          maxSubagentDepth: 2,
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => CapabilitiesConfig(
+          enableSubagents: false,
+          allowedSubagents: ['worker'],
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      // Subagents disabled via disabledTools containing invokeSubagent
+      expect(
+        () => CapabilitiesConfig(
+          disabledTools: [
+            BuiltinTools.invokeSubagent,
+            BuiltinTools.runWorkflow
+          ],
+          maxSubagentDepth: 2,
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      // Subagents disabled via enabledTools excluding invokeSubagent
+      expect(
+        () => CapabilitiesConfig(
+          enabledTools: [BuiltinTools.viewFile],
+          maxSubagentDepth: 2,
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+    });
+
+    test('CapabilitiesConfig and SubagentCapabilities support runCommandConfig',
+        () {
+      final caps = CapabilitiesConfig(
+        runCommandConfig: RunCommandConfig(
+          enableDaemons: true,
+          timeoutSeconds: 600.0,
+        ),
+      );
+      expect(caps.runCommandConfig, isNotNull);
+      expect(caps.runCommandConfig!.enableDaemons, isTrue);
+      expect(caps.runCommandConfig!.timeoutSeconds, equals(600.0));
+
+      final subCaps = SubagentCapabilities(
+        runCommandConfig: RunCommandConfig(timeoutSeconds: 30.0),
+      );
+      expect(subCaps.runCommandConfig, isNotNull);
+      expect(subCaps.runCommandConfig!.timeoutSeconds, equals(30.0));
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -608,6 +735,30 @@ void main() {
           BuiltinTools.nondestructive().contains(BuiltinTools.readUrlContent),
           isTrue);
     });
+
+    test('BuiltinTools.minimal() returns the expected tools', () {
+      expect(
+        BuiltinTools.minimal(),
+        equals([
+          BuiltinTools.runCommand,
+          BuiltinTools.viewFile,
+          BuiltinTools.createFile,
+          BuiltinTools.editFile,
+        ]),
+      );
+    });
+
+    test('BuiltinTools.deprecated() is the directory tools disabled by default',
+        () {
+      expect(
+        BuiltinTools.deprecated(),
+        equals([
+          BuiltinTools.listDirectory,
+          BuiltinTools.searchDirectory,
+          BuiltinTools.findFile,
+        ]),
+      );
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -661,6 +812,54 @@ void main() {
       );
       expect(sc.enabledTools, isNotNull);
     });
+
+    test('SubagentCapabilities supports agentBehavior and allowedSubagents',
+        () {
+      final subCaps = SubagentCapabilities(
+        agentBehavior: AgentBehavior.interactive,
+        allowedSubagents: ['nested_worker'],
+      );
+      expect(subCaps.agentBehavior, equals(AgentBehavior.interactive));
+      expect(subCaps.agentMode, equals(AgentBehavior.interactive));
+      expect(subCaps.allowedSubagents, equals(['nested_worker']));
+
+      // Legacy agentMode parameter support
+      final legacySubCaps = SubagentCapabilities(
+        agentMode: AgentBehavior.interactive,
+      );
+      expect(legacySubCaps.agentBehavior, equals(AgentBehavior.interactive));
+      expect(legacySubCaps.agentMode, equals(AgentBehavior.interactive));
+    });
+
+    test(
+        'SubagentCapabilities throws when allowedSubagents is set with invokeSubagent disabled',
+        () {
+      expect(
+        () => SubagentCapabilities(
+          enabledTools: [BuiltinTools.viewFile], // invokeSubagent not enabled
+          allowedSubagents: ['child_worker'],
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      expect(
+        () => SubagentCapabilities(
+          disabledTools: [
+            BuiltinTools.invokeSubagent,
+            BuiltinTools.runWorkflow
+          ],
+          allowedSubagents: ['child_worker'],
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      // Allowed when invokeSubagent is included
+      final valid = SubagentCapabilities(
+        enabledTools: [BuiltinTools.invokeSubagent, BuiltinTools.viewFile],
+        allowedSubagents: ['child_worker'],
+      );
+      expect(valid.allowedSubagents, equals(['child_worker']));
+    });
   });
 
   group('SubagentConfig', () {
@@ -675,6 +874,21 @@ void main() {
       expect(sc.systemInstructions, equals('always help'));
       expect(sc.capabilities, isNull);
       expect(sc.tools, isEmpty);
+    });
+
+    test('SubagentConfig.model serializes as a name-only wire field', () {
+      final subagent = SubagentConfig(
+        name: 'researcher',
+        description: 'Looks things up.',
+        model: 'gemini-2.5-pro',
+      );
+      expect(subagent.toMap()['model'], equals('gemini-2.5-pro'));
+      final parsed = SubagentConfig.fromMap({
+        'name': 'researcher',
+        'description': 'Looks things up.',
+        'model': 'gemini-2.5-pro',
+      });
+      expect(parsed.model, equals('gemini-2.5-pro'));
     });
   });
 
@@ -876,6 +1090,23 @@ void main() {
       expect(r.allow, isFalse);
       expect(r.message, equals('blocked'));
     });
+
+    test('HookResult modifiedArgs and copyWith', () {
+      final hrDefault = HookResult();
+      expect(hrDefault.allow, isTrue);
+      expect(hrDefault.modifiedArgs, isNull);
+
+      final hr = HookResult(
+        allow: true,
+        message: 'allowed',
+        modifiedArgs: {'query': 'sanitized'},
+      );
+      expect(hr.modifiedArgs, equals({'query': 'sanitized'}));
+
+      final copied = hr.copyWith(modifiedArgs: {'query': 'overridden'});
+      expect(copied.modifiedArgs, equals({'query': 'overridden'}));
+      expect(copied.message, equals('allowed'));
+    });
   });
 
   group('QuestionResponse', () {
@@ -979,6 +1210,45 @@ void main() {
       expect(sum.thoughtsTokenCount, equals(9));
       expect(sum.totalTokenCount, equals(60));
     });
+
+    test('UsageMetadata subtraction operator and serviceTier handling', () {
+      final u1 = UsageMetadata(
+        promptTokenCount: 100,
+        candidatesTokenCount: 50,
+        totalTokenCount: 150,
+        serviceTier: ServiceTier.priority,
+      );
+      final u2 = UsageMetadata(
+        promptTokenCount: 40,
+        candidatesTokenCount: 20,
+        totalTokenCount: 60,
+        serviceTier: ServiceTier.priority,
+      );
+
+      final diff = u1 - u2;
+      expect(diff.promptTokenCount, equals(60));
+      expect(diff.candidatesTokenCount, equals(30));
+      expect(diff.totalTokenCount, equals(90));
+      expect(diff.serviceTier, equals(ServiceTier.priority));
+
+      final sum = u1 + u2;
+      expect(sum.totalTokenCount, equals(210));
+      expect(sum.serviceTier, equals(ServiceTier.priority));
+    });
+
+    test('usage zero identity preserves nulls and returns an independent copy',
+        () {
+      final usage =
+          UsageMetadata(totalTokenCount: 12, serviceTier: ServiceTier.standard);
+      for (final value in [usage + 0, usage - 0.0]) {
+        expect(value, usage);
+        expect(identical(value, usage), isFalse);
+        expect(value.promptTokenCount, isNull);
+      }
+      expect((usage - UsageMetadata(totalTokenCount: 3)).totalTokenCount, 9);
+      expect(() => usage - 1, throwsArgumentError);
+      expect(() => usage + '0', throwsArgumentError);
+    });
   });
 
   group('AgentConfig validation', () {
@@ -1009,11 +1279,191 @@ void main() {
     });
   });
 
-  group('v0.6.0 updates', () {
+  group('Model defaults', () {
     test('defaultModel is a valid model string', () {
       expect(defaultModel, isNotEmpty);
     });
 
+    test('defaultModel is gemini-3.8-flash', () {
+      expect(defaultModel, equals('gemini-3.8-flash'));
+    });
+  });
+
+  group('Model endpoints', () {
+    test('ModelEndpoint exposes baseUri getter', () {
+      final endpoint = GeminiAPIEndpoint(
+          baseUrl: 'https://generativelanguage.googleapis.com');
+      expect(endpoint.baseUri,
+          equals(Uri.parse('https://generativelanguage.googleapis.com')));
+    });
+
+    test('ServiceTier enum values and GeminiModelOptions support', () {
+      expect(ServiceTier.standard.value, equals('standard'));
+      expect(ServiceTier.priority.value, equals('priority'));
+      expect(ServiceTier.flex.value, equals('flex'));
+      expect(ServiceTier.fromString('priority'), equals(ServiceTier.priority));
+      expect(ServiceTier.fromString('unknown'), equals(ServiceTier.standard));
+
+      final options = GeminiModelOptions(
+        thinkingLevel: ThinkingLevel.high,
+        serviceTier: ServiceTier.priority,
+      );
+      expect(options.serviceTier, equals(ServiceTier.priority));
+    });
+
+    test('VertexEndpoint Express Mode and Standard Mode exclusivity validation',
+        () {
+      // Valid Express Mode
+      final expressEndpoint = VertexEndpoint(apiKey: 'express_key_123');
+      expect(expressEndpoint.apiKey, equals('express_key_123'));
+      expect(expressEndpoint.project, isNull);
+      expect(expressEndpoint.location, isNull);
+      expressEndpoint.validateEndpoint(); // Should not throw
+
+      // Valid Standard Mode
+      final standardEndpoint = VertexEndpoint(
+        project: 'my-project',
+        location: 'us-central1',
+      );
+      expect(standardEndpoint.project, equals('my-project'));
+      expect(standardEndpoint.location, equals('us-central1'));
+      expect(standardEndpoint.apiKey, isNull);
+      standardEndpoint.validateEndpoint(); // Should not throw
+
+      // Mutual exclusivity error
+      final conflictEndpoint = VertexEndpoint(
+        apiKey: 'express_key',
+        project: 'my-project',
+        location: 'us-central1',
+      );
+      expect(
+        () => conflictEndpoint.validateEndpoint(),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+
+      // Missing credentials error (when env vars empty)
+      final emptyEndpoint =
+          VertexEndpoint(project: null, location: null, apiKey: null);
+      if (Platform.environment['GOOGLE_CLOUD_PROJECT'] == null) {
+        expect(
+          () => emptyEndpoint.validateEndpoint(),
+          throwsA(isA<AntigravityValidationException>()),
+        );
+      }
+    });
+
+    // `Platform.environment` is immutable in-process, so these run a probe
+    // subprocess with GOOGLE_CLOUD_PROJECT / GOOGLE_CLOUD_LOCATION actually
+    // set. Asserting `project == null` in-process would pass whether or not
+    // the base_url guard exists, since CI leaves those vars unset.
+    group('VertexEndpoint ambient environment hydration', () {
+      const probe = 'test/support/vertex_env_probe.dart';
+      const env = {
+        'GOOGLE_CLOUD_PROJECT': 'env-proj',
+        'GOOGLE_CLOUD_LOCATION': 'env-loc',
+      };
+
+      Future<Map<String, dynamic>> runProbe({required bool withBaseUrl}) async {
+        final result = await Process.run(
+          Platform.resolvedExecutable,
+          ['run', probe, if (withBaseUrl) 'with-base-url'],
+          environment: env,
+          workingDirectory: Directory.current.path,
+        );
+        expect(
+          result.exitCode,
+          equals(0),
+          reason: 'probe failed: ${result.stderr}',
+        );
+        return jsonDecode((result.stdout as String).trim())
+            as Map<String, dynamic>;
+      }
+
+      test('hydrates project and location from the environment when no baseUrl',
+          () async {
+        final out = await runProbe(withBaseUrl: false);
+        expect(out['baseUrl'], isNull);
+        expect(out['project'], equals('env-proj'));
+        expect(out['location'], equals('env-loc'));
+      }, timeout: const Timeout(Duration(minutes: 2)));
+
+      test('skips environment hydration when a custom baseUrl is set',
+          () async {
+        final out = await runProbe(withBaseUrl: true);
+        expect(out['baseUrl'], equals('http://localhost:8080'));
+        expect(out['project'], isNull);
+        expect(out['location'], isNull);
+      }, timeout: const Timeout(Duration(minutes: 2)));
+
+      test('baseUrl endpoint validates without project or location', () {
+        final ep = VertexEndpoint(baseUrl: 'http://localhost:8080');
+        expect(ep.baseUrl, equals('http://localhost:8080'));
+        expect(ep.apiKey, isNull);
+        ep.validateEndpoint(); // Should not throw
+      });
+    });
+  });
+
+  group('AgentBehavior', () {
+    test('AgentMode enum values, protoValue, and capabilities defaults', () {
+      expect(AgentMode.autonomous.value, equals('autonomous'));
+      expect(AgentMode.interactive.value, equals('interactive'));
+      expect(
+          AgentMode.autonomous.protoValue, equals('AGENT_BEHAVIOR_AUTONOMOUS'));
+      expect(AgentMode.interactive.protoValue,
+          equals('AGENT_BEHAVIOR_INTERACTIVE'));
+
+      final caps = CapabilitiesConfig();
+      expect(caps.agentMode, equals(AgentMode.autonomous));
+
+      final subCaps = SubagentCapabilities(agentMode: AgentMode.interactive);
+      expect(subCaps.agentMode, equals(AgentMode.interactive));
+
+      // Constructing CapabilitiesConfig with askQuestion in non-interactive mode triggers warning without throwing
+      final warnCaps = CapabilitiesConfig(
+        enabledTools: [BuiltinTools.askQuestion],
+        agentMode: AgentMode.autonomous,
+      );
+      expect(warnCaps.agentMode, equals(AgentMode.autonomous));
+
+      final warnSubCaps = SubagentCapabilities(
+        enabledTools: [BuiltinTools.askQuestion],
+        agentMode: AgentMode.autonomous,
+      );
+      expect(warnSubCaps.agentMode, equals(AgentMode.autonomous));
+    });
+
+    test('AgentBehavior enum values and protoValue mapping', () {
+      expect(AgentBehavior.autonomous.value, equals('autonomous'));
+      expect(AgentBehavior.interactive.value, equals('interactive'));
+      expect(AgentBehavior.autonomous.protoValue,
+          equals('AGENT_BEHAVIOR_AUTONOMOUS'));
+      expect(AgentBehavior.interactive.protoValue,
+          equals('AGENT_BEHAVIOR_INTERACTIVE'));
+      expect(AgentBehavior.fromString('interactive'),
+          equals(AgentBehavior.interactive));
+      expect(AgentBehavior.fromString('unknown'),
+          equals(AgentBehavior.autonomous));
+
+      // Typedef backward compatibility
+      final AgentMode mode = AgentBehavior.interactive;
+      expect(mode, equals(AgentBehavior.interactive));
+    });
+
+    test('AgentBehavior.minimal protoValue is AGENT_BEHAVIOR_MINIMAL', () {
+      expect(
+        AgentBehavior.minimal.protoValue,
+        equals('AGENT_BEHAVIOR_MINIMAL'),
+      );
+    });
+
+    test('AgentBehavior.fromString parses minimal', () {
+      expect(
+          AgentBehavior.fromString('minimal'), equals(AgentBehavior.minimal));
+    });
+  });
+
+  group('ToolExecutionException', () {
     test('ToolExecutionException stores message, toolName, and serverName', () {
       final exc = ToolExecutionException(
         'Tool execution failed',
@@ -1028,6 +1478,88 @@ void main() {
       expect(exc.toString(), contains('server: mcp_server'));
     });
 
+    test('ToolExecutionException stepId property and toString formatting', () {
+      final exDefault = ToolExecutionException('failed', toolName: 'run_cmd');
+      expect(exDefault.stepId, isNull);
+      expect(exDefault.toString(),
+          equals('ToolExecutionException: failed (tool: run_cmd)'));
+
+      final ex = ToolExecutionException(
+        'query failed',
+        toolName: 'mcp_tool',
+        serverName: 'mcp_server',
+        callId: 'call_123',
+        stepId: 'step_456',
+      );
+      expect(ex.stepId, equals('step_456'));
+      expect(
+        ex.toString(),
+        equals(
+            'ToolExecutionException: query failed (tool: mcp_tool, server: mcp_server, callId: call_123, stepId: step_456)'),
+      );
+    });
+  });
+
+  group('Tool call correlation IDs', () {
+    test('ToolCall, ToolResult, and ToolExecutionException carry callId', () {
+      final tc = ToolCall(name: 'run_command', callId: 'call_123');
+      expect(tc.callId, equals('call_123'));
+      expect(tc.effectiveCallId, equals('call_123'));
+
+      final tr =
+          ToolResult(name: 'run_command', callId: 'call_123', result: 'ok');
+      expect(tr.callId, equals('call_123'));
+      expect(tr.effectiveCallId, equals('call_123'));
+
+      final ex = ToolExecutionException(
+        'Failed',
+        toolName: 'run_command',
+        serverName: 'mcp_server',
+        callId: 'call_123',
+      );
+      expect(ex.callId, equals('call_123'));
+      expect(ex.toString(), contains('callId: call_123'));
+    });
+
+    test('ToolCall and ToolResult support stepId correlation', () {
+      final tcDefault = ToolCall(name: 'run_command');
+      expect(tcDefault.stepId, isNull);
+
+      final tc = ToolCall(
+        name: 'run_command',
+        id: 'call_1',
+        callId: 'call_1',
+        stepId: 'traj-1:5',
+      );
+      expect(tc.stepId, equals('traj-1:5'));
+      expect(tc.toMap()['step_id'], equals('traj-1:5'));
+
+      final tcFromMap = ToolCall.fromMap({
+        'name': 'run_command',
+        'step_id': 'traj-1:5',
+      });
+      expect(tcFromMap.stepId, equals('traj-1:5'));
+
+      final trDefault = ToolResult(name: 'run_command');
+      expect(trDefault.stepId, isNull);
+
+      final tr = ToolResult(
+        name: 'run_command',
+        stepId: 'traj-1:3',
+        result: 'ok',
+      );
+      expect(tr.stepId, equals('traj-1:3'));
+      expect(tr.toMap()['step_id'], equals('traj-1:3'));
+
+      final trFromMap = ToolResult.fromMap({
+        'name': 'run_command',
+        'step_id': 'traj-1:3',
+      });
+      expect(trFromMap.stepId, equals('traj-1:3'));
+    });
+  });
+
+  group('Prompt validation and sanitization', () {
     test('prompt sanitization strips null bytes and control chars correctly',
         () {
       final sanitized =
@@ -1042,9 +1574,30 @@ void main() {
       expect(
           LocalConnection.sanitizePromptForTest('\x00\x07\x1f'), equals(' '));
     });
+
+    test(
+        'Conversation.validatePrompt throws AntigravityValidationException on empty or null prompts',
+        () {
+      expect(
+        () => Conversation.validatePrompt('   '),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => Conversation.validatePrompt(null),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => Conversation.validatePrompt([]),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => Conversation.validatePrompt(['  ']),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+    });
   });
 
-  group('v0.7.0 updates', () {
+  group('Retry configs', () {
     test('RetryConfig.benchmark creates benchmark configuration preset', () {
       final config = RetryConfig.benchmark();
       expect(config.apiRetry, isNotNull);
@@ -1106,65 +1659,13 @@ void main() {
       final valid = ModelOutputRetryConfig(maxRetries: 3);
       expect(valid.maxRetries, equals(3));
     });
+  });
 
+  group('DebugConfig', () {
     test('DebugConfig default construction enables server-side tracing', () {
       final debug = DebugConfig();
       expect(debug.enableServerSideTracing, isTrue);
       expect(debug.loggingLevel, equals('FINE'));
-    });
-
-    test('Audio accepts extended MIME types introduced in v0.1.9', () {
-      final mimes = [
-        'audio/wav',
-        'audio/x-wav',
-        'audio/wave',
-        'audio/vnd.wave',
-        'audio/mp3',
-        'audio/mp4',
-        'audio/webm',
-        'audio/aac',
-        'audio/ogg',
-        'audio/flac',
-        'audio/opus',
-        'audio/mpeg',
-        'audio/m4a',
-        'audio/l16',
-      ];
-      for (final mime in mimes) {
-        final audio =
-            Audio(data: [1, 2, 3], mimeType: mime, description: 'sample audio');
-        expect(audio.mimeType, equals(mime));
-      }
-    });
-
-    test(
-        'LocalOpenAIAgentConfig and LiteRTAgentConfig forward retryConfig and debugConfig',
-        () {
-      final retry = RetryConfig.benchmark();
-      final debug = DebugConfig(loggingLevel: 'INFO');
-
-      final openAiConfig = LocalOpenAIAgentConfig(
-        baseUrl: 'http://localhost:11434/v1',
-        model: 'gemma:2b',
-        retryConfig: retry,
-        debugConfig: debug,
-      );
-      final openAiStrategy = openAiConfig.createStrategy(
-        toolRunner: ToolRunner(tools: []),
-        hookRunner: HookRunner(),
-      );
-      expect(openAiStrategy.debugConfig, equals(debug));
-
-      final liteRtConfig = LiteRTAgentConfig(
-        modelPath: '/path/to/model.litertlm',
-        retryConfig: retry,
-        debugConfig: debug,
-      );
-      final liteRtStrategy = liteRtConfig.createStrategy(
-        toolRunner: ToolRunner(tools: []),
-        hookRunner: HookRunner(),
-      );
-      expect(liteRtStrategy.debugConfig, equals(debug));
     });
 
     test(
@@ -1203,268 +1704,37 @@ void main() {
       final fromJson = DebugConfig.fromJson(jsonStr);
       expect(fromJson.level, equals(Level.INFO));
     });
-
-    test(
-        'Conversation.validatePrompt throws AntigravityValidationException on empty or null prompts',
-        () {
-      expect(
-        () => Conversation.validatePrompt('   '),
-        throwsA(isA<AntigravityValidationException>()),
-      );
-      expect(
-        () => Conversation.validatePrompt(null),
-        throwsA(isA<AntigravityValidationException>()),
-      );
-      expect(
-        () => Conversation.validatePrompt([]),
-        throwsA(isA<AntigravityValidationException>()),
-      );
-      expect(
-        () => Conversation.validatePrompt(['  ']),
-        throwsA(isA<AntigravityValidationException>()),
-      );
-    });
-
-    test('McpServerConfig supports Duration and Uri parameters', () {
-      final stdio = McpStdioServer(
-        name: 'test-stdio',
-        command: 'npx',
-        serverTimeout: const Duration(seconds: 15),
-      );
-      expect(stdio.timeoutSeconds, equals(15));
-      expect(stdio.serverTimeout, equals(const Duration(seconds: 15)));
-
-      final http = McpStreamableHttpServer.fromUri(
-        name: 'test-http',
-        uri: Uri.parse('http://localhost:8080/mcp'),
-      );
-      expect(http.url, equals('http://localhost:8080/mcp'));
-      expect(http.uri, equals(Uri.parse('http://localhost:8080/mcp')));
-    });
-
-    test('MediaContent exposes Uint8List bytes getter', () {
-      final audio = Audio(
-        mimeType: 'audio/wav',
-        description: 'sample',
-        data: [1, 2, 3, 4],
-      );
-      expect(audio.bytes, isA<TypedData>());
-      expect(audio.bytes, equals([1, 2, 3, 4]));
-    });
-
-    test('Step extension getters evaluate turns and statuses accurately', () {
-      final step = Step(
-        id: '1',
-        stepIndex: 1,
-        type: StepType.textResponse,
-        source: StepSource.user,
-        target: StepTarget.environment,
-        status: StepStatus.done,
-      );
-      expect(step.isUserTurn, isTrue);
-      expect(step.isModelTurn, isFalse);
-      expect(step.isFinished, isTrue);
-    });
-
-    test('ModelEndpoint exposes baseUri getter', () {
-      final endpoint = GeminiAPIEndpoint(
-          baseUrl: 'https://generativelanguage.googleapis.com');
-      expect(endpoint.baseUri,
-          equals(Uri.parse('https://generativelanguage.googleapis.com')));
-    });
   });
 
-  group('v0.8.0 updates', () {
-    test('ServiceTier enum values and GeminiModelOptions support', () {
-      expect(ServiceTier.standard.value, equals('standard'));
-      expect(ServiceTier.priority.value, equals('priority'));
-      expect(ServiceTier.flex.value, equals('flex'));
-      expect(ServiceTier.fromString('priority'), equals(ServiceTier.priority));
-      expect(ServiceTier.fromString('unknown'), equals(ServiceTier.standard));
-
-      final options = GeminiModelOptions(
-        thinkingLevel: ThinkingLevel.high,
-        serviceTier: ServiceTier.priority,
-      );
-      expect(options.serviceTier, equals(ServiceTier.priority));
-    });
-
-    test('AgentMode enum values, protoValue, and capabilities defaults', () {
-      expect(AgentMode.autonomous.value, equals('autonomous'));
-      expect(AgentMode.interactive.value, equals('interactive'));
-      expect(
-          AgentMode.autonomous.protoValue, equals('AGENT_BEHAVIOR_AUTONOMOUS'));
-      expect(AgentMode.interactive.protoValue,
-          equals('AGENT_BEHAVIOR_INTERACTIVE'));
-
-      final caps = CapabilitiesConfig();
-      expect(caps.agentMode, equals(AgentMode.autonomous));
-
-      final subCaps = SubagentCapabilities(agentMode: AgentMode.interactive);
-      expect(subCaps.agentMode, equals(AgentMode.interactive));
-
-      // Constructing CapabilitiesConfig with askQuestion in non-interactive mode triggers warning without throwing
-      final warnCaps = CapabilitiesConfig(
-        enabledTools: [BuiltinTools.askQuestion],
-        agentMode: AgentMode.autonomous,
-      );
-      expect(warnCaps.agentMode, equals(AgentMode.autonomous));
-
-      final warnSubCaps = SubagentCapabilities(
-        enabledTools: [BuiltinTools.askQuestion],
-        agentMode: AgentMode.autonomous,
-      );
-      expect(warnSubCaps.agentMode, equals(AgentMode.autonomous));
-    });
-
-    test('UsageMetadata subtraction operator and serviceTier handling', () {
-      final u1 = UsageMetadata(
-        promptTokenCount: 100,
-        candidatesTokenCount: 50,
-        totalTokenCount: 150,
-        serviceTier: ServiceTier.priority,
-      );
-      final u2 = UsageMetadata(
-        promptTokenCount: 40,
-        candidatesTokenCount: 20,
-        totalTokenCount: 60,
-        serviceTier: ServiceTier.priority,
-      );
-
-      final diff = u1 - u2;
-      expect(diff.promptTokenCount, equals(60));
-      expect(diff.candidatesTokenCount, equals(30));
-      expect(diff.totalTokenCount, equals(90));
-      expect(diff.serviceTier, equals(ServiceTier.priority));
-
-      final sum = u1 + u2;
-      expect(sum.totalTokenCount, equals(210));
-      expect(sum.serviceTier, equals(ServiceTier.priority));
-    });
-
-    test('ToolCall, ToolResult, and ToolExecutionException carry callId', () {
-      final tc = ToolCall(name: 'run_command', callId: 'call_123');
-      expect(tc.callId, equals('call_123'));
-      expect(tc.effectiveCallId, equals('call_123'));
-
-      final tr =
-          ToolResult(name: 'run_command', callId: 'call_123', result: 'ok');
-      expect(tr.callId, equals('call_123'));
-      expect(tr.effectiveCallId, equals('call_123'));
-
-      final ex = ToolExecutionException(
-        'Failed',
-        toolName: 'run_command',
-        serverName: 'mcp_server',
-        callId: 'call_123',
-      );
-      expect(ex.callId, equals('call_123'));
-      expect(ex.toString(), contains('callId: call_123'));
-    });
-  });
-
-  group('v0.9.0 updates', () {
-    test('defaultModel is updated to gemini-3.8-flash', () {
-      expect(defaultModel, equals('gemini-3.8-flash'));
-    });
-
-    test('AgentBehavior enum values and protoValue mapping', () {
-      expect(AgentBehavior.autonomous.value, equals('autonomous'));
-      expect(AgentBehavior.interactive.value, equals('interactive'));
-      expect(AgentBehavior.autonomous.protoValue,
-          equals('AGENT_BEHAVIOR_AUTONOMOUS'));
-      expect(AgentBehavior.interactive.protoValue,
-          equals('AGENT_BEHAVIOR_INTERACTIVE'));
-      expect(AgentBehavior.fromString('interactive'),
-          equals(AgentBehavior.interactive));
-      expect(AgentBehavior.fromString('unknown'),
-          equals(AgentBehavior.autonomous));
-
-      // Typedef backward compatibility
-      final AgentMode mode = AgentBehavior.interactive;
-      expect(mode, equals(AgentBehavior.interactive));
-    });
-
+  group('Local agent config variants', () {
     test(
-        'CapabilitiesConfig supports agentBehavior, maxSubagentDepth, and allowedSubagents',
+        'LocalOpenAIAgentConfig and LiteRTAgentConfig forward retryConfig and debugConfig',
         () {
-      final caps = CapabilitiesConfig(
-        agentBehavior: AgentBehavior.interactive,
-        maxSubagentDepth: 3,
-        allowedSubagents: ['helper', 'reviewer'],
-      );
-      expect(caps.agentBehavior, equals(AgentBehavior.interactive));
-      expect(caps.agentMode, equals(AgentBehavior.interactive));
-      expect(caps.maxSubagentDepth, equals(3));
-      expect(caps.allowedSubagents, equals(['helper', 'reviewer']));
+      final retry = RetryConfig.benchmark();
+      final debug = DebugConfig(loggingLevel: 'INFO');
 
-      // Legacy agentMode parameter constructor support
-      final legacyCaps = CapabilitiesConfig(
-        agentMode: AgentBehavior.interactive,
+      final openAiConfig = LocalOpenAIAgentConfig(
+        baseUrl: 'http://localhost:11434/v1',
+        model: 'gemma:2b',
+        retryConfig: retry,
+        debugConfig: debug,
       );
-      expect(legacyCaps.agentBehavior, equals(AgentBehavior.interactive));
-      expect(legacyCaps.agentMode, equals(AgentBehavior.interactive));
-    });
+      final openAiStrategy = openAiConfig.createStrategy(
+        toolRunner: ToolRunner(tools: []),
+        hookRunner: HookRunner(),
+      );
+      expect(openAiStrategy.debugConfig, equals(debug));
 
-    test(
-        'CapabilitiesConfig validation for maxSubagentDepth and disabled subagents',
-        () {
-      expect(
-        () => CapabilitiesConfig(maxSubagentDepth: 0),
-        throwsA(isA<AntigravityValidationException>()),
+      final liteRtConfig = LiteRTAgentConfig(
+        modelPath: '/path/to/model.litertlm',
+        retryConfig: retry,
+        debugConfig: debug,
       );
-
-      // Subagents disabled via enableSubagents=false
-      expect(
-        () => CapabilitiesConfig(
-          enableSubagents: false,
-          maxSubagentDepth: 2,
-        ),
-        throwsA(isA<AntigravityValidationException>()),
+      final liteRtStrategy = liteRtConfig.createStrategy(
+        toolRunner: ToolRunner(tools: []),
+        hookRunner: HookRunner(),
       );
-      expect(
-        () => CapabilitiesConfig(
-          enableSubagents: false,
-          allowedSubagents: ['worker'],
-        ),
-        throwsA(isA<AntigravityValidationException>()),
-      );
-
-      // Subagents disabled via disabledTools containing startSubagent
-      expect(
-        () => CapabilitiesConfig(
-          disabledTools: [BuiltinTools.startSubagent, BuiltinTools.runWorkflow],
-          maxSubagentDepth: 2,
-        ),
-        throwsA(isA<AntigravityValidationException>()),
-      );
-
-      // Subagents disabled via enabledTools excluding startSubagent
-      expect(
-        () => CapabilitiesConfig(
-          enabledTools: [BuiltinTools.viewFile],
-          maxSubagentDepth: 2,
-        ),
-        throwsA(isA<AntigravityValidationException>()),
-      );
-    });
-
-    test('SubagentCapabilities supports agentBehavior and allowedSubagents',
-        () {
-      final subCaps = SubagentCapabilities(
-        agentBehavior: AgentBehavior.interactive,
-        allowedSubagents: ['nested_worker'],
-      );
-      expect(subCaps.agentBehavior, equals(AgentBehavior.interactive));
-      expect(subCaps.agentMode, equals(AgentBehavior.interactive));
-      expect(subCaps.allowedSubagents, equals(['nested_worker']));
-
-      // Legacy agentMode parameter support
-      final legacySubCaps = SubagentCapabilities(
-        agentMode: AgentBehavior.interactive,
-      );
-      expect(legacySubCaps.agentBehavior, equals(AgentBehavior.interactive));
-      expect(legacySubCaps.agentMode, equals(AgentBehavior.interactive));
+      expect(liteRtStrategy.debugConfig, equals(debug));
     });
 
     test(
@@ -1515,7 +1785,80 @@ void main() {
         throwsA(isA<AntigravityValidationException>()),
       );
     });
+  });
 
+  group('McpServerConfig', () {
+    test('McpServerConfig supports Duration and Uri parameters', () {
+      final stdio = McpStdioServer(
+        name: 'test-stdio',
+        command: 'npx',
+        serverTimeout: const Duration(seconds: 15),
+      );
+      expect(stdio.timeoutSeconds, equals(15));
+      expect(stdio.serverTimeout, equals(const Duration(seconds: 15)));
+
+      final http = McpStreamableHttpServer.fromUri(
+        name: 'test-http',
+        uri: Uri.parse('http://localhost:8080/mcp'),
+      );
+      expect(http.url, equals('http://localhost:8080/mcp'));
+      expect(http.uri, equals(Uri.parse('http://localhost:8080/mcp')));
+    });
+  });
+
+  group('MediaContent', () {
+    test('Audio accepts extended MIME types', () {
+      final mimes = [
+        'audio/wav',
+        'audio/x-wav',
+        'audio/wave',
+        'audio/vnd.wave',
+        'audio/mp3',
+        'audio/mp4',
+        'audio/webm',
+        'audio/aac',
+        'audio/ogg',
+        'audio/flac',
+        'audio/opus',
+        'audio/mpeg',
+        'audio/m4a',
+        'audio/l16',
+      ];
+      for (final mime in mimes) {
+        final audio =
+            Audio(data: [1, 2, 3], mimeType: mime, description: 'sample audio');
+        expect(audio.mimeType, equals(mime));
+      }
+    });
+
+    test('MediaContent exposes Uint8List bytes getter', () {
+      final audio = Audio(
+        mimeType: 'audio/wav',
+        description: 'sample',
+        data: [1, 2, 3, 4],
+      );
+      expect(audio.bytes, isA<TypedData>());
+      expect(audio.bytes, equals([1, 2, 3, 4]));
+    });
+  });
+
+  group('Step extensions', () {
+    test('Step extension getters evaluate turns and statuses accurately', () {
+      final step = Step(
+        id: '1',
+        stepIndex: 1,
+        type: StepType.textResponse,
+        source: StepSource.user,
+        target: StepTarget.environment,
+        status: StepStatus.done,
+      );
+      expect(step.isUserTurn, isTrue);
+      expect(step.isModelTurn, isFalse);
+      expect(step.isFinished, isTrue);
+    });
+  });
+
+  group('BudgetConfig', () {
     test('BudgetConfig fields, validation, and JSON serialization', () {
       final budget = BudgetConfig(
         maxModelCalls: 5,
@@ -1554,6 +1897,34 @@ void main() {
           throwsA(isA<AntigravityValidationException>()));
     });
 
+    test('BudgetScope.lifetime has protoValue BUDGET_SCOPE_LIFETIME', () {
+      expect(BudgetScope.lifetime.protoValue, equals('BUDGET_SCOPE_LIFETIME'));
+    });
+
+    test(
+        'BudgetScope.forwardLooking has protoValue BUDGET_SCOPE_FORWARD_LOOKING',
+        () {
+      expect(
+        BudgetScope.forwardLooking.protoValue,
+        equals('BUDGET_SCOPE_FORWARD_LOOKING'),
+      );
+    });
+
+    test('BudgetScope serializes to its bare value in BudgetConfig maps', () {
+      // toMap() is the SDK-facing representation and stays unprefixed; only
+      // the wire proto carries the BUDGET_SCOPE_ prefix.
+      expect(
+        BudgetConfig(maxTotalTokens: 10).toMap()['scope'],
+        equals('LIFETIME'),
+      );
+    });
+
+    test('BudgetConfig.scope defaults to lifetime', () {
+      expect(BudgetConfig().scope, equals(BudgetScope.lifetime));
+    });
+  });
+
+  group('StopReason', () {
     test('StopReason enum values and wire string parsing with proto prefixes',
         () {
       expect(StopReason.unspecified.value, equals('UNSPECIFIED'));
@@ -1601,75 +1972,9 @@ void main() {
       expect(
           StopReason.fromString('UNKNOWN_VAL'), equals(StopReason.unspecified));
     });
+  });
 
-    test(
-        'SubagentCapabilities throws when allowedSubagents is set with startSubagent disabled',
-        () {
-      expect(
-        () => SubagentCapabilities(
-          enabledTools: [BuiltinTools.viewFile], // startSubagent not enabled
-          allowedSubagents: ['child_worker'],
-        ),
-        throwsA(isA<AntigravityValidationException>()),
-      );
-
-      expect(
-        () => SubagentCapabilities(
-          disabledTools: [BuiltinTools.startSubagent, BuiltinTools.runWorkflow],
-          allowedSubagents: ['child_worker'],
-        ),
-        throwsA(isA<AntigravityValidationException>()),
-      );
-
-      // Allowed when startSubagent is included
-      final valid = SubagentCapabilities(
-        enabledTools: [BuiltinTools.startSubagent, BuiltinTools.viewFile],
-        allowedSubagents: ['child_worker'],
-      );
-      expect(valid.allowedSubagents, equals(['child_worker']));
-    });
-
-    test('VertexEndpoint Express Mode and Standard Mode exclusivity validation',
-        () {
-      // Valid Express Mode
-      final expressEndpoint = VertexEndpoint(apiKey: 'express_key_123');
-      expect(expressEndpoint.apiKey, equals('express_key_123'));
-      expect(expressEndpoint.project, isNull);
-      expect(expressEndpoint.location, isNull);
-      expressEndpoint.validateEndpoint(); // Should not throw
-
-      // Valid Standard Mode
-      final standardEndpoint = VertexEndpoint(
-        project: 'my-project',
-        location: 'us-central1',
-      );
-      expect(standardEndpoint.project, equals('my-project'));
-      expect(standardEndpoint.location, equals('us-central1'));
-      expect(standardEndpoint.apiKey, isNull);
-      standardEndpoint.validateEndpoint(); // Should not throw
-
-      // Mutual exclusivity error
-      final conflictEndpoint = VertexEndpoint(
-        apiKey: 'express_key',
-        project: 'my-project',
-        location: 'us-central1',
-      );
-      expect(
-        () => conflictEndpoint.validateEndpoint(),
-        throwsA(isA<AntigravityValidationException>()),
-      );
-
-      // Missing credentials error (when env vars empty)
-      final emptyEndpoint =
-          VertexEndpoint(project: null, location: null, apiKey: null);
-      if (Platform.environment['GOOGLE_CLOUD_PROJECT'] == null) {
-        expect(
-          () => emptyEndpoint.validateEndpoint(),
-          throwsA(isA<AntigravityValidationException>()),
-        );
-      }
-    });
-
+  group('Tool results', () {
     test('GenerateImageResult outputPath and toString behavior', () {
       final withOutput = GenerateImageResult(
         imageName: 'my_chart',
@@ -1692,125 +1997,9 @@ void main() {
       expect(fromMap.aspectRatio, equals('1:1'));
       expect(fromMap.outputPath, equals('/images/sunset.png'));
     });
-
-    test('Step carries parentTrajectoryId and depth, parsed via Step.fromMap',
-        () {
-      final step = Step(
-        id: 'step_1',
-        parentTrajectoryId: 'parent_traj_999',
-        depth: 2,
-      );
-      expect(step.parentTrajectoryId, equals('parent_traj_999'));
-      expect(step.depth, equals(2));
-
-      final parsed = Step.fromMap({
-        'id': 'step_2',
-        'parent_trajectory_id': 'traj_root',
-        'depth': 3,
-      });
-      expect(parsed.parentTrajectoryId, equals('traj_root'));
-      expect(parsed.depth, equals(3));
-    });
-
-    test('Step.fromMap normalizes output_path in tool calls', () {
-      final parsed = Step.fromMap({
-        'id': 'step_img',
-        'tool_calls': [
-          {
-            'name': 'generate_image',
-            'arguments_json': jsonEncode({
-              'prompt': 'A beautiful sunrise',
-              'output_path': 'file:///tmp/generated/image.png',
-            }),
-          }
-        ],
-      });
-      expect(parsed.toolCalls.length, equals(1));
-      expect(parsed.toolCalls.first.canonicalPath,
-          equals('/tmp/generated/image.png'));
-      expect(
-        parsed.toolCalls.first.args['output_path'],
-        equals('/tmp/generated/image.png'),
-      );
-    });
   });
 
-  group('v0.10.0 updates', () {
-    test('ToolCall and ToolResult support stepId correlation', () {
-      final tcDefault = ToolCall(name: 'run_command');
-      expect(tcDefault.stepId, isNull);
-
-      final tc = ToolCall(
-        name: 'run_command',
-        id: 'call_1',
-        callId: 'call_1',
-        stepId: 'traj-1:5',
-      );
-      expect(tc.stepId, equals('traj-1:5'));
-      expect(tc.toMap()['step_id'], equals('traj-1:5'));
-
-      final tcFromMap = ToolCall.fromMap({
-        'name': 'run_command',
-        'step_id': 'traj-1:5',
-      });
-      expect(tcFromMap.stepId, equals('traj-1:5'));
-
-      final trDefault = ToolResult(name: 'run_command');
-      expect(trDefault.stepId, isNull);
-
-      final tr = ToolResult(
-        name: 'run_command',
-        stepId: 'traj-1:3',
-        result: 'ok',
-      );
-      expect(tr.stepId, equals('traj-1:3'));
-      expect(tr.toMap()['step_id'], equals('traj-1:3'));
-
-      final trFromMap = ToolResult.fromMap({
-        'name': 'run_command',
-        'step_id': 'traj-1:3',
-      });
-      expect(trFromMap.stepId, equals('traj-1:3'));
-    });
-
-    test('ToolExecutionException stepId property and toString formatting', () {
-      final exDefault = ToolExecutionException('failed', toolName: 'run_cmd');
-      expect(exDefault.stepId, isNull);
-      expect(exDefault.toString(),
-          equals('ToolExecutionException: failed (tool: run_cmd)'));
-
-      final ex = ToolExecutionException(
-        'query failed',
-        toolName: 'mcp_tool',
-        serverName: 'mcp_server',
-        callId: 'call_123',
-        stepId: 'step_456',
-      );
-      expect(ex.stepId, equals('step_456'));
-      expect(
-        ex.toString(),
-        equals(
-            'ToolExecutionException: query failed (tool: mcp_tool, server: mcp_server, callId: call_123, stepId: step_456)'),
-      );
-    });
-
-    test('HookResult modifiedArgs and copyWith', () {
-      final hrDefault = HookResult();
-      expect(hrDefault.allow, isTrue);
-      expect(hrDefault.modifiedArgs, isNull);
-
-      final hr = HookResult(
-        allow: true,
-        message: 'allowed',
-        modifiedArgs: {'query': 'sanitized'},
-      );
-      expect(hr.modifiedArgs, equals({'query': 'sanitized'}));
-
-      final copied = hr.copyWith(modifiedArgs: {'query': 'overridden'});
-      expect(copied.modifiedArgs, equals({'query': 'overridden'}));
-      expect(copied.message, equals('allowed'));
-    });
-
+  group('RunCommandConfig', () {
     test('RunCommandConfig construction, validation, and serialization', () {
       final def = RunCommandConfig();
       expect(def.enableDaemons, isFalse);
@@ -1847,156 +2036,143 @@ void main() {
         throwsA(isA<AntigravityValidationException>()),
       );
     });
-
-    test('CapabilitiesConfig and SubagentCapabilities support runCommandConfig',
-        () {
-      final caps = CapabilitiesConfig(
-        runCommandConfig: RunCommandConfig(
-          enableDaemons: true,
-          timeoutSeconds: 600.0,
-        ),
-      );
-      expect(caps.runCommandConfig, isNotNull);
-      expect(caps.runCommandConfig!.enableDaemons, isTrue);
-      expect(caps.runCommandConfig!.timeoutSeconds, equals(600.0));
-
-      final subCaps = SubagentCapabilities(
-        runCommandConfig: RunCommandConfig(timeoutSeconds: 30.0),
-      );
-      expect(subCaps.runCommandConfig, isNotNull);
-      expect(subCaps.runCommandConfig!.timeoutSeconds, equals(30.0));
+  });
+  group('BuiltinTools.invokeSubagent', () {
+    test('is the canonical tool and startSubagent is a deprecated alias', () {
+      expect(BuiltinTools.invokeSubagent.value, 'invoke_subagent');
+      expect(BuiltinTools.invokeSubagent.toString(), 'invoke_subagent');
+      // ignore: deprecated_member_use_from_same_package
+      expect(BuiltinTools.startSubagent, same(BuiltinTools.invokeSubagent));
+      expect(BuiltinTools.fromValue('invoke_subagent'),
+          BuiltinTools.invokeSubagent);
+      expect(BuiltinTools.fromValue('start_subagent'),
+          BuiltinTools.invokeSubagent);
+      expect(() => BuiltinTools.fromValue('unknown_tool'), throwsArgumentError);
+      expect(
+          BuiltinTools.nondestructive(), contains(BuiltinTools.invokeSubagent));
     });
 
-    // `Platform.environment` is immutable in-process, so these run a probe
-    // subprocess with GOOGLE_CLOUD_PROJECT / GOOGLE_CLOUD_LOCATION actually
-    // set. Asserting `project == null` in-process would pass whether or not
-    // the base_url guard exists, since CI leaves those vars unset.
-    group('VertexEndpoint ambient environment hydration', () {
-      const probe = 'test/support/vertex_env_probe.dart';
-      const env = {
-        'GOOGLE_CLOUD_PROJECT': 'env-proj',
-        'GOOGLE_CLOUD_LOCATION': 'env-loc',
-      };
+    test('serialized capabilities accept the deprecated start_subagent', () {
+      final enabled = CapabilitiesConfig.fromMap({
+        'enabled_tools': ['start_subagent'],
+      });
+      expect(enabled.enabledTools, [BuiltinTools.invokeSubagent]);
+      final disabled = CapabilitiesConfig.fromMap({
+        'disabled_tools': ['start_subagent', 'run_workflow'],
+      });
+      expect(disabled.disabledTools,
+          [BuiltinTools.invokeSubagent, BuiltinTools.runWorkflow]);
+      expect(disabled.toMap()['disabled_tools'],
+          ['invoke_subagent', 'run_workflow']);
+      final sub = SubagentCapabilities.fromMap({
+        'enabled_tools': ['start_subagent'],
+      });
+      expect(sub.enabledTools, [BuiltinTools.invokeSubagent]);
+    });
 
-      Future<Map<String, dynamic>> runProbe({required bool withBaseUrl}) async {
-        final result = await Process.run(
-          Platform.resolvedExecutable,
-          ['run', probe, if (withBaseUrl) 'with-base-url'],
-          environment: env,
-          workingDirectory: Directory.current.path,
-        );
-        expect(
-          result.exitCode,
-          equals(0),
-          reason: 'probe failed: ${result.stderr}',
-        );
-        return jsonDecode((result.stdout as String).trim())
-            as Map<String, dynamic>;
+    test('ToolCall and ToolResult normalize builtin names but not MCP names',
+        () {
+      expect(ToolCall(name: 'start_subagent').name, 'invoke_subagent');
+      expect(ToolCall(name: 'start_subagent', serverName: 'mcp').name,
+          'start_subagent');
+      expect(ToolResult(name: 'start_subagent').name, 'invoke_subagent');
+      expect(ToolResult(name: 'start_subagent', serverName: 'mcp').name,
+          'start_subagent');
+      expect(
+          ToolCall.fromMap({'name': 'start_subagent'}).name, 'invoke_subagent');
+      expect(ToolCall(name: 'finish').name, 'finish');
+    });
+  });
+
+  group('Step.fromMap builtin tool steps', () {
+    test('localharness invoke_subagent steps keep the SDK tool name', () {
+      final step = Step.fromMap({
+        'trajectory_id': 'traj',
+        'step_index': 2,
+        'invoke_subagent': {'TypeName': 'helper'},
+      });
+      expect(step.type, StepType.toolCall);
+      expect(step.toolCalls.single.name, BuiltinTools.invokeSubagent.value);
+    });
+
+    test('a localharness skill_lookup step is a tool call', () {
+      final step = Step.fromMap({
+        'trajectory_id': 'traj_123',
+        'step_index': 3,
+        'source': 'SOURCE_MODEL',
+        'state': 'STATE_DONE',
+        'target': 'TARGET_ENVIRONMENT',
+        'text': 'Lookup profile threat landscape skill',
+        'skill_lookup': {
+          'operation': 'OPERATION_LOOKUP_SKILLS',
+          'requested_skill_names': ['profile-threat-landscape'],
+          'resolved_skill_names': ['profile-threat-landscape'],
+        },
+      });
+      expect(step.type, StepType.toolCall);
+      expect(step.status, StepStatus.done);
+      expect(step.error, '');
+      expect(step.isCompleteResponse, isFalse);
+      expect(step.toolCalls.single.name, 'skill_lookup');
+      expect(step.toolCalls.single.args, {
+        'operation': 'OPERATION_LOOKUP_SKILLS',
+        'requested_skill_names': ['profile-threat-landscape'],
+        'resolved_skill_names': ['profile-threat-landscape'],
+      });
+      expect(step.toolCalls.single.id, 'traj_123:3');
+    });
+
+    test('a failed skill_lookup step keeps its error', () {
+      final step = Step.fromMap({
+        'trajectory_id': 'traj_123',
+        'step_index': 4,
+        'source': 'SOURCE_MODEL',
+        'state': 'STATE_ERROR',
+        'target': 'TARGET_ENVIRONMENT',
+        'text': 'Get skill resources',
+        'error_message': "Skill 'alpha' not found",
+        'skill_lookup': {
+          'operation': 'OPERATION_GET_SKILL_RESOURCES',
+          'requested_skill_names': ['alpha'],
+          'error_message': "Skill 'alpha' not found",
+        },
+      });
+      expect(step.type, StepType.toolCall);
+      expect(step.status, StepStatus.error);
+      expect(step.isCompleteResponse, isFalse);
+      expect(step.toolCalls.single.name, 'skill_lookup');
+      expect(step.error, "Skill 'alpha' not found");
+    });
+  });
+
+  group('GeminiModelOptions.maxOutputTokens', () {
+    test('validates bounds', () {
+      expect(GeminiModelOptions().maxOutputTokens, isNull);
+      expect(
+          GeminiModelOptions(maxOutputTokens: 262144).maxOutputTokens, 262144);
+      for (final invalid in [0, -1, 2147483648]) {
+        expect(() => GeminiModelOptions(maxOutputTokens: invalid),
+            throwsA(isA<AntigravityValidationException>()));
       }
-
-      test('hydrates project and location from the environment when no baseUrl',
-          () async {
-        final out = await runProbe(withBaseUrl: false);
-        expect(out['baseUrl'], isNull);
-        expect(out['project'], equals('env-proj'));
-        expect(out['location'], equals('env-loc'));
-      }, timeout: const Timeout(Duration(minutes: 2)));
-
-      test('skips environment hydration when a custom baseUrl is set',
-          () async {
-        final out = await runProbe(withBaseUrl: true);
-        expect(out['baseUrl'], equals('http://localhost:8080'));
-        expect(out['project'], isNull);
-        expect(out['location'], isNull);
-      }, timeout: const Timeout(Duration(minutes: 2)));
-
-      test('baseUrl endpoint validates without project or location', () {
-        final ep = VertexEndpoint(baseUrl: 'http://localhost:8080');
-        expect(ep.baseUrl, equals('http://localhost:8080'));
-        expect(ep.apiKey, isNull);
-        ep.validateEndpoint(); // Should not throw
-      });
     });
   });
 
-  group('v0.14.0 updates', () {
-    test('BudgetScope.lifetime has protoValue BUDGET_SCOPE_LIFETIME', () {
-      expect(BudgetScope.lifetime.protoValue, equals('BUDGET_SCOPE_LIFETIME'));
+  group('CapabilitiesConfig.mcpMaxOutputBytes', () {
+    test('validates bounds and defaults to null', () {
+      expect(CapabilitiesConfig().mcpMaxOutputBytes, isNull);
+      expect(CapabilitiesConfig(mcpMaxOutputBytes: 65536).mcpMaxOutputBytes,
+          65536);
+      for (final invalid in [0, -1, 2147483648]) {
+        expect(() => CapabilitiesConfig(mcpMaxOutputBytes: invalid),
+            throwsA(isA<AntigravityValidationException>()));
+      }
     });
 
-    test(
-        'BudgetScope.forwardLooking has protoValue BUDGET_SCOPE_FORWARD_LOOKING',
-        () {
+    test('serializes as mcp_max_output_bytes', () {
       expect(
-        BudgetScope.forwardLooking.protoValue,
-        equals('BUDGET_SCOPE_FORWARD_LOOKING'),
-      );
-    });
-
-    test('BudgetScope serializes to its bare value in BudgetConfig maps', () {
-      // toMap() is the SDK-facing representation and stays unprefixed; only
-      // the wire proto carries the BUDGET_SCOPE_ prefix.
-      expect(
-        BudgetConfig(maxTotalTokens: 10).toMap()['scope'],
-        equals('LIFETIME'),
-      );
-    });
-
-    test('BudgetConfig.scope defaults to lifetime', () {
-      expect(BudgetConfig().scope, equals(BudgetScope.lifetime));
-    });
-
-    test('BuiltinTools.minimal() returns the expected tools', () {
-      expect(
-        BuiltinTools.minimal(),
-        equals([
-          BuiltinTools.runCommand,
-          BuiltinTools.viewFile,
-          BuiltinTools.createFile,
-          BuiltinTools.editFile,
-        ]),
-      );
-    });
-
-    test('AgentBehavior.minimal protoValue is AGENT_BEHAVIOR_MINIMAL', () {
-      expect(
-        AgentBehavior.minimal.protoValue,
-        equals('AGENT_BEHAVIOR_MINIMAL'),
-      );
-    });
-
-    test('AgentBehavior.fromString parses minimal', () {
-      expect(
-          AgentBehavior.fromString('minimal'), equals(AgentBehavior.minimal));
-    });
-  });
-
-  group('v0.15.0 updates', () {
-    test('BuiltinTools.deprecated() is the directory tools disabled by default',
-        () {
-      expect(
-        BuiltinTools.deprecated(),
-        equals([
-          BuiltinTools.listDirectory,
-          BuiltinTools.searchDirectory,
-          BuiltinTools.findFile,
-        ]),
-      );
-    });
-
-    test('SubagentConfig.model serializes as a name-only wire field', () {
-      final subagent = SubagentConfig(
-        name: 'researcher',
-        description: 'Looks things up.',
-        model: 'gemini-2.5-pro',
-      );
-      expect(subagent.toMap()['model'], equals('gemini-2.5-pro'));
-      final parsed = SubagentConfig.fromMap({
-        'name': 'researcher',
-        'description': 'Looks things up.',
-        'model': 'gemini-2.5-pro',
-      });
-      expect(parsed.model, equals('gemini-2.5-pro'));
+          CapabilitiesConfig(mcpMaxOutputBytes: 65536)
+              .toMap()['mcp_max_output_bytes'],
+          65536);
     });
   });
 }

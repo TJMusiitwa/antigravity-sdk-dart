@@ -618,7 +618,7 @@ void main() {
     });
   });
 
-  group('v0.1.18 schedule, subagent model, and policy wire', () {
+  group('schedule, subagent model, and policy wire', () {
     test('default tools enable schedule and pair manage_task', () {
       final tools = buildStrategy()
           .buildHarnessConfigForTest()['harness_side_tools'] as Map;
@@ -844,6 +844,152 @@ void main() {
           .eval(thinkingLevel: null);
       expect(kept.capabilities.enableSubagents, isFalse);
     });
+  });
+
+  group('model options and capability limits', () {
+    Map<String, dynamic> wire({
+      CapabilitiesConfig? capabilities,
+      List<ModelTarget>? models,
+      List<SubagentConfig> subagents = const [],
+    }) =>
+        LocalConnectionStrategy(
+          toolRunner: ToolRunner(),
+          hookRunner: HookRunner(),
+          systemInstructions: null,
+          capabilitiesConfig: capabilities ?? CapabilitiesConfig(),
+          workspaces: const [],
+          skillsPaths: const [],
+          models: models,
+          subagents: subagents,
+        ).buildHarnessConfigForTest();
+
+    test('invokeSubagent enables harness subagents', () {
+      expect(
+        () => CapabilitiesConfig(
+          disabledTools: [
+            BuiltinTools.invokeSubagent,
+            BuiltinTools.runWorkflow
+          ],
+          maxSubagentDepth: 2,
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      final config = wire(
+        capabilities:
+            CapabilitiesConfig(enabledTools: [BuiltinTools.invokeSubagent]),
+      );
+      expect(config['harness_side_tools']['subagents']['enabled'], isTrue);
+    });
+
+    test('maps to max_output_tokens on Gemini and Vertex endpoints', () {
+      final config = wire(models: [
+        ModelTarget(
+          name: defaultModel,
+          types: [ModelType.text],
+          endpoint: GeminiAPIEndpoint(
+            apiKey: 'k',
+            options: GeminiModelOptions(maxOutputTokens: 262144),
+          ),
+        ),
+        ModelTarget(
+          name: 'vertex-model',
+          types: [ModelType.text],
+          endpoint: VertexEndpoint(
+            project: 'test-project',
+            location: 'us-central1',
+            options: GeminiModelOptions(maxOutputTokens: 262144),
+          ),
+        ),
+      ]);
+      final models = config['models'] as List;
+      expect(models[0]['gemini_api_endpoint']['options'],
+          {'max_output_tokens': 262144});
+      expect(models[1]['vertex_endpoint']['options'],
+          {'max_output_tokens': 262144});
+    });
+
+    test('null leaves the options message unset', () {
+      final config = wire(models: [
+        ModelTarget(
+          name: defaultModel,
+          types: [ModelType.text],
+          endpoint: GeminiAPIEndpoint(
+            apiKey: 'k',
+            options: GeminiModelOptions(maxOutputTokens: null),
+          ),
+        ),
+      ]);
+      expect(
+          (config['models'] as List)[0]['gemini_api_endpoint']
+              .containsKey('options'),
+          isFalse);
+    });
+
+    test('eval() keeps maxOutputTokens when applying thinkingLevel', () {
+      final config = LocalAgentConfig(
+        apiKey: 'k',
+        models: [
+          ModelTarget(
+            name: defaultModel,
+            types: [ModelType.text],
+            endpoint: GeminiAPIEndpoint(
+              apiKey: 'k',
+              options: GeminiModelOptions(maxOutputTokens: 100000),
+            ),
+          ),
+        ],
+      ).eval(thinkingLevel: ThinkingLevel.high);
+      final endpoint = config.models!.first.endpoint as GeminiAPIEndpoint;
+      expect(endpoint.options!.maxOutputTokens, 100000);
+      expect(endpoint.options!.thinkingLevel, ThinkingLevel.high);
+    });
+
+    test('mcp_max_output_bytes is sent only when set', () {
+      expect(
+          wire(capabilities: CapabilitiesConfig(mcpMaxOutputBytes: 65536))[
+              'mcp_max_output_bytes'],
+          65536);
+      expect(wire().containsKey('mcp_max_output_bytes'), isFalse);
+    });
+
+    test('lightweight() keeps the caller value', () {
+      final config = LocalAgentConfig(
+        apiKey: 'k',
+        capabilities: CapabilitiesConfig(mcpMaxOutputBytes: 65536),
+      ).lightweight();
+      expect(config.capabilities.mcpMaxOutputBytes, 65536);
+    });
+  });
+
+  test('workflow tools keep delegation enabled and obey subagent denylist', () {
+    expect(
+        CapabilitiesConfig(
+                enabledTools: [BuiltinTools.runWorkflow], maxSubagentDepth: 2)
+            .maxSubagentDepth,
+        2);
+    expect(
+        SubagentCapabilities(
+            disabledTools: [BuiltinTools.invokeSubagent],
+            allowedSubagents: ['worker']).allowedSubagents,
+        ['worker']);
+    final config = buildStrategy(subagents: [
+      SubagentConfig(
+          name: 'worker',
+          description: 'Work',
+          capabilities: SubagentCapabilities(disabledTools: [
+            BuiltinTools.runWorkflow,
+            BuiltinTools.runCommand
+          ]))
+    ]).buildHarnessConfigForTest();
+    expect(config['harness_side_tools']['run_workflow']['enabled'], isTrue);
+    expect(
+        config['custom_subagents'][0]['harness_side_tools']['run_workflow']
+            ['enabled'],
+        isFalse);
+    expect(
+        config['custom_subagents'][0]['harness_side_tools']['run_command']
+            ['enabled'],
+        isFalse);
   });
 }
 

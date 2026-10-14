@@ -165,6 +165,44 @@ class _Interaction extends OnInteractionHook {
   }
 }
 
+class _CapturePreTool extends PreToolCallDecideHook {
+  final List<ToolCall> calls;
+  _CapturePreTool(this.calls);
+  @override
+  Future<HookResult> run(HookContext context, ToolCall data) async {
+    calls.add(data);
+    return HookResult(allow: true);
+  }
+}
+
+class _CapturePostTool extends PostToolCallHook {
+  final List<ToolResult> results;
+  _CapturePostTool(this.results);
+  @override
+  Future<void> run(HookContext context, ToolResult data) async =>
+      results.add(data);
+}
+
+class _CaptureToolError extends OnToolErrorHook {
+  final List<ToolExecutionException> errors;
+  _CaptureToolError(this.errors);
+  @override
+  Future<dynamic> run(HookContext context, Exception data) async {
+    errors.add(data as ToolExecutionException);
+    return null;
+  }
+}
+
+class _CapturePreTurn extends PreTurnHook {
+  final List<ContentPrimitive> inputs;
+  _CapturePreTurn(this.inputs);
+  @override
+  Future<HookResult> run(HookContext context, ContentPrimitive data) async {
+    inputs.add(data);
+    return HookResult(allow: true);
+  }
+}
+
 Map<String, dynamic> _hookRequest(String id, String type,
         [Map<String, dynamic> extra = const {}]) =>
     {
@@ -419,9 +457,8 @@ void main() {
       'request_id': 'req-compact',
       'empty_result': {},
     });
-    final compaction = steps.singleWhere((s) => s.type == StepType.compaction);
-    expect(compaction.content, 'Compacted summary');
-    expect(compaction.id, 'root-1:5');
+    // Compaction steps arrive on the step stream; the hook emits none.
+    expect(steps.where((s) => s.type == StepType.compaction), isEmpty);
 
     harness.push(_hookRequest('req-stop', 'stop', {
       'stop_args': {
@@ -640,6 +677,215 @@ void main() {
         throwsArgumentError);
     expect(() => connection.sendTriggerNotification('ping'),
         throwsUnsupportedError);
+  });
+
+  test('usage_update accumulates root and subagent usage', () async {
+    final connection = connect(root: 'conv-root');
+    harness
+      ..push({'event_type': 'state_update', 'state': 'running'})
+      // Flat payload; proto3 implicit presence omits zero counts.
+      ..push({
+        'event_type': 'usage_update',
+        'total_input_tokens': 100,
+        'total_output_tokens': 25,
+        'total_tokens': 125,
+      })
+      // Nested payload.
+      ..push({
+        'event_type': 'usage_update',
+        'usage_update': {
+          'total_input_tokens': 50,
+          'total_output_tokens': 10,
+          'total_tokens': 60,
+        },
+      })
+      ..push({
+        'event_type': 'usage_update',
+        'sub_interaction_id': 'sub-conv-1',
+        'total_input_tokens': 40,
+        'total_cached_tokens': 10,
+        'total_output_tokens': 15,
+        'total_thought_tokens': 5,
+        'total_tokens': 70,
+      })
+      ..push({'event_type': 'state_update', 'state': 'fully_idle'});
+    await idle();
+
+    final total = connection.cumulativeUsage;
+    expect(total.promptTokenCount, 190);
+    expect(total.cachedContentTokenCount, 10);
+    expect(total.candidatesTokenCount, 50);
+    expect(total.thoughtsTokenCount, 5);
+    expect(total.totalTokenCount, 255);
+    final root = connection.trajectoryUsages['conv-root']!;
+    expect(root.promptTokenCount, 150);
+    expect(root.candidatesTokenCount, 35);
+    expect(root.totalTokenCount, 185);
+    final sub = connection.trajectoryUsages['sub-conv-1']!;
+    expect(sub.promptTokenCount, 40);
+    expect(sub.cachedContentTokenCount, 10);
+    expect(sub.thoughtsTokenCount, 5);
+    expect(sub.totalTokenCount, 70);
+  });
+
+  test('tool hooks correlate call_id and step_id with streamed steps',
+      () async {
+    final preCalls = <ToolCall>[];
+    final postResults = <ToolResult>[];
+    final toolErrors = <ToolExecutionException>[];
+    connect(
+      root: 'conv-root',
+      hookRunner: HookRunner(hooks: [
+        _CapturePreTool(preCalls),
+        _CapturePostTool(postResults),
+        _CaptureToolError(toolErrors),
+      ]),
+    );
+
+    harness.push(_hookRequest('req-pre-1', 'pre_tool', {
+      'pre_tool_args': {
+        'tool_name': 'get_weather',
+        'arguments_json': '{"location": "Seattle"}',
+        'call_id': 'call-weather-1',
+        'interaction_id': 'conv-root',
+        'step_index': 7,
+      },
+    }));
+    await harness.next();
+    harness
+      ..push({
+        'event_type': 'step.start',
+        'index': 1,
+        'step': {
+          'type': 'function_call',
+          'id': 'call-weather-1',
+          'name': 'get_weather',
+          'arguments': {'location': 'Seattle'},
+        },
+      })
+      ..push({'event_type': 'step.stop', 'index': 1})
+      ..push(_hookRequest('req-post-1', 'post_tool', {
+        'post_tool_args': {
+          'tool_name': 'get_weather',
+          'result': 'Sunny',
+          'call_id': 'call-weather-1',
+        },
+      }));
+    await harness.next();
+    harness
+      ..push({
+        'event_type': 'step.start',
+        'index': 2,
+        'step': {
+          'type': 'code_execution_call',
+          'id': 'call-cmd-2',
+          'code': 'false',
+        },
+      })
+      ..push({'event_type': 'step.stop', 'index': 2})
+      ..push({
+        'event_type': 'step.start',
+        'index': 3,
+        'step': {
+          'type': 'code_execution_result',
+          'call_id': 'call-cmd-2',
+          'is_error': true,
+          'result': 'exit status 1',
+        },
+      })
+      ..push({'event_type': 'step.stop', 'index': 3})
+      ..push(_hookRequest('req-err-1', 'on_tool_error', {
+        'on_tool_error_args': {
+          'tool_name': 'run_command',
+          'error_message': 'exit status 1',
+          'call_id': 'call-cmd-2',
+        },
+      }));
+    await harness.next();
+
+    final toolSteps = steps
+        .where((s) => s.type == StepType.toolCall)
+        .map((s) => s.toolCalls.single)
+        .toList();
+    expect(toolSteps.map((c) => c.id),
+        ['call-weather-1', 'call-cmd-2', 'call-cmd-2']);
+    expect(toolSteps.map((c) => c.stepId),
+        ['call-weather-1', 'call-cmd-2', 'call-cmd-2']);
+
+    expect(preCalls.single.id, 'call-weather-1');
+    expect(preCalls.single.stepId, 'call-weather-1');
+    expect(postResults.single.id, 'call-weather-1');
+    expect(postResults.single.stepId, 'call-weather-1');
+    expect(postResults.single.result, 'Sunny');
+    expect(toolErrors.single.callId, 'call-cmd-2');
+    expect(toolErrors.single.stepId, 'call-cmd-2');
+  });
+
+  test('pre_turn input_content interleaves slash commands', () async {
+    final inputs = <ContentPrimitive>[];
+    connect(hookRunner: HookRunner(hooks: [_CapturePreTurn(inputs)]));
+    Future<void> preTurn(Map<String, dynamic> userInput) async {
+      harness.push(_hookRequest('req', 'pre_turn', {
+        'pre_turn_args': {'user_input': userInput},
+      }));
+      await harness.next();
+    }
+
+    await preTurn({
+      'type': 'user_input',
+      'input_content': [
+        {'type': 'text', 'text': 'Please'},
+        {'type': 'slash_command', 'name': 'plan'},
+        {'type': 'text', 'text': 'write a script'},
+      ],
+    });
+    await preTurn({
+      'type': 'user_input',
+      'input_content': [
+        {'type': 'slash_command', 'name': 'plan'},
+      ],
+    });
+    await preTurn({
+      'type': 'user_input',
+      'input_content': [
+        {'type': 'text', 'text': 'Please'},
+        {'type': 'slash_command', 'name': 'no-such-cmd'},
+        {'type': 'text', 'text': 'write a script'},
+      ],
+    });
+    await preTurn({
+      'type': 'user_input',
+      'input_content': [
+        {'type': 'slash_command', 'name': 'no-such-cmd'},
+      ],
+    });
+    await preTurn({
+      'type': 'user_input',
+      'input_content': [
+        {'type': 'slash_command', 'name': 'plan'},
+        {
+          'type': 'image',
+          'mime_type': 'image/png',
+          'data': base64Encode(utf8.encode('media bytes')),
+        },
+      ],
+    });
+    await preTurn({'type': 'user_input', 'content': 'hello'});
+
+    final plan = SlashCommand(name: BuiltinSlashCommandName.plan);
+    expect(inputs[0], isA<List>());
+    final interleaved = inputs[0] as List;
+    expect(interleaved[0], 'Please');
+    expect((interleaved[1] as SlashCommand).name, plan.name);
+    expect(interleaved[2], 'write a script');
+    expect((inputs[1] as SlashCommand).name, plan.name);
+    expect(inputs[2], ['Please', 'write a script']);
+    expect(inputs[3], '');
+    final media = inputs[4] as List;
+    expect((media[0] as SlashCommand).name, plan.name);
+    expect(media[1], isA<Image>());
+    expect((media[1] as Image).data, utf8.encode('media bytes'));
+    expect(inputs[5], 'hello');
   });
 
   group('InteractionsAgentConfig', () {

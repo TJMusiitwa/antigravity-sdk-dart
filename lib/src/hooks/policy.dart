@@ -28,6 +28,8 @@ typedef AskUserHandler = FutureOr<bool> Function(ToolCall toolCall);
 /// A single tool call policy rule in the Google Antigravity SDK.
 class Policy {
   /// The tool name that this policy targets (or '*' for a wildcard match).
+  ///
+  /// The deprecated `start_subagent` name is normalized to `invoke_subagent`.
   final String tool;
 
   /// The action/decision to apply when this policy matches.
@@ -55,13 +57,13 @@ class Policy {
 
   /// Creates a new [Policy] rule.
   Policy({
-    required this.tool,
+    required String tool,
     required this.decision,
     this.when,
     this.askUser,
     this.name = '',
     this.reason = '',
-  });
+  }) : tool = normalizeBuiltinToolName(tool);
 }
 
 /// A policy rule enabling auto policy mode safety evaluation.

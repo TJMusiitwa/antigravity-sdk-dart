@@ -29,8 +29,10 @@ enum BuiltinTools {
   runCommand('run_command'),
   @MappableValue('ask_question')
   askQuestion('ask_question'),
-  @MappableValue('start_subagent')
-  startSubagent('start_subagent'),
+
+  /// Invoke a subagent.
+  @MappableValue('invoke_subagent')
+  invokeSubagent('invoke_subagent'),
   @MappableValue('run_workflow')
   runWorkflow('run_workflow'),
   @MappableValue('generate_image')
@@ -48,6 +50,31 @@ enum BuiltinTools {
 
   final String value;
   const BuiltinTools(this.value);
+
+  /// Deprecated alias for [invokeSubagent].
+  @Deprecated('Use BuiltinTools.invokeSubagent instead.')
+  static const BuiltinTools startSubagent = invokeSubagent;
+
+  /// Resolves a builtin tool from its wire [value].
+  ///
+  /// The deprecated `start_subagent` spelling is coerced to [invokeSubagent]
+  /// with a warning. Throws [ArgumentError] for unknown values.
+  static BuiltinTools fromValue(String value) {
+    if (value == deprecatedStartSubagentToolName) {
+      _logger.warning(
+        "'$deprecatedStartSubagentToolName' is deprecated; use "
+        "'${invokeSubagent.value}' instead.",
+      );
+      return invokeSubagent;
+    }
+    for (final tool in values) {
+      if (tool.value == value) return tool;
+    }
+    throw ArgumentError.value(value, 'value', 'Unknown builtin tool');
+  }
+
+  @override
+  String toString() => value;
 
   /// Returns the default set of builtin tools for autonomous agents.
   ///
@@ -83,7 +110,7 @@ enum BuiltinTools {
       createFile,
       editFile,
       askQuestion,
-      startSubagent,
+      invokeSubagent,
       runWorkflow,
       generateImage,
       searchWeb,
@@ -125,6 +152,38 @@ enum BuiltinTools {
 
   static List<BuiltinTools> allTools() {
     return BuiltinTools.values;
+  }
+}
+
+/// Deprecated wire spelling of [BuiltinTools.invokeSubagent].
+const String deprecatedStartSubagentToolName = 'start_subagent';
+
+/// Normalizes deprecated builtin tool name aliases.
+///
+/// Returns `invoke_subagent` for `start_subagent` unless [serverName] is set,
+/// in which case the name belongs to an MCP server and is returned unchanged.
+String normalizeBuiltinToolName(String name, {String? serverName}) {
+  if (name == deprecatedStartSubagentToolName &&
+      (serverName == null || serverName.isEmpty)) {
+    return BuiltinTools.invokeSubagent.value;
+  }
+  return name;
+}
+
+/// Coerces deprecated tool spellings in a serialized builtin tool list.
+///
+/// Lets `fromMap`/`fromJson` accept `start_subagent` for
+/// [BuiltinTools.invokeSubagent].
+class BuiltinToolListHook extends MappingHook {
+  const BuiltinToolListHook();
+
+  @override
+  Object? beforeDecode(Object? value) {
+    if (value is! List) return value;
+    return [
+      for (final item in value)
+        item is String ? BuiltinTools.fromValue(item).value : item,
+    ];
   }
 }
 
@@ -281,6 +340,7 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
   /// [BuiltinTools.findFile]; see [BuiltinTools.defaultTools]). Disabled tools
   /// are removed from the model's context, saving tokens and preventing the
   /// model from even considering them.
+  @MappableField(hook: BuiltinToolListHook())
   final List<BuiltinTools>? enabledTools;
 
   /// Explicit denylist of builtin tools to disable. Mutually exclusive with
@@ -290,6 +350,7 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
   /// [BuiltinTools.searchDirectory], and [BuiltinTools.findFile]). When null,
   /// all default tools are enabled. To enable any of those, include them
   /// explicitly in [enabledTools].
+  @MappableField(hook: BuiltinToolListHook())
   final List<BuiltinTools>? disabledTools;
 
   /// Maximum message compaction threshold before historical turns are summarized.
@@ -319,6 +380,14 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
   /// Can be specified as a [ToolOutputTruncationConfig] object.
   final ToolOutputTruncationConfig? toolOutputTruncationConfig;
 
+  /// Maximum size in bytes of an MCP tool output or resource read before the
+  /// runtime spills the output to a file on disk instead of inlining it in the
+  /// model context.
+  ///
+  /// Must be in `(0, 2147483647]` when specified. When null, the runtime's
+  /// default limit (4096 bytes) is used.
+  final int? mcpMaxOutputBytes;
+
   /// Backward compatibility alias for [agentBehavior].
   AgentBehavior get agentMode => agentBehavior;
 
@@ -334,6 +403,7 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
     this.allowedSubagents,
     this.runCommandConfig,
     this.toolOutputTruncationConfig,
+    this.mcpMaxOutputBytes,
   }) : agentBehavior = resolveAgentBehaviorAndWarn(
           agentBehavior: agentBehavior,
           agentMode: agentMode,
@@ -359,6 +429,13 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
         'CompactionConfig(tokenThreshold: ...) directly on AgentConfig instead.',
       );
     }
+    final mcpBytes = mcpMaxOutputBytes;
+    if (mcpBytes != null && (mcpBytes <= 0 || mcpBytes > _maxInt32)) {
+      throw AntigravityValidationException(
+        'mcpMaxOutputBytes must be greater than 0 and at most $_maxInt32, '
+        'got $mcpBytes',
+      );
+    }
     if (maxSubagentDepth != null && maxSubagentDepth! < 1) {
       throw AntigravityValidationException(
         'maxSubagentDepth must be greater than or equal to 1, got $maxSubagentDepth',
@@ -366,16 +443,16 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
     }
     final subagentDisabled = !enableSubagents ||
         (disabledTools != null &&
-            disabledTools!.contains(BuiltinTools.startSubagent) &&
+            disabledTools!.contains(BuiltinTools.invokeSubagent) &&
             disabledTools!.contains(BuiltinTools.runWorkflow)) ||
         (enabledTools != null &&
-            !enabledTools!.contains(BuiltinTools.startSubagent) &&
+            !enabledTools!.contains(BuiltinTools.invokeSubagent) &&
             !enabledTools!.contains(BuiltinTools.runWorkflow));
     if (subagentDisabled) {
       if (maxSubagentDepth != null) {
         throw AntigravityValidationException(
           'maxSubagentDepth cannot be configured when subagents are disabled '
-          '(enableSubagents=false or both startSubagent and runWorkflow disabled).',
+          '(enableSubagents=false or both invokeSubagent and runWorkflow disabled).',
         );
       }
       if (allowedSubagents != null) {

@@ -23,41 +23,52 @@ const _interactionsStopReasons = {
   'quota_exhausted': StopReason.quotaExhausted,
 };
 
+/// Converts GAOS `Content` / `UserInputContent` items into SDK prompt content.
+///
+/// Unknown slash commands and unsupported media types are dropped.
+ContentPrimitive _contentItemsToContent(List<dynamic> content) {
+  final items = <dynamic>[];
+  for (final item in content) {
+    if (item is! Map) continue;
+    final type = item['type'];
+    if (type == 'text') {
+      items.add('${item['text'] ?? ''}');
+    } else if (type == 'slash_command') {
+      final name = BuiltinSlashCommandName.values
+          .where((n) => n.value == '${item['name'] ?? ''}')
+          .firstOrNull;
+      if (name != null) items.add(SlashCommand(name: name));
+    } else if (const {'image', 'audio', 'video', 'document'}.contains(type)) {
+      final data = item['data'];
+      try {
+        items.add(MediaContent.fromBytes(
+          data is String ? base64Decode(data) : const <int>[],
+          '${item['mime_type'] ?? ''}',
+        ));
+      } on AntigravityValidationException {
+        // Unsupported MIME types are dropped, matching the harness contract.
+      }
+    }
+  }
+  if (items.isEmpty) return '';
+  return items.length == 1 ? items.single : items;
+}
+
 /// Converts a GAOS `UserInputStep` map into SDK prompt content.
+///
+/// A non-empty `input_content` (which can interleave slash commands with text
+/// and media) takes precedence over `content`.
 ContentPrimitive _userInputStepToContent(Map<String, dynamic> userInput) {
+  final inputContent = userInput['input_content'];
+  if (inputContent is List && inputContent.isNotEmpty) {
+    return _contentItemsToContent(inputContent);
+  }
   final content = userInput['content'];
   if (content is String) return content;
   if (content is Map) {
-    if (content.containsKey('name') && !content.containsKey('type')) {
-      final name = BuiltinSlashCommandName.values
-          .where((n) => n.value == content['name'].toString())
-          .firstOrNull;
-      return name == null ? '' : SlashCommand(name: name);
-    }
     return content['type'] == 'text' ? '${content['text'] ?? ''}' : '';
   }
-  if (content is List) {
-    final items = <dynamic>[];
-    for (final item in content) {
-      if (item is! Map) continue;
-      final type = item['type'];
-      if (type == 'text') {
-        items.add('${item['text'] ?? ''}');
-      } else if (const {'image', 'audio', 'video', 'document'}.contains(type)) {
-        final data = item['data'];
-        try {
-          items.add(MediaContent.fromBytes(
-            data is String ? base64Decode(data) : const <int>[],
-            '${item['mime_type'] ?? ''}',
-          ));
-        } on AntigravityValidationException {
-          // Unsupported MIME types are dropped, matching the harness contract.
-        }
-      }
-    }
-    if (items.isEmpty) return '';
-    return items.length == 1 ? items.single : items;
-  }
+  if (content is List) return _contentItemsToContent(content);
   return '';
 }
 
@@ -172,22 +183,34 @@ class InteractionsConnection extends LocalConnection {
       case 'step.stop':
         final result = _assembler.handleStepStop(event);
         final usage = result.stepUsage;
-        if (usage != null) {
-          _cumulativeUsage = _cumulativeUsage + usage;
-          final trajectoryId = [
-            result.trajectoryId,
-            _assembler.rootInteractionId,
-            mainTrajectoryId ?? '',
-          ].firstWhere((id) => id.isNotEmpty, orElse: () => '');
-          if (trajectoryId.isNotEmpty) {
-            final previous = _trajectoryUsages[trajectoryId];
-            _trajectoryUsages[trajectoryId] =
-                previous == null ? usage : previous + usage;
-          }
-        }
+        if (usage != null) _recordStepUsage(usage, result.trajectoryId);
         if (result.step != null) await _emitAssembled(result);
+      case 'usage_update':
+        // Totals may arrive flat on the event or nested under `usage_update`.
+        final nested = event['usage_update'];
+        final usage = parseInteractionUsage(nested is Map ? nested : event);
+        if (usage != null) {
+          _recordStepUsage(
+              usage, event['sub_interaction_id']?.toString() ?? '');
+        }
       case 'state_update':
         _handleInteractionsStateUpdate(event);
+    }
+  }
+
+  /// Adds [usage] to the cumulative total and to its trajectory's total.
+  ///
+  /// An empty [trajectoryId] falls back to the root interaction.
+  void _recordStepUsage(UsageMetadata usage, String trajectoryId) {
+    _cumulativeUsage = _cumulativeUsage + usage;
+    final id = [
+      trajectoryId,
+      _assembler.rootInteractionId,
+      mainTrajectoryId ?? '',
+    ].firstWhere((id) => id.isNotEmpty, orElse: () => '');
+    if (id.isNotEmpty) {
+      _trajectoryUsages[id] =
+          (_trajectoryUsages[id] ?? UsageMetadata()) + usage;
     }
   }
 
@@ -272,12 +295,10 @@ class InteractionsConnection extends LocalConnection {
     );
   }
 
+  /// Compaction steps arrive as `compaction` steps on the step stream, so the
+  /// `on_compaction` hook request only dispatches the hook.
   Future<void> _handleInteractionsHookRequest(
       Map<String, dynamic> event) async {
-    if (event['type'] == 'on_compaction') {
-      await _emitStep(_buildCompactionStep(event),
-          dispatchPre: true, dispatchPost: true);
-    }
     _runInBackground(() => _dispatchHookRequest(event));
   }
 
@@ -351,22 +372,18 @@ class InteractionsConnection extends LocalConnection {
   }
 
   /// Returns the tool name, server, call ID, and step ID shared by tool hooks.
+  ///
+  /// The step ID is the call ID, matching the IDs on streamed tool steps.
   static ({String name, String? server, String? callId, String? stepId})
       _toolHookIdentity(Map<dynamic, dynamic> args) {
     final rawName = args['tool_name']?.toString() ?? '';
     final server = args['server_name']?.toString() ?? '';
     final callId = args['call_id']?.toString() ?? '';
-    final trajectoryId =
-        _firstNonEmpty(args, 'interaction_id', 'trajectory_id');
-    final hasStep = trajectoryId.isNotEmpty || args.containsKey('step_index');
     return (
       name: protoFieldToSdkName[rawName] ?? rawName,
       server: server.isEmpty ? null : server,
       callId: callId.isEmpty ? null : callId,
-      stepId: hasStep
-          ? interactionsStepId(
-              trajectoryId, int.tryParse('${args['step_index'] ?? 0}') ?? 0)
-          : null,
+      stepId: callId.isEmpty ? null : callId,
     );
   }
 
@@ -416,11 +433,6 @@ class InteractionsConnection extends LocalConnection {
     final hookArgs = rawArgs is Map ? rawArgs : const {};
     final identity = _toolHookIdentity(hookArgs);
     final raw = hookArgs['result']?.toString() ?? '';
-    final error = hookArgs['error']?.toString() ?? '';
-    dynamic value;
-    if (error.isEmpty) {
-      value = _extractInteractionsToolResult(identity.name, raw) ?? raw;
-    }
     await _hookRunner.dispatchPostToolCall(
       _hookRunner.currentTurnContext,
       ToolResult(
@@ -428,8 +440,7 @@ class InteractionsConnection extends LocalConnection {
         id: identity.callId,
         stepId: identity.stepId,
         serverName: identity.server,
-        result: value,
-        error: error.isEmpty ? null : error,
+        result: _extractInteractionsToolResult(identity.name, raw) ?? raw,
       ),
     );
   }

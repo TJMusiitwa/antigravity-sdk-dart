@@ -497,6 +497,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       if (retryConfigMap != null && retryConfigMap.isNotEmpty)
         'retry_config': retryConfigMap,
       if (policyConfig != null) 'policy_config': policyConfig,
+      if (cfg.mcpMaxOutputBytes != null)
+        'mcp_max_output_bytes': cfg.mcpMaxOutputBytes,
     };
   }
 
@@ -691,8 +693,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     CapabilitiesConfig cfg,
     Set<BuiltinTools> activeTools,
   ) {
-    final subagentsEnabled =
-        cfg.enableSubagents && activeTools.contains(BuiltinTools.startSubagent);
+    final subagentsEnabled = cfg.enableSubagents &&
+        activeTools.contains(BuiltinTools.invokeSubagent);
     return {
       'run_workflow': {
         'enabled': cfg.enableSubagents &&
@@ -816,7 +818,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
                   .toSet()
                   .difference(subCap.disabledTools?.toSet() ?? {}));
       final subagentCanSpawn =
-          activeSubTools.contains(BuiltinTools.startSubagent);
+          activeSubTools.contains(BuiltinTools.invokeSubagent);
 
       final resolvedSubTools =
           _resolveSubagentToolProtos(subagent, allToolProtos);
@@ -958,7 +960,9 @@ class LocalConnectionStrategy implements ConnectionStrategy {
 
   Map<String, dynamic>? _buildModelOptionsMap(GeminiModelOptions? options) {
     if (options == null) return null;
-    if (options.thinkingLevel == null && options.serviceTier == null) {
+    if (options.thinkingLevel == null &&
+        options.serviceTier == null &&
+        options.maxOutputTokens == null) {
       return null;
     }
     return {
@@ -966,6 +970,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         'thinking_level': options.thinkingLevel!.value,
       if (options.serviceTier != null)
         'service_tier': options.serviceTier!.value,
+      if (options.maxOutputTokens != null)
+        'max_output_tokens': options.maxOutputTokens,
     };
   }
 }

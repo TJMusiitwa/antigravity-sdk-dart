@@ -35,9 +35,19 @@ Reference implementations for common setups:
   checked with `validateWorkflowSource` (from `package:antigravity/beta.dart`)
   before the model runs them; Dart functions are not converted to Python.
 - `InteractionsAgentConfig` takes the same options as `LocalAgentConfig` but
-  talks to the harness over the GAOS Interactions protocol. It rejects triggers,
-  `auto()` and dynamic (`when`/`askUser`) policies, and subagent `model`
-  overrides, and ignores root `inlineSkills`.
+  talks to the harness over the GAOS Interactions protocol. It rejects triggers
+  and `auto()` and dynamic (`when`/`askUser`) policies, and ignores root
+  `inlineSkills`. Subagent `model` overrides are supported.
+
+## Tools and model limits
+
+- Subagent delegation is `BuiltinTools.invokeSubagent` (`invoke_subagent`).
+  `BuiltinTools.startSubagent` and the `start_subagent` wire name are deprecated
+  aliases that resolve to it; tool hooks and policies see `invoke_subagent`.
+- `GeminiModelOptions(maxOutputTokens: ...)` raises the per-step output limit
+  (harness default 65,536 tokens). Must be in `(0, 2147483647]`.
+- `CapabilitiesConfig(mcpMaxOutputBytes: ...)` sets how large an MCP tool
+  output may be before it is spilled to disk (runtime default 4096 bytes).
 
 ## Completion Criteria
 

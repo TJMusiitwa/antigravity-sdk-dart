@@ -1,3 +1,53 @@
+## 0.17.0
+
+Syncs with Python SDK v0.1.22.
+
+### Added
+
+* `GeminiModelOptions.maxOutputTokens` sets the per-step output token limit for
+  Gemini and Vertex endpoints (sent as `max_output_tokens`). Must be in
+  `(0, 2147483647]`; when null, the harness default (65,536) applies. `eval()`
+  keeps it when applying `thinkingLevel`.
+* `CapabilitiesConfig.mcpMaxOutputBytes` sets the size at which MCP tool output
+  is spilled to disk instead of inlined (sent as `mcp_max_output_bytes`). Must be
+  in `(0, 2147483647]`; when null, the runtime default (4096 bytes) applies.
+  `lightweight()` keeps it.
+* `BuiltinTools.fromValue`, `normalizeBuiltinToolName`, and
+  `deprecatedStartSubagentToolName` for resolving tool names.
+* `InteractionsAgentConfig` now sends subagent `model` overrides as
+  `{"model": {"name": ...}}` instead of rejecting them.
+
+### Changed
+
+* **`BuiltinTools.startSubagent` is now `BuiltinTools.invokeSubagent`**, with the
+  wire value `invoke_subagent`. `startSubagent` remains as a deprecated alias.
+  `start_subagent` is still accepted in serialized capability lists, `ToolCall`,
+  `ToolResult`, and policy tool names, and resolves to `invoke_subagent`. MCP
+  tools named `start_subagent` (with a `serverName`) are left unchanged.
+  `BuiltinTools.toString()` now returns the wire value.
+* Tool hooks for subagent calls now see `invoke_subagent` instead of
+  `start_subagent`. Update any hook that compares against the old string.
+* Localharness `skill_lookup` steps are typed as `StepType.toolCall` with a
+  `skill_lookup` tool call. Failed lookups keep `StepStatus.error` and the error
+  message.
+* Interactions transport:
+  * Prompts containing a `SlashCommand` are sent as `input_content`, so slash
+    commands can be mixed with text and media. `input_content` in incoming
+    user input is parsed back into prompt content.
+  * Compaction steps come from `compaction` steps on the step stream (ACTIVE,
+    then DONE) instead of being emitted from the `on_compaction` hook request.
+    The hook still runs.
+  * `model_output` steps described as `Finish` are emitted as `StepType.finish`,
+    with `structuredOutput` parsed from the JSON text when the step completes.
+  * `usage_update` events (flat or nested) add to cumulative and per-trajectory
+    usage.
+  * Tool call IDs are used as step IDs for tool steps, elicitation steps, and
+    the `pre_tool`, `post_tool`, and `on_tool_error` hooks, so hook data matches
+    streamed steps. `post_tool` no longer reads an `error` field.
+  * Builtin wire names on tool steps (for example `invoke_subagent`) map to SDK
+    tool names; MCP tool names are kept as sent.
+* Default harness release: 0.1.22.
+
 ## 0.16.0
 
 Syncs with Python SDK v0.1.21.

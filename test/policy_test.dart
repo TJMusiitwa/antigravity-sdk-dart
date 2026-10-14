@@ -700,7 +700,7 @@ void main() {
     );
   });
 
-  group('v0.1.18 auto policy and deny reason', () {
+  group('auto policy and deny reason', () {
     test('toPolicyConfigProto emits auto_config and stores the auto rule', () {
       final encoded = toPolicyConfigProto([
         auto(
@@ -808,5 +808,43 @@ void main() {
           await hook.run(HookContext(), ToolCall(name: 'run_command'));
       expect(result.allow, isTrue);
     });
+  });
+
+  group('deprecated start_subagent tool name', () {
+    test('normalizes to invoke_subagent but leaves MCP names alone', () async {
+      final rule = deny('start_subagent') as Policy;
+      expect(rule.tool, 'invoke_subagent');
+      final server = McpStdioServer(name: 'mcp', command: 'echo');
+      final mcpRule =
+          (deny(server, mcpTools: ['start_subagent']) as List).single as Policy;
+      expect(mcpRule.tool, 'mcp/start_subagent');
+
+      final hook = enforce([rule]);
+      final ctx = HookContext();
+      expect((await hook.run(ctx, ToolCall(name: 'invoke_subagent'))).allow,
+          isFalse);
+      expect((await hook.run(ctx, ToolCall(name: 'start_subagent'))).allow,
+          isFalse);
+      expect(
+          (await hook.run(
+                  ctx, ToolCall(name: 'start_subagent', serverName: 'mcp')))
+              .allow,
+          isTrue);
+    });
+  });
+
+  test(
+      'allowAll disables workspace containment unless workspaceOnly is present',
+      () {
+    expect(toPolicyConfigProto([allowAll()]).config['workspace_containment'],
+        'WORKSPACE_CONTAINMENT_DISABLED');
+    expect(
+        toPolicyConfigProto([
+          allowAll(),
+          workspaceOnly(['/workspace'])
+        ]).config['workspace_containment'],
+        'WORKSPACE_CONTAINMENT_UNSPECIFIED');
+    expect(toPolicyConfigProto([allow('*')]).config['workspace_containment'],
+        'WORKSPACE_CONTAINMENT_UNSPECIFIED');
   });
 }

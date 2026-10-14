@@ -1,6 +1,6 @@
 import 'package:dart_mappable/dart_mappable.dart';
-import 'package:meta/meta.dart';
 import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
 
 import 'capabilities.dart';
 import 'exceptions.dart';
@@ -16,9 +16,11 @@ class SubagentCapabilities with SubagentCapabilitiesMappable {
   final AgentBehavior agentBehavior;
 
   /// Optional explicit list of builtin tools enabled for this subagent.
+  @MappableField(hook: BuiltinToolListHook())
   final List<BuiltinTools>? enabledTools;
 
   /// Optional explicit list of builtin tools disabled for this subagent.
+  @MappableField(hook: BuiltinToolListHook())
   final List<BuiltinTools>? disabledTools;
 
   /// Whitelist of allowed subagent names that this subagent is permitted to invoke.
@@ -50,17 +52,17 @@ class SubagentCapabilities with SubagentCapabilitiesMappable {
       );
     }
     if (allowedSubagents != null && allowedSubagents!.isNotEmpty) {
-      final hasStartSubagent = (enabledTools == null ||
-              enabledTools!.contains(BuiltinTools.startSubagent)) &&
+      final hasInvokeSubagent = (enabledTools == null ||
+              enabledTools!.contains(BuiltinTools.invokeSubagent)) &&
           (disabledTools == null ||
-              !disabledTools!.contains(BuiltinTools.startSubagent));
+              !disabledTools!.contains(BuiltinTools.invokeSubagent));
       final hasWorkflow = (enabledTools == null ||
               enabledTools!.contains(BuiltinTools.runWorkflow)) &&
           (disabledTools == null ||
               !disabledTools!.contains(BuiltinTools.runWorkflow));
-      if (!hasStartSubagent && !hasWorkflow) {
+      if (!hasInvokeSubagent && !hasWorkflow) {
         throw AntigravityValidationException(
-          'Cannot configure allowedSubagents when both startSubagent and runWorkflow are disabled for this subagent.',
+          'Cannot configure allowedSubagents when both invokeSubagent and runWorkflow are disabled for this subagent.',
         );
       }
     }

@@ -177,8 +177,10 @@ abstract class AgentConfig with AgentConfigMappable {
   /// - Otherwise a caller-provided [CapabilitiesConfig.disabledTools] list is
   ///   subtracted from [BuiltinTools.minimal], since the two are mutually
   ///   exclusive and only an allowlist can be emitted.
-  /// - [CapabilitiesConfig.runCommandConfig] and
-  ///   [CapabilitiesConfig.finishToolSchemaJson] are carried over verbatim.
+  /// - [CapabilitiesConfig.runCommandConfig],
+  ///   [CapabilitiesConfig.finishToolSchemaJson],
+  ///   [CapabilitiesConfig.toolOutputTruncationConfig], and
+  ///   [CapabilitiesConfig.mcpMaxOutputBytes] are carried over verbatim.
   ///
   /// Unlike Python, Dart cannot distinguish an explicitly-set value from a
   /// default on non-nullable fields, so [CapabilitiesConfig.agentBehavior] and
@@ -201,6 +203,7 @@ abstract class AgentConfig with AgentConfigMappable {
       runCommandConfig: capabilities.runCommandConfig,
       finishToolSchemaJson: capabilities.finishToolSchemaJson,
       toolOutputTruncationConfig: capabilities.toolOutputTruncationConfig,
+      mcpMaxOutputBytes: capabilities.mcpMaxOutputBytes,
     );
   }
 
@@ -357,6 +360,7 @@ abstract class AgentConfig with AgentConfigMappable {
     final updated = GeminiModelOptions(
       thinkingLevel: thinkingLevel,
       serviceTier: options?.serviceTier,
+      maxOutputTokens: options?.maxOutputTokens,
     );
     if (endpoint is GeminiAPIEndpoint) {
       return target.copyWith(endpoint: endpoint.copyWith(options: updated));

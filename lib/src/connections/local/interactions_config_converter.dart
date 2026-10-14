@@ -243,16 +243,12 @@ Map<String, dynamic> _translateCustomSubagent(
   SubagentConfig subagent,
   Map<String, Map<String, dynamic>> allToolDicts,
 ) {
-  if (subagent.model != null) {
-    throw AntigravityValidationException(
-        "Subagent '${subagent.name}' sets 'model', which is not supported by "
-        'InteractionsAgentConfig.');
-  }
   final caps = subagent.capabilities ??
       SubagentCapabilities(enabledTools: BuiltinTools.readOnly());
   final result = <String, dynamic>{
     'name': subagent.name,
     if (subagent.description.isNotEmpty) 'description': subagent.description,
+    if (subagent.model != null) 'model': {'name': subagent.model},
   };
   _translateSystemInstructions(subagent.systemInstructions, result);
 
@@ -276,7 +272,7 @@ Map<String, dynamic> _translateCustomSubagent(
   if (tools.isNotEmpty) result['tools'] = tools;
   if (translated.policy.isNotEmpty) result['policy'] = translated.policy;
   result['allowed_subagents'] = _allowedSubagentsDict(
-    active.contains(BuiltinTools.startSubagent),
+    active.contains(BuiltinTools.invokeSubagent),
     caps.allowedSubagents,
   );
   result['agent_behavior'] = caps.agentBehavior.value;
@@ -497,7 +493,7 @@ Map<String, dynamic> buildCreateInteractionEvent({
   if (translated.policy.isNotEmpty) agentConfig['policy'] = translated.policy;
 
   final subagentsEnabled =
-      caps.enableSubagents && active.contains(BuiltinTools.startSubagent);
+      caps.enableSubagents && active.contains(BuiltinTools.invokeSubagent);
   final customSubagents = subagents ?? const <SubagentConfig>[];
   if (subagentsEnabled || customSubagents.isNotEmpty) {
     final maxDepth = caps.maxSubagentDepth;
@@ -596,18 +592,32 @@ Map<String, dynamic> _primitiveToContentDict(dynamic item) {
   throw ArgumentError('Unsupported prompt content type: ${item.runtimeType}');
 }
 
+/// Converts an SDK primitive into a GAOS `UserInputContent` dict.
+Map<String, dynamic> _primitiveToInputContentDict(dynamic item) {
+  if (item is SlashCommand) {
+    return {'type': 'slash_command', 'name': item.name.value};
+  }
+  return _primitiveToContentDict(item);
+}
+
 /// Converts SDK prompt content into a GAOS `input` event.
+///
+/// Prompts without slash commands are sent as `content`. Prompts containing a
+/// [SlashCommand] are sent as `input_content`, where slash commands may be
+/// interleaved with text and media.
 Map<String, dynamic> contentToUserInputEvent(ContentPrimitive content) {
   final items = content is List ? content : [content];
-  if (items.length == 1 && items.single is SlashCommand) {
+  if (!items.any((item) => item is SlashCommand)) {
     return {
       'event_type': 'input',
-      'slash_command': {'name': (items.single as SlashCommand).name.value},
+      'content': [for (final item in items) _primitiveToContentDict(item)],
     };
   }
   return {
     'event_type': 'input',
-    'content': [for (final item in items) _primitiveToContentDict(item)],
+    'input_content': [
+      for (final item in items) _primitiveToInputContentDict(item),
+    ],
   };
 }
 

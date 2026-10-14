@@ -353,4 +353,175 @@ void main() {
     assembler.handleStepStart(_start(4, {'type': 'find_file_result'}));
     expect(assembler.handleStepStop(_stop(4)).step!.toolCalls.single.id, 'b');
   });
+
+  group('finish, compaction, and call IDs', () {
+    test('Finish model output becomes a FINISH step with structured output',
+        () {
+      final assembler = InteractionsStepAssembler(rootInteractionId: 'conv-1');
+      final start = assembler.handleStepStart({
+        'event_type': 'step.start',
+        'index': 1,
+        'step': {'type': 'model_output', 'description': 'Finish'},
+      });
+      expect(start.step!.type, StepType.finish);
+      expect(start.step!.structuredOutput, isNull);
+
+      final delta = assembler.handleStepDelta({
+        'event_type': 'step.delta',
+        'index': 1,
+        'delta': {'type': 'text', 'text': '{"city": "Tokyo"}'},
+      });
+      expect(delta.step!.type, StepType.finish);
+      expect(delta.step!.structuredOutput, isNull);
+
+      final stop =
+          assembler.handleStepStop({'event_type': 'step.stop', 'index': 1});
+      expect(stop.step!.type, StepType.finish);
+      expect(stop.step!.status, StepStatus.done);
+      expect(stop.step!.structuredOutput, {'city': 'Tokyo'});
+      expect(stop.step!.isCompleteResponse, isFalse);
+
+      assembler
+        ..handleStepStart({
+          'event_type': 'step.start',
+          'index': 2,
+          'step': {'type': 'model_output', 'description': 'Finish'},
+        })
+        ..handleStepDelta({
+          'event_type': 'step.delta',
+          'index': 2,
+          'delta': {'type': 'text', 'text': '{invalid json'},
+        });
+      final badStop =
+          assembler.handleStepStop({'event_type': 'step.stop', 'index': 2});
+      expect(badStop.step!.type, StepType.finish);
+      expect(badStop.step!.structuredOutput, isNull);
+
+      assembler.handleStepStart({
+        'event_type': 'step.start',
+        'index': 3,
+        'step': {'type': 'model_output', 'description': 'Finish'},
+      });
+      final emptyStop =
+          assembler.handleStepStop({'event_type': 'step.stop', 'index': 3});
+      expect(emptyStop.step!.type, StepType.finish);
+      expect(emptyStop.step!.structuredOutput, isNull);
+    });
+
+    test('compaction steps stream as ACTIVE then DONE', () {
+      final assembler = InteractionsStepAssembler(rootInteractionId: 'conv-1');
+      final active = assembler.handleStepStart({
+        'event_type': 'step.start',
+        'index': 3,
+        'step': {'type': 'compaction', 'description': 'Context compaction'},
+      });
+      expect(active.step!.type, StepType.compaction);
+      expect(active.step!.status, StepStatus.active);
+      expect(active.step!.source, StepSource.system);
+      expect(active.step!.content, 'Context compaction');
+      expect(active.dispatchPre, isTrue);
+      final done =
+          assembler.handleStepStop({'event_type': 'step.stop', 'index': 3});
+      expect(done.step!.type, StepType.compaction);
+      expect(done.step!.status, StepStatus.done);
+
+      final sub = assembler.handleStepStart({
+        'event_type': 'step.start',
+        'sub_interaction_id': 'sub-conv-1',
+        'index': 1,
+        'step': {'type': 'compaction'},
+      });
+      expect(sub.step!.type, StepType.compaction);
+      expect(sub.step!.trajectoryId, 'sub-conv-1');
+      expect(sub.step!.content, 'Context compaction');
+      final subDone = assembler.handleStepStop({
+        'event_type': 'step.stop',
+        'sub_interaction_id': 'sub-conv-1',
+        'index': 1,
+      });
+      expect(subDone.step!.status, StepStatus.done);
+      expect(subDone.step!.trajectoryId, 'sub-conv-1');
+    });
+
+    test('invoke_subagent function steps keep the SDK tool name', () {
+      final assembler = InteractionsStepAssembler(rootInteractionId: 'conv-1');
+      final call = assembler.handleStepStart({
+        'event_type': 'step.start',
+        'index': 1,
+        'step': {
+          'type': 'function_call',
+          'id': 'call-sub-1',
+          'name': 'invoke_subagent',
+          'description': 'Invoking subagent',
+          'arguments': {'TypeName': 'self', 'Prompt': 'do work'},
+        },
+      });
+      expect(call.step!.type, StepType.toolCall);
+      expect(call.step!.toolCalls.single.name, 'invoke_subagent');
+      expect(call.step!.toolCalls.single.args,
+          {'TypeName': 'self', 'Prompt': 'do work'});
+      expect(call.step!.toolCalls.single.stepId, 'call-sub-1');
+      assembler.handleStepStop({'event_type': 'step.stop', 'index': 1});
+
+      assembler.handleStepStart({
+        'event_type': 'step.start',
+        'index': 2,
+        'step': {
+          'type': 'function_result',
+          'call_id': 'call-sub-1',
+          'name': 'invoke_subagent',
+          'is_error': false,
+          'result': 'sub-conv-1',
+        },
+      });
+      final result =
+          assembler.handleStepStop({'event_type': 'step.stop', 'index': 2});
+      expect(result.step!.status, StepStatus.done);
+      expect(result.step!.toolCalls.single.name, 'invoke_subagent');
+    });
+
+    test('unmatched results and elicitations use the call ID as step ID', () {
+      final assembler = InteractionsStepAssembler(rootInteractionId: 'conv-1');
+      assembler.handleStepStart({
+        'event_type': 'step.start',
+        'index': 4,
+        'step': {
+          'type': 'code_execution_result',
+          'call_id': 'call-cmd-9',
+          'result': 'ok',
+        },
+      });
+      final result =
+          assembler.handleStepStop({'event_type': 'step.stop', 'index': 4});
+      expect(result.step!.toolCalls.single.id, 'call-cmd-9');
+      expect(result.step!.toolCalls.single.stepId, 'call-cmd-9');
+
+      final question = assembler.handleStepStart({
+        'event_type': 'step.start',
+        'index': 5,
+        'step': {
+          'type': 'elicitation_call',
+          'elicitation_id': 'conv-1-question-5-0',
+        },
+      });
+      expect(question.step!.toolCalls.single.id, 'conv-1-question-5-0');
+      expect(question.step!.toolCalls.single.stepId, 'conv-1-question-5-0');
+    });
+
+    test('MCP tool names are not remapped', () {
+      final assembler = InteractionsStepAssembler(rootInteractionId: 'conv-1');
+      final call = assembler.handleStepStart({
+        'event_type': 'step.start',
+        'index': 1,
+        'step': {
+          'type': 'mcp_server_tool_call',
+          'id': 'mcp-1',
+          'name': 'finish',
+          'server_name': 'srv',
+        },
+      });
+      expect(call.step!.toolCalls.single.name, 'finish');
+      expect(call.step!.toolCalls.single.serverName, 'srv');
+    });
+  });
 }

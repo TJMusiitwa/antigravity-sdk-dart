@@ -30,7 +30,7 @@ dart run example/getting_started/hello_world.dart
 > **LiteRT local Gemma execution:** Running local Gemma models via LiteRT (`LiteRTAgentConfig` / `LiteRTConnectionStrategy`) requires `python3` and the `litert-lm-api` library installed in the user's host environment (`pip install litert-lm-api`). `LiteRTAgentConfig` does not apply the lightweight preset automatically; call `lightweight()` when you want the reduced tool set.
 
 > [!NOTE]
-> **GAOS Interactions transport:** `InteractionsAgentConfig` accepts the same options as `LocalAgentConfig` but speaks the GAOS Interactions protocol to `localharness`. Triggers, `auto()` and dynamic (`when`/`askUser`) policies, and subagent `model` overrides are not yet supported over this protocol and are rejected; root `inlineSkills` are ignored.
+> **GAOS Interactions transport:** `InteractionsAgentConfig` accepts the same options as `LocalAgentConfig` but speaks the GAOS Interactions protocol to `localharness`. Triggers and `auto()` and dynamic (`when`/`askUser`) policies are not yet supported over this protocol and are rejected; root `inlineSkills` are ignored. Subagent `model` overrides are supported.
 
 ---
 
@@ -146,6 +146,23 @@ final config = LocalAgentConfig(
   triggers: [
     every(Duration(minutes: 5), runDeploymentMonitor),
   ],
+);
+```
+
+### 6. Output Limits
+Raise the per-step output token limit (harness default 65,536) for long decodes, and the size at which MCP tool output is spilled to disk instead of inlined (runtime default 4096 bytes):
+
+```dart
+final config = LocalAgentConfig(
+  models: [
+    ModelTarget(
+      name: defaultModel,
+      endpoint: GeminiAPIEndpoint(
+        options: GeminiModelOptions(maxOutputTokens: 100000),
+      ),
+    ),
+  ],
+  capabilities: CapabilitiesConfig(mcpMaxOutputBytes: 65536),
 );
 ```
 

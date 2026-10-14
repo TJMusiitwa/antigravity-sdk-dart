@@ -294,16 +294,16 @@ void main() {
       ]),
       throwsA(isA<AntigravityValidationException>()),
     );
-    expect(
-      () => buildCreateInteractionEvent(subagents: [
-        SubagentConfig(
-          name: 's_model',
-          description: 'Model override unsupported',
-          model: 'gemini-2.5-flash',
-        ),
-      ]),
-      throwsA(isA<AntigravityValidationException>()),
-    );
+    final modelEvent = buildCreateInteractionEvent(subagents: [
+      SubagentConfig(
+        name: 's_model',
+        description: 'Pinned model subagent',
+        model: 'gemini-2.5-flash',
+      ),
+    ]);
+    final modelSubagent = ((modelEvent['agent_config']
+        as Map)['subagents_config'] as Map)['custom_subagents'][0] as Map;
+    expect(modelSubagent['model'], {'name': 'gemini-2.5-flash'});
   });
 
   test('agent_config carries every configured field', () {
@@ -508,7 +508,23 @@ void main() {
             SlashCommand(name: BuiltinSlashCommandName.plan)),
         {
           'event_type': 'input',
-          'slash_command': {'name': 'plan'},
+          'input_content': [
+            {'type': 'slash_command', 'name': 'plan'},
+          ],
+        });
+    expect(
+        contentToUserInputEvent([
+          'Please',
+          SlashCommand(name: BuiltinSlashCommandName.plan),
+          'write a script',
+        ]),
+        {
+          'event_type': 'input',
+          'input_content': [
+            {'type': 'text', 'text': 'Please'},
+            {'type': 'slash_command', 'name': 'plan'},
+            {'type': 'text', 'text': 'write a script'},
+          ],
         });
     final png = utf8.encode('pngdata');
     expect(

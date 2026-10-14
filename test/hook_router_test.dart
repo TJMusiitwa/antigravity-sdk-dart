@@ -421,4 +421,9 @@ void main() {
       expect(resp['empty_result'], isNotNull);
     });
   });
+
+  test('protoFieldToSdkName keeps invoke_subagent and maps skill_lookup', () {
+    expect(protoFieldToSdkName['invoke_subagent'], 'invoke_subagent');
+    expect(protoFieldToSdkName['skill_lookup'], 'skill_lookup');
+  });
 }

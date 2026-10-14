@@ -15,7 +15,7 @@
 /// Agent example that maintains docstrings in Dart files.
 ///
 /// Demonstrates how to write custom PreToolCallDecideHooks, disable specific
-/// agent capabilities (e.g. createFile, runCommand, generateImage, startSubagent,
+/// agent capabilities (e.g. createFile, runCommand, generateImage, invokeSubagent,
 /// askQuestion, finish), and enforce conditional policy checks to restrict
 /// tool execution (e.g., allowing edit_file only for .dart files inside a
 /// target directory).
@@ -144,7 +144,7 @@ Future<void> main(List<String> args) async {
       BuiltinTools.createFile,
       BuiltinTools.runCommand,
       BuiltinTools.askQuestion,
-      BuiltinTools.startSubagent,
+      BuiltinTools.invokeSubagent,
       BuiltinTools.generateImage,
       BuiltinTools.finish,
     ],

@@ -8,6 +8,9 @@ import 'local_connection_config.dart';
 final _logger = Logger('antigravity.connection.local.hook_router');
 
 /// Maps localharness proto tool field names to SDK tool names.
+///
+/// Includes harness-internal actions such as `skill_lookup` that are not
+/// exposed on the public [BuiltinTools] enum.
 const protoFieldToSdkName = {
   'create_file': 'create_file',
   'edit_file': 'edit_file',
@@ -16,12 +19,13 @@ const protoFieldToSdkName = {
   'run_command': 'run_command',
   'search_directory': 'search_directory',
   'view_file': 'view_file',
-  'invoke_subagent': 'start_subagent',
+  'invoke_subagent': 'invoke_subagent',
   'run_workflow': 'run_workflow',
   'generate_image': 'generate_image',
   'search_web': 'search_web',
   'read_url_content': 'read_url_content',
   'finish': 'finish',
+  'skill_lookup': 'skill_lookup',
 };
 
 /// Tool argument keys carrying wire-format URIs normalized to filesystem paths.

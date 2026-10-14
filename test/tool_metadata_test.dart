@@ -144,4 +144,20 @@ void main() {
       expect(res.exception, isNotNull);
     });
   });
+
+  test('tool inspection and iterable batches retain schema and input order',
+      () async {
+    final tool = Tool(
+        name: 'echo',
+        description: 'Echo a number',
+        schema: {'type': 'object'},
+        handler: (args, context) async => args['n']);
+    expect(tool.toString(), contains('echo'));
+    expect(tool.toString(), contains('object'));
+    final runner = ToolRunner(tools: {tool});
+    final results = await runner.processToolCalls(
+        [1, 2].map((n) => ToolCall(id: '$n', name: 'echo', args: {'n': n})));
+    expect(results.map((result) => result.result), [1, 2]);
+    expect(await runner.processToolCalls(const []), isEmpty);
+  });
 }

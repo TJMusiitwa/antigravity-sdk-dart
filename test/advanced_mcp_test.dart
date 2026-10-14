@@ -175,6 +175,33 @@ void main() {
       await bridge.stop();
     });
   });
+
+  test('MCP eager loading works on both transports and URI factory', () {
+    final servers = <McpServerConfig>[
+      McpStdioServer(
+          name: 'stdio', command: 'server', forceAllToolsEager: true),
+      McpStreamableHttpServer.fromUri(
+          name: 'http',
+          uri: Uri.parse('https://example.com/mcp'),
+          forceAllToolsEager: true),
+    ];
+    for (final server in servers) {
+      expect(
+          McpServerConfig.fromJson(server.toJson()).forceAllToolsEager, isTrue);
+    }
+    final config = LocalConnectionStrategy(
+      toolRunner: ToolRunner(),
+      hookRunner: HookRunner(),
+      systemInstructions: null,
+      capabilitiesConfig: CapabilitiesConfig(),
+      workspaces: const [],
+      skillsPaths: const [],
+      mcpServers: servers,
+    ).buildHarnessConfigForTest();
+    for (final server in config['mcp_servers']) {
+      expect(server['force_all_tools_eager'], isTrue);
+    }
+  });
 }
 
 class FakeTool implements mcp.Tool {
