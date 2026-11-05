@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import '../types/tool_call.dart';
 import 'tool_context.dart';
 
@@ -87,7 +88,8 @@ class ToolRunner {
 
   /// Executes a batch of tool calls concurrently and returns structured results.
   Future<List<ToolResult>> processToolCalls(
-      Iterable<ToolCall> toolCalls) async {
+    Iterable<ToolCall> toolCalls,
+  ) async {
     final futures = toolCalls.map((tc) async {
       try {
         final tool = _tools[tc.name];

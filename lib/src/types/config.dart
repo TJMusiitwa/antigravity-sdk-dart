@@ -32,6 +32,15 @@ class SubagentCapabilities with SubagentCapabilitiesMappable {
   /// Backward compatibility alias for [agentBehavior].
   AgentBehavior get agentMode => agentBehavior;
 
+  /// Creates a [SubagentCapabilities].
+  ///
+  /// [agentMode] is a backward compatibility alias for [agentBehavior], which
+  /// takes precedence when both are set. [agentBehavior] defaults to
+  /// [AgentBehavior.autonomous].
+  ///
+  /// Throws an [AntigravityValidationException] if both [enabledTools] and
+  /// [disabledTools] are set, or if [allowedSubagents] is non-empty while both
+  /// [BuiltinTools.invokeSubagent] and [BuiltinTools.runWorkflow] are disabled.
   SubagentCapabilities({
     AgentBehavior? agentBehavior,
     AgentBehavior? agentMode,
@@ -40,23 +49,25 @@ class SubagentCapabilities with SubagentCapabilitiesMappable {
     this.allowedSubagents,
     this.runCommandConfig,
   }) : agentBehavior = resolveAgentBehaviorAndWarn(
-          agentBehavior: agentBehavior,
-          agentMode: agentMode,
-          enabledTools: enabledTools,
-          targetName: 'SubagentCapabilities',
-          logger: _subagentLogger,
-        ) {
+         agentBehavior: agentBehavior,
+         agentMode: agentMode,
+         enabledTools: enabledTools,
+         targetName: 'SubagentCapabilities',
+         logger: _subagentLogger,
+       ) {
     if (enabledTools != null && disabledTools != null) {
       throw AntigravityValidationException(
         'enabledTools and disabledTools are mutually exclusive.',
       );
     }
     if (allowedSubagents != null && allowedSubagents!.isNotEmpty) {
-      final hasInvokeSubagent = (enabledTools == null ||
+      final hasInvokeSubagent =
+          (enabledTools == null ||
               enabledTools!.contains(BuiltinTools.invokeSubagent)) &&
           (disabledTools == null ||
               !disabledTools!.contains(BuiltinTools.invokeSubagent));
-      final hasWorkflow = (enabledTools == null ||
+      final hasWorkflow =
+          (enabledTools == null ||
               enabledTools!.contains(BuiltinTools.runWorkflow)) &&
           (disabledTools == null ||
               !disabledTools!.contains(BuiltinTools.runWorkflow));
@@ -68,15 +79,17 @@ class SubagentCapabilities with SubagentCapabilitiesMappable {
     }
   }
 
+  /// Decodes a [SubagentCapabilities] from a map.
   static const fromMap = SubagentCapabilitiesMapper.fromMap;
+
+  /// Decodes a [SubagentCapabilities] from a JSON string.
   static const fromJson = SubagentCapabilitiesMapper.fromJson;
 }
 
 const int _maxInt32 = 2147483647;
 const int _maxInt64 = 9223372036854775807; // 0x7FFFFFFFFFFFFFFF
 
-/// Configuration for session-level budget limits and caps.
-/// Controls which tokens count toward the budget limit.
+/// Which tokens count toward a budget limit.
 @MappableEnum()
 enum BudgetScope {
   /// Counts all tokens since session start. (Default)
@@ -87,6 +100,7 @@ enum BudgetScope {
   @MappableValue('FORWARD_LOOKING')
   forwardLooking('FORWARD_LOOKING');
 
+  /// Wire value of the scope, such as `LIFETIME`.
   final String value;
   const BudgetScope(this.value);
 
@@ -99,6 +113,9 @@ enum BudgetScope {
   String get protoValue => 'BUDGET_SCOPE_$value';
 }
 
+/// Session-level budget limits and caps.
+///
+/// Each limit is optional; a null limit is not enforced.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class BudgetConfig with BudgetConfigMappable {
   /// Maximum number of model invocations (reasoning steps / generator calls) permitted across the session.
@@ -119,6 +136,11 @@ class BudgetConfig with BudgetConfigMappable {
   /// Determines whether the budget applies over the session lifetime or only forward.
   final BudgetScope scope;
 
+  /// Creates a [BudgetConfig]. [scope] defaults to [BudgetScope.lifetime].
+  ///
+  /// Throws an [AntigravityValidationException] if [maxModelCalls] or
+  /// [maxToolCalls] is outside 1 to 2147483647, or if a token limit is outside
+  /// 1 to 9223372036854775807.
   BudgetConfig({
     this.scope = BudgetScope.lifetime,
     this.maxModelCalls,
@@ -142,58 +164,66 @@ class BudgetConfig with BudgetConfigMappable {
     }
   }
 
+  /// Decodes a [BudgetConfig] from a map.
   static const fromMap = BudgetConfigMapper.fromMap;
+
+  /// Decodes a [BudgetConfig] from a JSON string.
   static const fromJson = BudgetConfigMapper.fromJson;
 }
 
 /// Reason why the execution turn stopped.
 @MappableEnum(defaultValue: StopReason.unspecified)
 enum StopReason {
+  /// Normal completion or unspecified stop reason.
   @MappableValue('UNSPECIFIED')
   unspecified('UNSPECIFIED'),
 
+  /// The session exceeded [BudgetConfig.maxModelCalls].
   @MappableValue('MAX_MODEL_CALLS_EXCEEDED')
   maxModelCallsExceeded('MAX_MODEL_CALLS_EXCEEDED'),
 
+  /// The session exceeded [BudgetConfig.maxToolCalls].
   @MappableValue('MAX_TOOL_CALLS_EXCEEDED')
   maxToolCallsExceeded('MAX_TOOL_CALLS_EXCEEDED'),
 
+  /// The session exceeded [BudgetConfig.maxInputTokens].
   @MappableValue('MAX_INPUT_TOKENS_EXCEEDED')
   maxInputTokensExceeded('MAX_INPUT_TOKENS_EXCEEDED'),
 
+  /// The session exceeded [BudgetConfig.maxOutputTokens].
   @MappableValue('MAX_OUTPUT_TOKENS_EXCEEDED')
   maxOutputTokensExceeded('MAX_OUTPUT_TOKENS_EXCEEDED'),
 
+  /// The session exceeded [BudgetConfig.maxTotalTokens].
   @MappableValue('MAX_TOTAL_TOKENS_EXCEEDED')
   maxTotalTokensExceeded('MAX_TOTAL_TOKENS_EXCEEDED'),
 
+  /// The backend model API quota was exhausted.
   @MappableValue('QUOTA_EXHAUSTED')
   quotaExhausted('QUOTA_EXHAUSTED');
 
+  /// Wire value of the reason, such as `QUOTA_EXHAUSTED`.
   final String value;
   const StopReason(this.value);
 
   /// Parses a [StopReason] from a string, supporting proto-prefixed wire strings
   /// (e.g. `STOP_REASON_MAX_MODEL_CALLS_EXCEEDED` or `MAX_MODEL_CALLS_EXCEEDED`).
   static StopReason fromString(String val) {
-    final normalized =
-        val.toUpperCase().trim().replaceFirst('STOP_REASON_', '');
+    final normalized = val.toUpperCase().trim().replaceFirst(
+      'STOP_REASON_',
+      '',
+    );
     return switch (normalized) {
       'MAX_MODEL_CALLS_EXCEEDED' ||
-      'MAXMODELCALLSEXCEEDED' =>
-        StopReason.maxModelCallsExceeded,
+      'MAXMODELCALLSEXCEEDED' => StopReason.maxModelCallsExceeded,
       'MAX_TOOL_CALLS_EXCEEDED' ||
-      'MAXTOOLCALLSEXCEEDED' =>
-        StopReason.maxToolCallsExceeded,
+      'MAXTOOLCALLSEXCEEDED' => StopReason.maxToolCallsExceeded,
       'MAX_INPUT_TOKENS_EXCEEDED' ||
-      'MAXINPUTTOKENSEXCEEDED' =>
-        StopReason.maxInputTokensExceeded,
+      'MAXINPUTTOKENSEXCEEDED' => StopReason.maxInputTokensExceeded,
       'MAX_OUTPUT_TOKENS_EXCEEDED' ||
-      'MAXOUTPUTTOKENSEXCEEDED' =>
-        StopReason.maxOutputTokensExceeded,
+      'MAXOUTPUTTOKENSEXCEEDED' => StopReason.maxOutputTokensExceeded,
       'MAX_TOTAL_TOKENS_EXCEEDED' ||
-      'MAXTOTALTOKENSEXCEEDED' =>
-        StopReason.maxTotalTokensExceeded,
+      'MAXTOTALTOKENSEXCEEDED' => StopReason.maxTotalTokensExceeded,
       'QUOTA_EXHAUSTED' || 'QUOTAEXHAUSTED' => StopReason.quotaExhausted,
       _ => StopReason.unspecified,
     };
@@ -203,23 +233,43 @@ enum StopReason {
 /// An in-memory skill definition.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class InlineSkill with InlineSkillMappable {
+  /// Unique name of the skill, such as `emoji-summarizer`.
   final String name;
+
+  /// Guidance for when the model should select this skill.
   final String description;
+
+  /// Markdown or text body containing the skill instructions.
   final String content;
+
+  /// Names of tools permitted for this skill.
   final List<String> allowedTools;
+
+  /// Names of tools this skill depends on, loaded when the skill is looked
+  /// up.
   final List<String> dependentTools;
+
+  /// Names of skills this skill depends on.
   final List<String> dependentSkills;
+
+  /// Key-value metadata for the skill, such as `{'visibility': 'hidden'}`.
   final Map<String, String> metadata;
 
-  InlineSkill(
-      {required this.name,
-      required this.description,
-      required this.content,
-      this.allowedTools = const [],
-      this.dependentTools = const [],
-      this.dependentSkills = const [],
-      this.metadata = const {}});
+  /// Creates an [InlineSkill].
+  InlineSkill({
+    required this.name,
+    required this.description,
+    required this.content,
+    this.allowedTools = const [],
+    this.dependentTools = const [],
+    this.dependentSkills = const [],
+    this.metadata = const {},
+  });
+
+  /// Decodes an [InlineSkill] from a map.
   static const fromMap = InlineSkillMapper.fromMap;
+
+  /// Decodes an [InlineSkill] from a JSON string.
   static const fromJson = InlineSkillMapper.fromJson;
 }
 
@@ -232,20 +282,41 @@ sealed class SubagentSkillsOption {}
 class SubagentSkillsConfig
     with SubagentSkillsConfigMappable
     implements SubagentSkillsOption {
+  /// Inherits parent skills, optionally filtered by name.
   final SubagentInheritSkillsConfig? inheritConfig;
+
+  /// Disables all skills for the subagent.
   final SubagentNoneSkillsConfig? noneConfig;
+
+  /// Replaces parent skills with explicit paths or inline skills.
   final SubagentOverrideSkillsConfig? overrideConfig;
-  SubagentSkillsConfig(
-      {this.inheritConfig, this.noneConfig, this.overrideConfig}) {
-    if ([inheritConfig, noneConfig, overrideConfig]
-            .where((x) => x != null)
-            .length >
+
+  /// Creates a [SubagentSkillsConfig].
+  ///
+  /// At most one mode may be set; when none is set, the subagent inherits all
+  /// parent skills. Throws an [AntigravityValidationException] if more than
+  /// one mode is set.
+  SubagentSkillsConfig({
+    this.inheritConfig,
+    this.noneConfig,
+    this.overrideConfig,
+  }) {
+    if ([
+          inheritConfig,
+          noneConfig,
+          overrideConfig,
+        ].where((x) => x != null).length >
         1) {
       throw AntigravityValidationException(
-          'At most one subagent skills mode may be set.');
+        'At most one subagent skills mode may be set.',
+      );
     }
   }
+
+  /// Decodes a [SubagentSkillsConfig] from a map.
   static const fromMap = SubagentSkillsConfigMapper.fromMap;
+
+  /// Decodes a [SubagentSkillsConfig] from a JSON string.
   static const fromJson = SubagentSkillsConfigMapper.fromJson;
 }
 
@@ -254,11 +325,24 @@ class SubagentSkillsConfig
 class SubagentInheritSkillsConfig
     with SubagentInheritSkillsConfigMappable
     implements SubagentSkillsOption {
+  /// Allowlist of parent skill names to inherit.
+  ///
+  /// When empty, all parent skills are inherited.
   final List<String> skillNames;
+
+  /// Additional filesystem paths containing `SKILL.md` files.
   final List<String> extraSkillsPaths;
-  SubagentInheritSkillsConfig(
-      {this.skillNames = const [], this.extraSkillsPaths = const []});
+
+  /// Creates a [SubagentInheritSkillsConfig].
+  SubagentInheritSkillsConfig({
+    this.skillNames = const [],
+    this.extraSkillsPaths = const [],
+  });
+
+  /// Decodes a [SubagentInheritSkillsConfig] from a map.
   static const fromMap = SubagentInheritSkillsConfigMapper.fromMap;
+
+  /// Decodes a [SubagentInheritSkillsConfig] from a JSON string.
   static const fromJson = SubagentInheritSkillsConfigMapper.fromJson;
 }
 
@@ -267,8 +351,13 @@ class SubagentInheritSkillsConfig
 class SubagentNoneSkillsConfig
     with SubagentNoneSkillsConfigMappable
     implements SubagentSkillsOption {
+  /// Creates a [SubagentNoneSkillsConfig].
   SubagentNoneSkillsConfig();
+
+  /// Decodes a [SubagentNoneSkillsConfig] from a map.
   static const fromMap = SubagentNoneSkillsConfigMapper.fromMap;
+
+  /// Decodes a [SubagentNoneSkillsConfig] from a JSON string.
   static const fromJson = SubagentNoneSkillsConfigMapper.fromJson;
 }
 
@@ -277,16 +366,32 @@ class SubagentNoneSkillsConfig
 class SubagentOverrideSkillsConfig
     with SubagentOverrideSkillsConfigMappable
     implements SubagentSkillsOption {
+  /// Filesystem directories containing `SKILL.md` files for this subagent.
   final List<String> skillsPaths;
+
+  /// Inline skill definitions scoped to this subagent.
   final List<InlineSkill> inlineSkills;
-  SubagentOverrideSkillsConfig(
-      {this.skillsPaths = const [], this.inlineSkills = const []}) {
+
+  /// Creates a [SubagentOverrideSkillsConfig].
+  ///
+  /// Throws an [AntigravityValidationException] if both [skillsPaths] and
+  /// [inlineSkills] are empty; use [SubagentNoneSkillsConfig] to disable
+  /// skills.
+  SubagentOverrideSkillsConfig({
+    this.skillsPaths = const [],
+    this.inlineSkills = const [],
+  }) {
     if (skillsPaths.isEmpty && inlineSkills.isEmpty) {
       throw AntigravityValidationException(
-          'Provide skillsPaths or inlineSkills; use SubagentNoneSkillsConfig to disable skills.');
+        'Provide skillsPaths or inlineSkills; use SubagentNoneSkillsConfig to disable skills.',
+      );
     }
   }
+
+  /// Decodes a [SubagentOverrideSkillsConfig] from a map.
   static const fromMap = SubagentOverrideSkillsConfigMapper.fromMap;
+
+  /// Decodes a [SubagentOverrideSkillsConfig] from a JSON string.
   static const fromJson = SubagentOverrideSkillsConfigMapper.fromJson;
 }
 
@@ -330,6 +435,11 @@ class SubagentConfig with SubagentConfigMappable {
   /// [SubagentNoneSkillsConfig], or [SubagentOverrideSkillsConfig] directly.
   final SubagentSkillsConfig? skillsConfig;
 
+  /// Creates a [SubagentConfig].
+  ///
+  /// [skillsConfig] accepts a [SubagentSkillsConfig] or one of its mode types,
+  /// which is wrapped in a [SubagentSkillsConfig]. [tools] defaults to an
+  /// empty list.
   SubagentConfig({
     required String name,
     required String description,
@@ -339,23 +449,26 @@ class SubagentConfig with SubagentConfigMappable {
     String? model,
     SubagentSkillsOption? skillsConfig,
   }) : this.raw(
-          name: name,
-          description: description,
-          systemInstructions: systemInstructions,
-          capabilities: capabilities,
-          tools: tools,
-          model: model,
-          skillsConfig: switch (skillsConfig) {
-            null => null,
-            SubagentSkillsConfig config => config,
-            SubagentInheritSkillsConfig config =>
-              SubagentSkillsConfig(inheritConfig: config),
-            SubagentNoneSkillsConfig config =>
-              SubagentSkillsConfig(noneConfig: config),
-            SubagentOverrideSkillsConfig config =>
-              SubagentSkillsConfig(overrideConfig: config),
-          },
-        );
+         name: name,
+         description: description,
+         systemInstructions: systemInstructions,
+         capabilities: capabilities,
+         tools: tools,
+         model: model,
+         skillsConfig: switch (skillsConfig) {
+           null => null,
+           SubagentSkillsConfig config => config,
+           SubagentInheritSkillsConfig config => SubagentSkillsConfig(
+             inheritConfig: config,
+           ),
+           SubagentNoneSkillsConfig config => SubagentSkillsConfig(
+             noneConfig: config,
+           ),
+           SubagentOverrideSkillsConfig config => SubagentSkillsConfig(
+             overrideConfig: config,
+           ),
+         },
+       );
 
   /// Serialization constructor taking the normalized [skillsConfig].
   ///
@@ -372,7 +485,10 @@ class SubagentConfig with SubagentConfigMappable {
     this.skillsConfig,
   }) : tools = tools ?? [];
 
+  /// Decodes a [SubagentConfig] from a map.
   static const fromMap = SubagentConfigMapper.fromMap;
+
+  /// Decodes a [SubagentConfig] from a JSON string.
   static const fromJson = SubagentConfigMapper.fromJson;
 }
 
@@ -397,6 +513,7 @@ enum SessionContinuationMode {
   @MappableValue('SESSION_CONTINUATION_MODE_UNSPECIFIED')
   unspecified('SESSION_CONTINUATION_MODE_UNSPECIFIED');
 
+  /// Wire value of the mode, such as `CREATE_OR_RESUME`.
   final String value;
   const SessionContinuationMode(this.value);
 }
@@ -482,7 +599,10 @@ class ModelAPIRetryConfig with ModelAPIRetryConfigMappable {
     }
   }
 
+  /// Decodes a [ModelAPIRetryConfig] from a map.
   static const fromMap = ModelAPIRetryConfigMapper.fromMap;
+
+  /// Decodes a [ModelAPIRetryConfig] from a JSON string.
   static const fromJson = ModelAPIRetryConfigMapper.fromJson;
 }
 
@@ -501,7 +621,10 @@ class ModelOutputRetryConfig with ModelOutputRetryConfigMappable {
     }
   }
 
+  /// Decodes a [ModelOutputRetryConfig] from a map.
   static const fromMap = ModelOutputRetryConfigMapper.fromMap;
+
+  /// Decodes a [ModelOutputRetryConfig] from a JSON string.
   static const fromJson = ModelOutputRetryConfigMapper.fromJson;
 }
 
@@ -533,6 +656,9 @@ class RetryConfig with RetryConfigMappable {
     );
   }
 
+  /// Decodes a [RetryConfig] from a map.
   static const fromMap = RetryConfigMapper.fromMap;
+
+  /// Decodes a [RetryConfig] from a JSON string.
   static const fromJson = RetryConfigMapper.fromJson;
 }

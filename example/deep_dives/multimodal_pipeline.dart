@@ -31,6 +31,7 @@ library;
 
 import 'dart:async';
 import 'dart:io';
+
 import 'package:antigravity/antigravity.dart';
 
 void _header(String title) {
@@ -94,7 +95,8 @@ Future<void> main() async {
     ],
   );
 
-  const prompt = "Generate an image of a white and orange Birman cat sitting "
+  const prompt =
+      "Generate an image of a white and orange Birman cat sitting "
       "in front of a fish-shaped birthday cake with lit candles. "
       "Name it 'birman_birthday'.";
   print('>>> $prompt\n');

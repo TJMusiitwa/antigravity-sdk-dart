@@ -43,6 +43,7 @@ class GenerateImageResult {
   /// image artifact was saved on disk. Empty if generation failed or no file output was written.
   final String outputPath;
 
+  /// Creates a [GenerateImageResult].
   const GenerateImageResult({
     this.imageName = '',
     this.aspectRatio = '',
@@ -70,13 +71,12 @@ class SearchWebResult {
   /// A summarized answer derived from web search results.
   final String summary;
 
+  /// Creates a [SearchWebResult].
   const SearchWebResult({this.summary = ''});
 
   /// Creates a [SearchWebResult] from a raw harness response map.
   factory SearchWebResult.fromMap(Map<String, dynamic> map) {
-    return SearchWebResult(
-      summary: (map['summary'] ?? '').toString(),
-    );
+    return SearchWebResult(summary: (map['summary'] ?? '').toString());
   }
 
   @override
@@ -97,6 +97,7 @@ class ReadUrlContentResult {
   /// The path to the stored content.
   final String contentPath;
 
+  /// Creates a [ReadUrlContentResult].
   const ReadUrlContentResult({
     this.title = '',
     this.summary = '',
@@ -116,8 +117,8 @@ class ReadUrlContentResult {
   String toString() => summary.isNotEmpty
       ? summary
       : title.isNotEmpty
-          ? title
-          : contentPath;
+      ? title
+      : contentPath;
 }
 
 /// Structured result from a `run_command` tool execution.
@@ -125,15 +126,18 @@ class RunCommandResult {
   /// The combined stdout and stderr output.
   final String output;
 
+  /// Creates a [RunCommandResult].
   const RunCommandResult({this.output = ''});
 
+  /// Creates a [RunCommandResult] from a raw harness response map.
   factory RunCommandResult.fromMap(Map<String, dynamic> map) {
     return RunCommandResult(
-      output: (map['output'] ??
-              map['combined_output'] ??
-              map['combinedOutput'] ??
-              '')
-          .toString(),
+      output:
+          (map['output'] ??
+                  map['combined_output'] ??
+                  map['combinedOutput'] ??
+                  '')
+              .toString(),
     );
   }
 
@@ -152,18 +156,22 @@ class ListDirectoryEntry {
   /// The file size in bytes.
   final int fileSize;
 
+  /// Creates a [ListDirectoryEntry].
   const ListDirectoryEntry({
     this.name = '',
     this.isDirectory = false,
     this.fileSize = 0,
   });
 
+  /// Creates a [ListDirectoryEntry] from a raw harness response map.
   factory ListDirectoryEntry.fromMap(Map<String, dynamic> map) {
     return ListDirectoryEntry(
       name: (map['name'] ?? '').toString(),
       isDirectory: map['is_directory'] == true || map['isDirectory'] == true,
-      fileSize: int.tryParse(
-              (map['file_size'] ?? map['fileSize'] ?? '0').toString()) ??
+      fileSize:
+          int.tryParse(
+            (map['file_size'] ?? map['fileSize'] ?? '0').toString(),
+          ) ??
           0,
     );
   }
@@ -174,8 +182,12 @@ class ListDirectoryResult {
   /// The list of entries in the directory.
   final List<ListDirectoryEntry> entries;
 
+  /// Creates a [ListDirectoryResult].
   const ListDirectoryResult({this.entries = const []});
 
+  /// Creates a [ListDirectoryResult] from a raw harness response map.
+  ///
+  /// Reads entries from `results`, falling back to `entries`.
   factory ListDirectoryResult.fromMap(Map<String, dynamic> map) {
     final results = (map['results'] ?? map['entries']) as List?;
     if (results == null) {
@@ -199,12 +211,12 @@ class FindFileResult {
   /// The list of matched paths separated by newlines.
   final String output;
 
+  /// Creates a [FindFileResult].
   const FindFileResult({this.output = ''});
 
+  /// Creates a [FindFileResult] from a raw harness response map.
   factory FindFileResult.fromMap(Map<String, dynamic> map) {
-    return FindFileResult(
-      output: (map['output'] ?? '').toString(),
-    );
+    return FindFileResult(output: (map['output'] ?? '').toString());
   }
 
   @override
@@ -216,12 +228,16 @@ class SearchDirectoryResult {
   /// The number of matching results found.
   final int numResults;
 
+  /// Creates a [SearchDirectoryResult].
   const SearchDirectoryResult({this.numResults = 0});
 
+  /// Creates a [SearchDirectoryResult] from a raw harness response map.
   factory SearchDirectoryResult.fromMap(Map<String, dynamic> map) {
     return SearchDirectoryResult(
-      numResults: int.tryParse(
-              (map['num_results'] ?? map['numResults'] ?? '0').toString()) ??
+      numResults:
+          int.tryParse(
+            (map['num_results'] ?? map['numResults'] ?? '0').toString(),
+          ) ??
           0,
     );
   }
@@ -235,12 +251,12 @@ class EditFileResult {
   /// A summary of the edit changes.
   final String summary;
 
+  /// Creates an [EditFileResult].
   const EditFileResult({this.summary = ''});
 
+  /// Creates an [EditFileResult] from a raw harness response map.
   factory EditFileResult.fromMap(Map<String, dynamic> map) {
-    return EditFileResult(
-      summary: (map['summary'] ?? '').toString(),
-    );
+    return EditFileResult(summary: (map['summary'] ?? '').toString());
   }
 
   @override

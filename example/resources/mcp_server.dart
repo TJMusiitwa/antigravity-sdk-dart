@@ -65,7 +65,8 @@ Future<void> main() async {
       return CallToolResult(
         content: [
           TextContent(
-            text: '🏴‍☠️ Pirate Multiplication: $a × $b\n\n'
+            text:
+                '🏴‍☠️ Pirate Multiplication: $a × $b\n\n'
                 '**Yo ho ho!** The pirate multiplication be done!\n\n'
                 '| Factor | Value |\n'
                 '|--------|-------|\n'
@@ -96,7 +97,8 @@ Future<void> main() async {
       return CallToolResult(
         content: [
           TextContent(
-            text: '🏴‍☠️ Pirate Division: $a ÷ $b\n\n'
+            text:
+                '🏴‍☠️ Pirate Division: $a ÷ $b\n\n'
                 '**Blimey!** The division be calculated!\n\n'
                 '| Operand | Value |\n'
                 '|---------|-------|\n'

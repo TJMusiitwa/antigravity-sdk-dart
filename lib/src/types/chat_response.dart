@@ -6,6 +6,12 @@ import 'config.dart';
 import 'step.dart';
 import 'tool_call.dart';
 
+/// The response to a single conversation turn.
+///
+/// A stream of semantic chunks with lazy buffering. Each stream getter
+/// ([chunks], [textStream], [thoughts], [toolCalls]) returns an independent
+/// cursor over a shared buffer. If the upstream stream fails, the error is
+/// rethrown to each cursor that reaches the end of the buffer.
 class ChatResponse {
   final Stream<dynamic> _stream;
   final List<dynamic> _bufferedChunks = [];
@@ -13,9 +19,13 @@ class ChatResponse {
   Object? _error;
   final Conversation? _conversation;
 
-  ChatResponse(Stream<dynamic> rawStream, {Conversation? conversation})
-      : _stream = rawStream.asBroadcastStream(),
-        _conversation = conversation {
+  /// Creates a [ChatResponse] that buffers chunks from [rawStream].
+  ///
+  /// The optional conversation supplies [usage], [stopReason], and
+  /// [structuredOutput], and is used by [cancel]. Without it, those return
+  /// their empty defaults and [cancel] does nothing.
+  ChatResponse(Stream<dynamic> rawStream, {this._conversation})
+    : _stream = rawStream.asBroadcastStream() {
     _stream.listen(
       (chunk) {
         _bufferedChunks.add(chunk);
@@ -83,24 +93,37 @@ class ChatResponse {
   /// Cancels the active execution turn and halts generation.
   Future<void> cancel() async {
     if (!_isDone && _conversation != null) {
-      await _conversation!.cancel();
+      await _conversation.cancel();
     }
   }
 }
 
 /// Experimental workflow result with all standard response accessors.
 class WorkflowResult extends ChatResponse {
+  /// The path to the workflow script that was executed, when run from a
+  /// script file.
   final String scriptPath;
+
+  /// The inline workflow script source, when run from inline source.
   final String script;
+
+  /// A brief description of the workflow run.
   final String description;
+
+  /// The formatted workflow log and result text produced by the script.
   final String output;
+
+  /// The final assistant response text from the workflow turn.
   final String responseText;
 
-  WorkflowResult(super.rawStream,
-      {super.conversation,
-      this.scriptPath = '',
-      this.script = '',
-      this.description = '',
-      this.output = '',
-      this.responseText = ''});
+  /// Creates a [WorkflowResult] over [rawStream] with workflow metadata.
+  WorkflowResult(
+    super.rawStream, {
+    super.conversation,
+    this.scriptPath = '',
+    this.script = '',
+    this.description = '',
+    this.output = '',
+    this.responseText = '',
+  });
 }

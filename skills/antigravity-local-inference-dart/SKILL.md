@@ -9,7 +9,7 @@ Guidelines for running local Gemma models via LiteRT, connecting to local OpenAI
 
 ## 1. Local Model Execution (LiteRT & OpenAI)
 
-1. **LiteRT Setup**: Use `LiteRTAgentConfig(modelPath: "path/to/gemma.task")` to run local Gemma inference via Python loopback HTTP server.
+1. **LiteRT Setup**: Use `LiteRTAgentConfig(modelPath: "path/to/gemma.task")` to run local Gemma inference via Python loopback HTTP server. The server reuses the LiteRT conversation (and its KV cache) across consecutive turns when the message history, tools, and token settings are unchanged.
 2. **OpenAI Endpoint Integration**: Use `LocalOpenAIAgentConfig(baseUrl: "http://localhost:11434/v1", model: "llama3")` for Ollama, LM Studio, or local vLLM instances.
 
 For code examples, inspect [`references/inference_patterns.md`](file://references/inference_patterns.md).

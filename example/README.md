@@ -219,13 +219,38 @@ dart run example/getting_started/hello_world.dart
 
 ### Experimental workflows (`workflows.dart`)
 
-Run `dart run example/getting_started/workflows.dart /path/to/workflow.py`.
-The script executes in the harness's Python workflow sandbox. Use `phase`, `log`,
-`agent`, `parallel`, and `pipeline` there. Before the model is asked to run it,
-`runWorkflow` rejects imports, `while` loops, `_`-prefixed attributes,
-`__`-prefixed names, and top-level `return`/`yield` with a `WorkflowException`;
-call `validateWorkflowSource` from `package:antigravity/beta.dart` to check a
-script yourself. Dart functions are not converted to Python.
+Run `dart run example/getting_started/workflows.dart` with no arguments to
+audit two sample files with the bundled
+[`resources/security_audit_workflow.py`](resources/security_audit_workflow.py).
+The example writes `auth.py` and `db.py` to a temporary workspace and passes
+their paths as `runWorkflow(args: {'paths': [...]})`. The script reads each file
+with `call_tool("read_file", ...)`, audits them in parallel with a
+`file_auditor` subagent, and holds a two-turn conversation with a
+`lead_synthesizer` subagent. `call_tool("read_file", ...)` needs
+`BuiltinTools.viewFile` enabled alongside `BuiltinTools.runWorkflow`.
+
+To audit this repository's own code instead, pass `--audit-lib`. The example
+then uses the repository as the workspace and audits the hand-written Dart files
+under `lib/` (generated `*.mapper.dart` files are skipped). Pass
+`--audit-lib=<subdir>` to limit it to one folder, for example
+`dart run example/getting_started/workflows.dart --audit-lib=src/connections/local`.
+The script starts one subagent per file in parallel, so the whole of `lib/`
+means dozens of concurrent model calls; narrow it if you hit rate limits. The
+agent can only read files, and the findings are a quick one-sentence triage per
+file, not a full security review. `run_examples.yml` runs the two-file demo only.
+
+To run your own script, pass its path and, optionally, a JSON object that the
+script receives as `args`:
+`dart run example/getting_started/workflows.dart my_workflow.py '{"key": 1}'`.
+
+Scripts run in the harness's Python workflow sandbox, where `phase`, `log`,
+`agent`, `call_tool`, `parallel`, `pipeline`, and the `args` mapping are
+available. `agent(...)` can be awaited once or kept as a multi-turn handle,
+and failed `call_tool` calls raise `ToolError`. Before the model is asked to
+run a script, `runWorkflow` rejects `print()` calls (use `log`) and top-level
+`return`/`yield` with a `WorkflowException`; imports and `while` loops are
+allowed. Call `validateWorkflowSource` from `package:antigravity/beta.dart` to
+check a script yourself. Dart functions are not converted to Python.
 
 Subagent skills can be scoped with `SubagentConfig(skillsConfig:
 SubagentInheritSkillsConfig(skillNames: ['audit']))`, disabled with

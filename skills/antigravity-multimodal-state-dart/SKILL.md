@@ -19,7 +19,7 @@ For code examples, inspect [`references/state_multimodal_patterns.md`](file://re
 
 ## 2. Multimodal Payload Construction & Token Telemetry
 
-- **Media Buffers**: Construct `MediaContent` from binary bytes (`Uint8List`), file paths (`fromFile`), with automatic MIME type detection.
+- **Media Buffers**: Construct `MediaContent` from binary bytes (`Uint8List`), file paths (`fromFile`, which expands a leading `~`), with automatic MIME type detection. MIME type strings are trimmed and lowercased, so `' IMAGE/PNG '` is accepted as `image/png`.
 - **Token Usage Arithmetic**: Stream live `UsageUpdate` events and compute trajectory token balances using `UsageMetadata` addition (`+`) and subtraction (`-`) operators.
 
 For implementations, read [`references/state_multimodal_patterns.md`](file://references/state_multimodal_patterns.md).

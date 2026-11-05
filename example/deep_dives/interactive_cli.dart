@@ -53,8 +53,7 @@ Future<String> asyncInput(String prompt) async {
 
 final readFileUpsideDownTool = Tool(
   name: 'read_file_upside_down',
-  description:
-      'Reads the file at the given path and returns its content with lines inverted.',
+  description: 'Reads the file at the given path and returns its content with lines inverted.',
   schema: {
     'type': 'object',
     'properties': {

@@ -173,9 +173,7 @@ void main() {
   // ChatResponse – stopReason and usage
   // ---------------------------------------------------------------------------
   group('ChatResponse – stopReason & usage', () {
-    test(
-        'defaults to StopReason.unspecified and null usage when no conversation attached',
-        () {
+    test('defaults to StopReason.unspecified and null usage when no conversation attached', () {
       final response = ChatResponse(const Stream.empty());
       expect(response.stopReason, equals(StopReason.unspecified));
       expect(response.usage, isNull);

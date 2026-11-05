@@ -19,9 +19,11 @@ class CompactionConfig with CompactionConfigMappable {
   /// occurs. When null, the backend's default limit is used. Must be > 0.
   final int? tokenThreshold;
 
-  CompactionConfig({
-    this.tokenThreshold,
-  }) {
+  /// Creates a [CompactionConfig].
+  ///
+  /// Throws an [AntigravityValidationException] if [tokenThreshold] is not
+  /// greater than 0.
+  CompactionConfig({this.tokenThreshold}) {
     _validatePositive('tokenThreshold', tokenThreshold);
   }
 
@@ -42,6 +44,9 @@ class CompactionConfig with CompactionConfigMappable {
     }
   }
 
+  /// Decodes a [CompactionConfig] from a map.
   static const fromMap = CompactionConfigMapper.fromMap;
+
+  /// Decodes a [CompactionConfig] from a JSON string.
   static const fromJson = CompactionConfigMapper.fromJson;
 }

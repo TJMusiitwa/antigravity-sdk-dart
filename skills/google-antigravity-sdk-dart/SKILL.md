@@ -30,10 +30,16 @@ Reference implementations for common setups:
 - `SubagentConfig.skillsConfig` accepts inherit, none, and override modes. Local
   overrides require filesystem `skillsPaths`; inline overrides are rejected.
 - Execute existing Python workflow files with `agent.beta.runWorkflow(scriptPath:
-  path)`. See `example/getting_started/workflows.dart`. Enable
-  `BuiltinTools.runWorkflow` and subagents in the capabilities. Scripts are
+  path, args: {...})`. See `example/getting_started/workflows.dart`. Enable
+  `BuiltinTools.runWorkflow` and subagents in the capabilities. `args` must be
+  JSON-encodable and reaches the script as `args`; scripts may use `call_tool`,
+  multi-turn `agent(...)` handles, imports, and `while` loops. Scripts are
   checked with `validateWorkflowSource` (from `package:antigravity/beta.dart`)
-  before the model runs them; Dart functions are not converted to Python.
+  before the model runs them, which rejects `print()` (use `log`) and top-level
+  `return`/`yield`; Dart functions are not converted to Python.
+- `CustomSystemInstructions(text: ..., title: 'SecurityPolicy')` renders the
+  replacement instructions under a `<SecurityPolicy>` section instead of
+  `<System>`.
 - `InteractionsAgentConfig` takes the same options as `LocalAgentConfig` but
   talks to the harness over the GAOS Interactions protocol. It rejects triggers
   and `auto()` and dynamic (`when`/`askUser`) policies, and ignores root

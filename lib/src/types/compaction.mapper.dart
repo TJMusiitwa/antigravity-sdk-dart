@@ -67,12 +67,12 @@ mixin CompactionConfigMappable {
   }
 
   CompactionConfigCopyWith<CompactionConfig, CompactionConfig, CompactionConfig>
-      get copyWith =>
-          _CompactionConfigCopyWithImpl<CompactionConfig, CompactionConfig>(
-            this as CompactionConfig,
-            $identity,
-            $identity,
-          );
+  get copyWith =>
+      _CompactionConfigCopyWithImpl<CompactionConfig, CompactionConfig>(
+        this as CompactionConfig,
+        $identity,
+        $identity,
+      );
   @override
   String toString() {
     return CompactionConfigMapper.ensureInitialized().stringifyValue(
@@ -100,8 +100,8 @@ mixin CompactionConfigMappable {
 extension CompactionConfigValueCopy<$R, $Out>
     on ObjectCopyWith<$R, CompactionConfig, $Out> {
   CompactionConfigCopyWith<$R, CompactionConfig, $Out>
-      get $asCompactionConfig => $base
-          .as((v, t, t2) => _CompactionConfigCopyWithImpl<$R, $Out>(v, t, t2));
+  get $asCompactionConfig =>
+      $base.as((v, t, t2) => _CompactionConfigCopyWithImpl<$R, $Out>(v, t, t2));
 }
 
 /// @nodoc
@@ -124,18 +124,18 @@ class _CompactionConfigCopyWithImpl<$R, $Out>
       CompactionConfigMapper.ensureInitialized();
   @override
   $R call({Object? tokenThreshold = $none}) => $apply(
-        FieldCopyWithData({
-          if (tokenThreshold != $none) #tokenThreshold: tokenThreshold,
-        }),
-      );
+    FieldCopyWithData({
+      if (tokenThreshold != $none) #tokenThreshold: tokenThreshold,
+    }),
+  );
   @override
   CompactionConfig $make(CopyWithData data) => CompactionConfig(
-        tokenThreshold: data.get(#tokenThreshold, or: $value.tokenThreshold),
-      );
+    tokenThreshold: data.get(#tokenThreshold, or: $value.tokenThreshold),
+  );
 
   @override
   CompactionConfigCopyWith<$R2, CompactionConfig, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
-  ) =>
-      _CompactionConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
+  ) => _CompactionConfigCopyWithImpl<$R2, $Out2>($value, $cast, t);
 }
+

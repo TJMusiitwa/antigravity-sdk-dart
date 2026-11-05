@@ -31,6 +31,7 @@
 library;
 
 import 'dart:io';
+
 import 'package:antigravity/antigravity.dart';
 import 'package:logging/logging.dart';
 
@@ -72,10 +73,7 @@ Future<void> main() async {
   final config = LocalAgentConfig(
     tools: [getWeatherTool],
     hooks: [AuditLogToolCallHook()],
-    debugConfig: DebugConfig(
-      level: Level.INFO,
-      enableServerSideTracing: true,
-    ),
+    debugConfig: DebugConfig(level: Level.INFO, enableServerSideTracing: true),
   );
 
   final agent = Agent(config);

@@ -31,6 +31,7 @@ library;
 
 import 'dart:async';
 import 'dart:io';
+
 import 'package:antigravity/antigravity.dart';
 
 // -----------------------------------------------------------------------------
@@ -143,7 +144,8 @@ class MyStopHook extends StopHook {
   @override
   Future<StopHookResult> run(HookContext context, StopArgs data) async {
     print(
-        '\n  [Stop Hook] Fired (continuationCount=${data.continuationCount})');
+      '\n  [Stop Hook] Fired (continuationCount=${data.continuationCount})',
+    );
     final preview = data.responseText.length > 60
         ? '${data.responseText.substring(0, 60)}…'
         : data.responseText;
@@ -154,8 +156,7 @@ class MyStopHook extends StopHook {
       print('  [Stop Hook] -> CONTINUE: Pushing agent to dig deeper.\n');
       return StopHookResult(
         decision: StopDecision.continueTurn,
-        reason:
-            'Great start. Now pick the single most surprising fact you mentioned and explain why it matters for future space exploration. Be concise.',
+        reason: 'Great start. Now pick the single most surprising fact you mentioned and explain why it matters for future space exploration. Be concise.',
       );
     }
 

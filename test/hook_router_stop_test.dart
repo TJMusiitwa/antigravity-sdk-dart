@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import 'dart:async';
+
 import 'package:antigravity/antigravity.dart';
 import 'package:antigravity/src/connections/local/hook_router.dart';
 import 'package:test/test.dart';
@@ -24,7 +25,7 @@ class MockStopHook extends StopHook {
   final StopHookResult Function(HookContext context, StopArgs args) onRun;
 
   MockStopHook(StopHookResult Function(StopArgs args) handler)
-      : onRun = ((context, args) => handler(args));
+    : onRun = ((context, args) => handler(args));
 
   MockStopHook.withContext(this.onRun);
 
@@ -65,8 +66,10 @@ void main() {
       expect(mock.receivedArgs!.responseText, equals('Here is your summary.'));
       expect(mock.receivedArgs!.trajectoryId, equals('traj-100'));
       expect(mock.receivedArgs!.continuationCount, equals(0));
-      expect(mock.receivedArgs!.stopReason,
-          equals(StopReason.maxModelCallsExceeded));
+      expect(
+        mock.receivedArgs!.stopReason,
+        equals(StopReason.maxModelCallsExceeded),
+      );
 
       expect(sentEvents.length, equals(1));
       final resp = sentEvents.first['call_hook_response'];
@@ -76,41 +79,45 @@ void main() {
       expect(stopResult.containsKey('reason'), isFalse);
     });
 
-    test('handles LIFECYCLE_HOOK_STOP with CONTINUE decision and reason',
-        () async {
-      final mock = MockStopHook((args) {
-        return StopHookResult(
-          decision: StopDecision.continueTurn,
-          reason: 'Please elaborate on the implications.',
+    test(
+      'handles LIFECYCLE_HOOK_STOP with CONTINUE decision and reason',
+      () async {
+        final mock = MockStopHook((args) {
+          return StopHookResult(
+            decision: StopDecision.continueTurn,
+            reason: 'Please elaborate on the implications.',
+          );
+        });
+        final runner = HookRunner(stopHooks: [mock]);
+        final sentEvents = <Map<String, dynamic>>[];
+        final router = HookRouter(runner, (evt) async {
+          sentEvents.add(evt);
+        });
+
+        await router.handle({
+          'request_id': 'req-stop-2',
+          'type': 'LIFECYCLE_HOOK_STOP',
+          'stop_args': {
+            'response_text': 'Brief fact.',
+            'trajectory_id': 'traj-200',
+            'continuation_count': 1,
+            'stop_reason': 'STOP_REASON_UNSPECIFIED',
+          },
+        });
+
+        expect(mock.receivedArgs, isNotNull);
+        expect(mock.receivedArgs!.continuationCount, equals(1));
+
+        final resp = sentEvents.first['call_hook_response'];
+        expect(resp['request_id'], equals('req-stop-2'));
+        final stopResult = resp['stop_result'];
+        expect(stopResult['decision'], equals('CONTINUE'));
+        expect(
+          stopResult['reason'],
+          equals('Please elaborate on the implications.'),
         );
-      });
-      final runner = HookRunner(stopHooks: [mock]);
-      final sentEvents = <Map<String, dynamic>>[];
-      final router = HookRouter(runner, (evt) async {
-        sentEvents.add(evt);
-      });
-
-      await router.handle({
-        'request_id': 'req-stop-2',
-        'type': 'LIFECYCLE_HOOK_STOP',
-        'stop_args': {
-          'response_text': 'Brief fact.',
-          'trajectory_id': 'traj-200',
-          'continuation_count': 1,
-          'stop_reason': 'STOP_REASON_UNSPECIFIED',
-        },
-      });
-
-      expect(mock.receivedArgs, isNotNull);
-      expect(mock.receivedArgs!.continuationCount, equals(1));
-
-      final resp = sentEvents.first['call_hook_response'];
-      expect(resp['request_id'], equals('req-stop-2'));
-      final stopResult = resp['stop_result'];
-      expect(stopResult['decision'], equals('CONTINUE'));
-      expect(stopResult['reason'],
-          equals('Please elaborate on the implications.'));
-    });
+      },
+    );
 
     test('handles bare STOP type string and empty stop_args', () async {
       final mock = MockStopHook((args) => StopHookResult());
@@ -118,10 +125,7 @@ void main() {
       final sentEvents = <Map<String, dynamic>>[];
       final router = HookRouter(runner, (evt) async => sentEvents.add(evt));
 
-      await router.handle({
-        'request_id': 'req-stop-3',
-        'type': 'STOP',
-      });
+      await router.handle({'request_id': 'req-stop-3', 'type': 'STOP'});
 
       expect(mock.receivedArgs, isNotNull);
       expect(mock.receivedArgs!.responseText, equals(''));
@@ -160,50 +164,51 @@ void main() {
     });
 
     test(
-        'retains currentTurnContext on continueTurn and clears it on allowStop',
-        () async {
-      var callCount = 0;
-      final mock = MockStopHook.withContext((context, args) {
-        callCount++;
-        if (callCount == 1) {
-          return StopHookResult(
-            decision: StopDecision.continueTurn,
-            reason: 'Continue cycle',
-          );
-        }
-        return StopHookResult(decision: StopDecision.allowStop);
-      });
+      'retains currentTurnContext on continueTurn and clears it on allowStop',
+      () async {
+        var callCount = 0;
+        final mock = MockStopHook.withContext((context, args) {
+          callCount++;
+          if (callCount == 1) {
+            return StopHookResult(
+              decision: StopDecision.continueTurn,
+              reason: 'Continue cycle',
+            );
+          }
+          return StopHookResult(decision: StopDecision.allowStop);
+        });
 
-      final runner = HookRunner(stopHooks: [mock]);
-      final sentEvents = <Map<String, dynamic>>[];
-      final router = HookRouter(runner, (evt) async => sentEvents.add(evt));
+        final runner = HookRunner(stopHooks: [mock]);
+        final sentEvents = <Map<String, dynamic>>[];
+        final router = HookRouter(runner, (evt) async => sentEvents.add(evt));
 
-      // Call 1: returns continueTurn -> retains context
-      await router.handle({
-        'request_id': 'req-turn-1',
-        'type': 'LIFECYCLE_HOOK_STOP',
-        'stop_args': {'response_text': 'turn 1'},
-      });
+        // Call 1: returns continueTurn -> retains context
+        await router.handle({
+          'request_id': 'req-turn-1',
+          'type': 'LIFECYCLE_HOOK_STOP',
+          'stop_args': {'response_text': 'turn 1'},
+        });
 
-      // Call 2: sequential call on same router -> should receive identical context, returns allowStop
-      await router.handle({
-        'request_id': 'req-turn-2',
-        'type': 'LIFECYCLE_HOOK_STOP',
-        'stop_args': {'response_text': 'turn 2'},
-      });
+        // Call 2: sequential call on same router -> should receive identical context, returns allowStop
+        await router.handle({
+          'request_id': 'req-turn-2',
+          'type': 'LIFECYCLE_HOOK_STOP',
+          'stop_args': {'response_text': 'turn 2'},
+        });
 
-      expect(mock.receivedContexts.length, equals(2));
-      expect(mock.receivedContexts[1], same(mock.receivedContexts[0]));
+        expect(mock.receivedContexts.length, equals(2));
+        expect(mock.receivedContexts[1], same(mock.receivedContexts[0]));
 
-      // Call 3: call following allowStop -> should receive a new, different context
-      await router.handle({
-        'request_id': 'req-turn-3',
-        'type': 'LIFECYCLE_HOOK_STOP',
-        'stop_args': {'response_text': 'turn 3'},
-      });
+        // Call 3: call following allowStop -> should receive a new, different context
+        await router.handle({
+          'request_id': 'req-turn-3',
+          'type': 'LIFECYCLE_HOOK_STOP',
+          'stop_args': {'response_text': 'turn 3'},
+        });
 
-      expect(mock.receivedContexts.length, equals(3));
-      expect(mock.receivedContexts[2], isNot(same(mock.receivedContexts[1])));
-    });
+        expect(mock.receivedContexts.length, equals(3));
+        expect(mock.receivedContexts[2], isNot(same(mock.receivedContexts[1])));
+      },
+    );
   });
 }

@@ -36,20 +36,20 @@ class McpTool extends Tool {
     required super.schema,
     required McpClient client,
   }) : super(
-          handler: (args, context) async {
-            final result = await client.callTool(
-              CallToolRequest(name: name, arguments: args),
-            );
-            if (result.isError == true) {
-              throw Exception('MCP tool call "$name" failed');
-            }
-            // Extract text content from MCP result
-            return result.content
-                .whereType<TextContent>()
-                .map((c) => c.text)
-                .join('\n');
-          },
-        );
+         handler: (args, context) async {
+           final result = await client.callTool(
+             CallToolRequest(name: name, arguments: args),
+           );
+           if (result.isError == true) {
+             throw Exception('MCP tool call "$name" failed');
+           }
+           // Extract text content from MCP result
+           return result.content
+               .whereType<TextContent>()
+               .map((c) => c.text)
+               .join('\n');
+         },
+       );
 }
 
 /// Discovers tools from configured MCP servers and exposes them as native [Tool] instances.
@@ -59,18 +59,20 @@ class McpBridge {
   final McpClient Function(Implementation)? _clientFactory;
 
   /// Creates a new [McpBridge] instance with an optional [clientFactory].
-  McpBridge({McpClient Function(Implementation)? clientFactory})
-      : _clientFactory = clientFactory;
+  McpBridge({this._clientFactory});
 
   /// All tools discovered from all connected MCP servers.
   List<McpTool> get tools => List.unmodifiable(_tools);
 
   /// Connects to an MCP server based on its configuration type.
   Future<void> connect(McpServerConfig serverCfg) async {
-    final impl =
-        Implementation(name: 'antigravity-dart-sdk', version: packageVersion);
-    final client =
-        _clientFactory != null ? _clientFactory!(impl) : McpClient(impl);
+    final impl = Implementation(
+      name: 'antigravity-dart-sdk',
+      version: packageVersion,
+    );
+    final client = _clientFactory != null
+        ? _clientFactory(impl)
+        : McpClient(impl);
 
     dynamic transport;
 

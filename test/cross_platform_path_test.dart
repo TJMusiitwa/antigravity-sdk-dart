@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:test/test.dart';
 import 'package:path/path.dart' as p;
 import 'package:antigravity/antigravity.dart';
@@ -45,33 +46,40 @@ void main() {
       final cwd = Directory.current.absolute.path;
       expect(normalizeWorkspacePath('.'), equals(cwd));
       expect(normalizeWorkspacePath('./test'), equals(p.join(cwd, 'test')));
-      expect(normalizeWorkspacePaths(['.', 'test']),
-          equals([cwd, p.join(cwd, 'test')]));
+      expect(
+        normalizeWorkspacePaths(['.', 'test']),
+        equals([cwd, p.join(cwd, 'test')]),
+      );
     });
 
     test('normalizes file:// URIs', () {
-      expect(normalizeWorkspacePath('file:///tmp/workspace'),
-          equals('/tmp/workspace'));
+      expect(
+        normalizeWorkspacePath('file:///tmp/workspace'),
+        equals('/tmp/workspace'),
+      );
     });
 
     test('normalizes user home paths (~)', () {
-      final home = Platform.environment['HOME'] ??
+      final home =
+          Platform.environment['HOME'] ??
           Platform.environment['USERPROFILE'] ??
           '';
       if (home.isNotEmpty) {
-        expect(normalizeWorkspacePath('~/my-project'),
-            equals(p.join(home, 'my-project')));
+        expect(
+          normalizeWorkspacePath('~/my-project'),
+          equals(p.join(home, 'my-project')),
+        );
       }
     });
 
     test('preserves /cns/ paths', () {
-      expect(normalizeWorkspacePath('/cns/test-cell/workspace'),
-          equals('/cns/test-cell/workspace'));
+      expect(
+        normalizeWorkspacePath('/cns/test-cell/workspace'),
+        equals('/cns/test-cell/workspace'),
+      );
     });
 
-    test(
-        'defaults to current working directory when null and defaultToCwd is true',
-        () {
+    test('defaults to current working directory when null and defaultToCwd is true', () {
       final cwd = Directory.current.absolute.path;
       expect(normalizeWorkspacePaths(null, defaultToCwd: true), equals([cwd]));
       expect(normalizeWorkspacePaths(null, defaultToCwd: false), equals([]));
@@ -86,8 +94,11 @@ void main() {
       const winPath = r'C:\Users\foo\..\bar';
       final normalized = normalizeWorkspacePath(winPath);
 
-      expect(normalized, isNot(equals(winPath)),
-          reason: 'drive-letter path must not be returned verbatim');
+      expect(
+        normalized,
+        isNot(equals(winPath)),
+        reason: 'drive-letter path must not be returned verbatim',
+      );
 
       if (Platform.isWindows) {
         expect(normalized, equals(p.normalize(r'C:\Users\bar')));
@@ -106,8 +117,10 @@ void main() {
     });
 
     test('passes non-file URI schemes through untouched', () {
-      expect(normalizeWorkspacePath('https://example.com/x'),
-          equals('https://example.com/x'));
+      expect(
+        normalizeWorkspacePath('https://example.com/x'),
+        equals('https://example.com/x'),
+      );
     });
   });
 

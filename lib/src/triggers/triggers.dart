@@ -57,7 +57,7 @@ Trigger every(
 Trigger onFileChange(
   String path,
   FutureOr<void> Function(TriggerContext context, List<FileChange> changes)
-      callback,
+  callback,
 ) {
   return (ctx) async {
     final entity = _resolveWatchEntity(path);

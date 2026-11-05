@@ -38,9 +38,11 @@ void main(List<String> args) {
       ? VertexEndpoint(baseUrl: 'http://localhost:8080')
       : VertexEndpoint();
 
-  stdout.writeln(jsonEncode({
-    'project': endpoint.project,
-    'location': endpoint.location,
-    'baseUrl': endpoint.baseUrl,
-  }));
+  stdout.writeln(
+    jsonEncode({
+      'project': endpoint.project,
+      'location': endpoint.location,
+      'baseUrl': endpoint.baseUrl,
+    }),
+  );
 }

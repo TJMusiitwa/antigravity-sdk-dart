@@ -19,11 +19,12 @@ void main() {
     CompactionConfig? compactionConfig,
     BudgetConfig? budgetConfig,
     List<Policy>? policies,
+    Object? systemInstructions,
   }) {
     return LocalConnectionStrategy(
       toolRunner: ToolRunner(),
       hookRunner: HookRunner(),
-      systemInstructions: null,
+      systemInstructions: systemInstructions,
       capabilitiesConfig: capabilitiesConfig ?? CapabilitiesConfig(),
       workspaces: const [],
       skillsPaths: const [],
@@ -57,8 +58,9 @@ void main() {
       final mainTools = config['harness_side_tools'] as Map<String, dynamic>;
       final subagents = config['custom_subagents'] as List;
       expect(subagents, hasLength(1));
-      final subTools = (subagents.first as Map)['harness_side_tools']
-          as Map<String, dynamic>;
+      final subTools =
+          (subagents.first as Map)['harness_side_tools']
+              as Map<String, dynamic>;
 
       // The subagent block is a near-copy of the main-agent block; any key it
       // defines must be a key localharness already accepts for the main agent.
@@ -78,8 +80,10 @@ void main() {
         ],
       ).buildHarnessConfigForTest();
 
-      final subTools = ((config['custom_subagents'] as List).first
-          as Map)['harness_side_tools'] as Map<String, dynamic>;
+      final subTools =
+          ((config['custom_subagents'] as List).first
+                  as Map)['harness_side_tools']
+              as Map<String, dynamic>;
 
       expect((subTools['file_edit'] as Map)['enabled'], isFalse);
       expect((subTools['write_to_file'] as Map)['enabled'], isFalse);
@@ -207,35 +211,40 @@ void main() {
   });
 
   group('run_command proto configuration', () {
-    test('defaults enable_daemon_commands to false and max_timeout_ms to 0',
-        () {
-      final config = buildStrategy().buildHarnessConfigForTest();
-      final runCmd = (config['harness_side_tools'] as Map)['run_command']
-          as Map<String, dynamic>;
+    test(
+      'defaults enable_daemon_commands to false and max_timeout_ms to 0',
+      () {
+        final config = buildStrategy().buildHarnessConfigForTest();
+        final runCmd =
+            (config['harness_side_tools'] as Map)['run_command']
+                as Map<String, dynamic>;
 
-      expect(runCmd['enabled'], isTrue);
-      expect(runCmd['enable_daemon_commands'], isFalse);
-      expect(runCmd['max_timeout_ms'], equals(0));
-    });
+        expect(runCmd['enabled'], isTrue);
+        expect(runCmd['enable_daemon_commands'], isFalse);
+        expect(runCmd['max_timeout_ms'], equals(0));
+      },
+    );
 
     test(
-        'custom RunCommandConfig sets enable_daemon_commands and max_timeout_ms',
-        () {
-      final config = buildStrategy(
-        capabilitiesConfig: CapabilitiesConfig(
-          runCommandConfig: RunCommandConfig(
-            enableDaemons: true,
-            timeoutSeconds: 60.0,
+      'custom RunCommandConfig sets enable_daemon_commands and max_timeout_ms',
+      () {
+        final config = buildStrategy(
+          capabilitiesConfig: CapabilitiesConfig(
+            runCommandConfig: RunCommandConfig(
+              enableDaemons: true,
+              timeoutSeconds: 60.0,
+            ),
           ),
-        ),
-      ).buildHarnessConfigForTest();
-      final runCmd = (config['harness_side_tools'] as Map)['run_command']
-          as Map<String, dynamic>;
+        ).buildHarnessConfigForTest();
+        final runCmd =
+            (config['harness_side_tools'] as Map)['run_command']
+                as Map<String, dynamic>;
 
-      expect(runCmd['enabled'], isTrue);
-      expect(runCmd['enable_daemon_commands'], isTrue);
-      expect(runCmd['max_timeout_ms'], equals(60000));
-    });
+        expect(runCmd['enabled'], isTrue);
+        expect(runCmd['enable_daemon_commands'], isTrue);
+        expect(runCmd['max_timeout_ms'], equals(60000));
+      },
+    );
 
     test('subagent honors RunCommandConfig', () {
       final config = buildStrategy(
@@ -254,8 +263,9 @@ void main() {
       ).buildHarnessConfigForTest();
 
       final subagent = (config['custom_subagents'] as List).first as Map;
-      final subRunCmd = (subagent['harness_side_tools'] as Map)['run_command']
-          as Map<String, dynamic>;
+      final subRunCmd =
+          (subagent['harness_side_tools'] as Map)['run_command']
+              as Map<String, dynamic>;
 
       expect(subRunCmd['enable_daemon_commands'], isTrue);
       expect(subRunCmd['max_timeout_ms'], equals(30000));
@@ -264,38 +274,43 @@ void main() {
     test('includes enable_sandbox in run_command wire proto', () {
       final config = buildStrategy(
         capabilitiesConfig: CapabilitiesConfig(
-          runCommandConfig: RunCommandConfig(
-            enableSandbox: true,
-          ),
+          runCommandConfig: RunCommandConfig(enableSandbox: true),
         ),
       ).buildHarnessConfigForTest();
-      final runCmd = (config['harness_side_tools'] as Map)['run_command']
-          as Map<String, dynamic>;
+      final runCmd =
+          (config['harness_side_tools'] as Map)['run_command']
+              as Map<String, dynamic>;
 
       expect(runCmd['enable_sandbox'], isTrue);
     });
 
-    test('enable_sandbox defaults to false when RunCommandConfig is not set',
-        () {
-      final config = buildStrategy().buildHarnessConfigForTest();
-      final runCmd = (config['harness_side_tools'] as Map)['run_command']
-          as Map<String, dynamic>;
+    test(
+      'enable_sandbox defaults to false when RunCommandConfig is not set',
+      () {
+        final config = buildStrategy().buildHarnessConfigForTest();
+        final runCmd =
+            (config['harness_side_tools'] as Map)['run_command']
+                as Map<String, dynamic>;
 
-      expect(runCmd['enable_sandbox'], isFalse);
-    });
+        expect(runCmd['enable_sandbox'], isFalse);
+      },
+    );
 
-    test('enable_sandbox is false when RunCommandConfig.enableSandbox is false',
-        () {
-      final config = buildStrategy(
-        capabilitiesConfig: CapabilitiesConfig(
-          runCommandConfig: RunCommandConfig(enableSandbox: false),
-        ),
-      ).buildHarnessConfigForTest();
-      final runCmd = (config['harness_side_tools'] as Map)['run_command']
-          as Map<String, dynamic>;
+    test(
+      'enable_sandbox is false when RunCommandConfig.enableSandbox is false',
+      () {
+        final config = buildStrategy(
+          capabilitiesConfig: CapabilitiesConfig(
+            runCommandConfig: RunCommandConfig(enableSandbox: false),
+          ),
+        ).buildHarnessConfigForTest();
+        final runCmd =
+            (config['harness_side_tools'] as Map)['run_command']
+                as Map<String, dynamic>;
 
-      expect(runCmd['enable_sandbox'], isFalse);
-    });
+        expect(runCmd['enable_sandbox'], isFalse);
+      },
+    );
   });
 
   group('workspace serialization in harness config', () {
@@ -320,24 +335,24 @@ void main() {
   });
 
   group('enabled_hooks proto configuration', () {
-    test('includes LIFECYCLE_HOOK_ON_COMPACTION when compaction hook is set',
-        () {
-      final runner = HookRunner(
-        onCompactionHooks: [_TestCompactionHook()],
-      );
-      final strategy = LocalConnectionStrategy(
-        toolRunner: ToolRunner(),
-        hookRunner: runner,
-        systemInstructions: null,
-        capabilitiesConfig: CapabilitiesConfig(),
-        workspaces: const [],
-        skillsPaths: const [],
-      );
-      final config = strategy.buildHarnessConfigForTest();
-      final enabledHooks = config['enabled_hooks'] as List<String>;
+    test(
+      'includes LIFECYCLE_HOOK_ON_COMPACTION when compaction hook is set',
+      () {
+        final runner = HookRunner(onCompactionHooks: [_TestCompactionHook()]);
+        final strategy = LocalConnectionStrategy(
+          toolRunner: ToolRunner(),
+          hookRunner: runner,
+          systemInstructions: null,
+          capabilitiesConfig: CapabilitiesConfig(),
+          workspaces: const [],
+          skillsPaths: const [],
+        );
+        final config = strategy.buildHarnessConfigForTest();
+        final enabledHooks = config['enabled_hooks'] as List<String>;
 
-      expect(enabledHooks, contains('LIFECYCLE_HOOK_ON_COMPACTION'));
-    });
+        expect(enabledHooks, contains('LIFECYCLE_HOOK_ON_COMPACTION'));
+      },
+    );
   });
 
   group('subagent custom tools scoping in harness config', () {
@@ -433,9 +448,7 @@ void main() {
       expect(config['compaction_threshold'], equals(40000));
     });
 
-    test(
-        'compaction_threshold uses the legacy value when CompactionConfig is absent',
-        () {
+    test('compaction_threshold uses the legacy value when CompactionConfig is absent', () {
       final config = buildStrategy(
         capabilitiesConfig: CapabilitiesConfig(compactionThreshold: 1234),
       ).buildHarnessConfigForTest();
@@ -457,17 +470,15 @@ void main() {
 
   group('budget_config wire proto', () {
     test('budget_config is omitted when no limits are set', () {
-      final config = buildStrategy(
-        budgetConfig: BudgetConfig(),
-      ).buildHarnessConfigForTest();
+      final config = buildStrategy(budgetConfig: BudgetConfig())
+          .buildHarnessConfigForTest();
 
       expect(config.containsKey('budget_config'), isFalse);
     });
 
     test('budget_config scope defaults to LIFETIME', () {
-      final config = buildStrategy(
-        budgetConfig: BudgetConfig(maxModelCalls: 3),
-      ).buildHarnessConfigForTest();
+      final config = buildStrategy(budgetConfig: BudgetConfig(maxModelCalls: 3))
+          .buildHarnessConfigForTest();
 
       final budget = config['budget_config'] as Map<String, dynamic>;
       expect(budget['max_model_calls'], equals(3));
@@ -491,8 +502,9 @@ void main() {
   group('agent_behavior wire proto', () {
     test('AGENT_BEHAVIOR_MINIMAL is emitted for AgentBehavior.minimal', () {
       final config = buildStrategy(
-        capabilitiesConfig:
-            CapabilitiesConfig(agentBehavior: AgentBehavior.minimal),
+        capabilitiesConfig: CapabilitiesConfig(
+          agentBehavior: AgentBehavior.minimal,
+        ),
       ).buildHarnessConfigForTest();
 
       expect(config['agent_behavior'], equals('AGENT_BEHAVIOR_MINIMAL'));
@@ -521,19 +533,13 @@ void main() {
     test('sets tokenThreshold to 65536', () {
       final config = LocalAgentConfig().lightweight();
 
-      expect(
-        config.compactionConfig?.tokenThreshold,
-        equals(65536),
-      );
-      expect(
-        config.effectiveCompactionConfig?.tokenThreshold,
-        equals(65536),
-      );
+      expect(config.compactionConfig?.tokenThreshold, equals(65536));
+      expect(config.effectiveCompactionConfig?.tokenThreshold, equals(65536));
     });
 
     test('preserves unrelated configuration', () {
-      final config =
-          LocalAgentConfig(systemInstructions: 'stay brief').lightweight();
+      final config = LocalAgentConfig(systemInstructions: 'stay brief')
+          .lightweight();
 
       expect(config.systemInstructions, equals('stay brief'));
     });
@@ -560,9 +566,11 @@ void main() {
 
       expect(
         config.capabilities.enabledTools,
-        equals(BuiltinTools.minimal()
-            .where((t) => t != BuiltinTools.runCommand)
-            .toList()),
+        equals(
+          BuiltinTools.minimal()
+              .where((t) => t != BuiltinTools.runCommand)
+              .toList(),
+        ),
       );
       // enabledTools and disabledTools are mutually exclusive, so only the
       // resolved allowlist survives.
@@ -589,10 +597,7 @@ void main() {
         compactionConfig: CompactionConfig(tokenThreshold: 1024),
       ).lightweight();
 
-      expect(
-        config.compactionConfig?.tokenThreshold,
-        equals(1024),
-      );
+      expect(config.compactionConfig?.tokenThreshold, equals(1024));
     });
 
     test('the resolved capabilities reach the wire proto', () {
@@ -620,8 +625,9 @@ void main() {
 
   group('schedule, subagent model, and policy wire', () {
     test('default tools enable schedule and pair manage_task', () {
-      final tools = buildStrategy()
-          .buildHarnessConfigForTest()['harness_side_tools'] as Map;
+      final tools =
+          buildStrategy().buildHarnessConfigForTest()['harness_side_tools']
+              as Map;
       expect((tools['schedule'] as Map)['enabled'], isTrue);
       expect((tools['manage_task'] as Map)['enabled'], isTrue);
       expect((tools['list_dir'] as Map)['enabled'], isFalse);
@@ -630,11 +636,13 @@ void main() {
     });
 
     test('schedule alone still enables manage_task', () {
-      final tools = buildStrategy(
-        capabilitiesConfig: CapabilitiesConfig(
-          enabledTools: [BuiltinTools.schedule],
-        ),
-      ).buildHarnessConfigForTest()['harness_side_tools'] as Map;
+      final tools =
+          buildStrategy(
+                capabilitiesConfig: CapabilitiesConfig(
+                  enabledTools: [BuiltinTools.schedule],
+                ),
+              ).buildHarnessConfigForTest()['harness_side_tools']
+              as Map;
       expect((tools['schedule'] as Map)['enabled'], isTrue);
       expect((tools['manage_task'] as Map)['enabled'], isTrue);
       expect((tools['run_command'] as Map)['enabled'], isFalse);
@@ -656,9 +664,7 @@ void main() {
 
     test('omitted subagent model is absent from the proto', () {
       final config = buildStrategy(
-        subagents: [
-          SubagentConfig(name: 'researcher', description: 'Reads.'),
-        ],
+        subagents: [SubagentConfig(name: 'researcher', description: 'Reads.')],
       ).buildHarnessConfigForTest();
       final subagent = (config['custom_subagents'] as List).first as Map;
       expect(subagent.containsKey('model'), isFalse);
@@ -673,14 +679,13 @@ void main() {
       ).buildHarnessConfigForTest();
       final policyConfig = config['policy_config'] as Map;
       expect(
-          policyConfig['auto_config'],
-          equals({
-            'enabled': true,
-            'model': 'gemini-2.5-flash',
-          }));
+        policyConfig['auto_config'],
+        equals({'enabled': true, 'model': 'gemini-2.5-flash'}),
+      );
       final rules = policyConfig['rules'] as List;
-      final shell =
-          rules.cast<Map>().firstWhere((r) => r['tool'] == 'run_command');
+      final shell = rules.cast<Map>().firstWhere(
+        (r) => r['tool'] == 'run_command',
+      );
       expect(shell['decision'], equals('POLICY_DECISION_DENY'));
       expect(shell['deny_reason'], equals('no shell'));
       expect(shell['is_dynamic'], isFalse);
@@ -688,17 +693,19 @@ void main() {
   });
 
   group('default local policies', () {
-    test('omitted policies default to confirmRunCommand, not a workspace rule',
-        () {
-      final config = LocalAgentConfig(apiKey: 'k', workspaces: ['/tmp/ws']);
-      expect(
-        config.policies.map((p) => (p.tool, p.decision, p.name)),
-        equals([
-          ('run_command', Decision.deny, 'confirm_run_command'),
-          ('*', Decision.approve, 'confirm_run_command'),
-        ]),
-      );
-    });
+    test(
+      'omitted policies default to confirmRunCommand, not a workspace rule',
+      () {
+        final config = LocalAgentConfig(apiKey: 'k', workspaces: ['/tmp/ws']);
+        expect(
+          config.policies.map((p) => (p.tool, p.decision, p.name)),
+          equals([
+            ('run_command', Decision.deny, 'confirm_run_command'),
+            ('*', Decision.approve, 'confirm_run_command'),
+          ]),
+        );
+      },
+    );
 
     test('default rules are static on the wire', () {
       final strategy = LocalAgentConfig(apiKey: 'k').createStrategy(
@@ -719,18 +726,22 @@ void main() {
       final config = LocalAgentConfig(apiKey: 'k', policies: [allowAll()]);
       expect(config.lightweight().lightweight().policies, hasLength(1));
       expect(
-          LocalAgentConfig(apiKey: 'k').lightweight().policies, hasLength(2));
+        LocalAgentConfig(apiKey: 'k').lightweight().policies,
+        hasLength(2),
+      );
     });
 
     test('an explicit empty list stays empty', () {
       expect(LocalAgentConfig(apiKey: 'k', policies: []).policies, isEmpty);
     });
 
-    test('an explicit empty list trips the missing safety policy guard',
-        () async {
-      final agent = Agent(LocalAgentConfig(apiKey: 'k', policies: []));
-      await expectLater(agent.start(), throwsArgumentError);
-    });
+    test(
+      'an explicit empty list trips the missing safety policy guard',
+      () async {
+        final agent = Agent(LocalAgentConfig(apiKey: 'k', policies: []));
+        await expectLater(agent.start(), throwsArgumentError);
+      },
+    );
   });
 
   group('AgentConfig.eval()', () {
@@ -751,8 +762,8 @@ void main() {
       ) as LocalConnectionStrategy;
       final harness = strategy.buildHarnessConfigForTest();
       final textModel = (harness['models'] as List).cast<Map>().firstWhere(
-            (m) => (m['types'] as List).contains('MODEL_TYPE_TEXT'),
-          );
+        (m) => (m['types'] as List).contains('MODEL_TYPE_TEXT'),
+      );
       expect(
         textModel['gemini_api_endpoint']['options']['thinking_level'],
         equals('high'),
@@ -780,14 +791,9 @@ void main() {
     test('keeps a caller-provided enabledTools list', () {
       final config = LocalAgentConfig(
         apiKey: 'k',
-        capabilities: CapabilitiesConfig(
-          enabledTools: [BuiltinTools.viewFile],
-        ),
+        capabilities: CapabilitiesConfig(enabledTools: [BuiltinTools.viewFile]),
       ).eval();
-      expect(
-        config.capabilities.enabledTools,
-        equals([BuiltinTools.viewFile]),
-      );
+      expect(config.capabilities.enabledTools, equals([BuiltinTools.viewFile]));
       expect(config.capabilities.disabledTools, isNull);
     });
 
@@ -797,38 +803,43 @@ void main() {
     });
 
     test('keeps caller-provided policies', () {
-      final config =
-          LocalAgentConfig(apiKey: 'k', policies: [deny('run_command')]).eval();
+      final config = LocalAgentConfig(
+        apiKey: 'k',
+        policies: [deny('run_command')],
+      ).eval();
       expect(config.policies.map((p) => p.tool), equals(['run_command']));
     });
 
     test('thinkingLevel null leaves model options unset', () {
       final config = LocalAgentConfig(apiKey: 'k').eval(thinkingLevel: null);
-      final text =
-          config.models!.firstWhere((m) => m.types.contains(ModelType.text));
+      final text = config.models!.firstWhere(
+        (m) => m.types.contains(ModelType.text),
+      );
       expect((text.endpoint as GeminiAPIEndpoint).options, isNull);
     });
 
-    test('refuses to overwrite a model target that already sets thinkingLevel',
-        () {
-      final config = LocalAgentConfig(
-        model: ModelTarget(
-          name: 'gemini-3.8-flash',
-          endpoint: GeminiAPIEndpoint(
-            apiKey: 'k',
-            options: GeminiModelOptions(thinkingLevel: ThinkingLevel.low),
+    test(
+      'refuses to overwrite a model target that already sets thinkingLevel',
+      () {
+        final config = LocalAgentConfig(
+          model: ModelTarget(
+            name: 'gemini-3.8-flash',
+            endpoint: GeminiAPIEndpoint(
+              apiKey: 'k',
+              options: GeminiModelOptions(thinkingLevel: ThinkingLevel.low),
+            ),
           ),
-        ),
-      );
-      expect(config.eval, throwsA(isA<AntigravityValidationException>()));
-      final kept = config.eval(thinkingLevel: null);
-      expect(
-        (kept.models!.first.endpoint as GeminiAPIEndpoint)
-            .options
-            ?.thinkingLevel,
-        equals(ThinkingLevel.low),
-      );
-    });
+        );
+        expect(config.eval, throwsA(isA<AntigravityValidationException>()));
+        final kept = config.eval(thinkingLevel: null);
+        expect(
+          (kept.models!.first.endpoint as GeminiAPIEndpoint)
+              .options
+              ?.thinkingLevel,
+          equals(ThinkingLevel.low),
+        );
+      },
+    );
 
     test('LiteRT and OpenAI configs reject a thinking level', () {
       expect(
@@ -851,78 +862,86 @@ void main() {
       CapabilitiesConfig? capabilities,
       List<ModelTarget>? models,
       List<SubagentConfig> subagents = const [],
-    }) =>
-        LocalConnectionStrategy(
-          toolRunner: ToolRunner(),
-          hookRunner: HookRunner(),
-          systemInstructions: null,
-          capabilitiesConfig: capabilities ?? CapabilitiesConfig(),
-          workspaces: const [],
-          skillsPaths: const [],
-          models: models,
-          subagents: subagents,
-        ).buildHarnessConfigForTest();
+    }) => LocalConnectionStrategy(
+      toolRunner: ToolRunner(),
+      hookRunner: HookRunner(),
+      systemInstructions: null,
+      capabilitiesConfig: capabilities ?? CapabilitiesConfig(),
+      workspaces: const [],
+      skillsPaths: const [],
+      models: models,
+      subagents: subagents,
+    ).buildHarnessConfigForTest();
 
     test('invokeSubagent enables harness subagents', () {
       expect(
         () => CapabilitiesConfig(
           disabledTools: [
             BuiltinTools.invokeSubagent,
-            BuiltinTools.runWorkflow
+            BuiltinTools.runWorkflow,
           ],
           maxSubagentDepth: 2,
         ),
         throwsA(isA<AntigravityValidationException>()),
       );
       final config = wire(
-        capabilities:
-            CapabilitiesConfig(enabledTools: [BuiltinTools.invokeSubagent]),
+        capabilities: CapabilitiesConfig(
+          enabledTools: [BuiltinTools.invokeSubagent],
+        ),
       );
       expect(config['harness_side_tools']['subagents']['enabled'], isTrue);
     });
 
     test('maps to max_output_tokens on Gemini and Vertex endpoints', () {
-      final config = wire(models: [
-        ModelTarget(
-          name: defaultModel,
-          types: [ModelType.text],
-          endpoint: GeminiAPIEndpoint(
-            apiKey: 'k',
-            options: GeminiModelOptions(maxOutputTokens: 262144),
+      final config = wire(
+        models: [
+          ModelTarget(
+            name: defaultModel,
+            types: [ModelType.text],
+            endpoint: GeminiAPIEndpoint(
+              apiKey: 'k',
+              options: GeminiModelOptions(maxOutputTokens: 262144),
+            ),
           ),
-        ),
-        ModelTarget(
-          name: 'vertex-model',
-          types: [ModelType.text],
-          endpoint: VertexEndpoint(
-            project: 'test-project',
-            location: 'us-central1',
-            options: GeminiModelOptions(maxOutputTokens: 262144),
+          ModelTarget(
+            name: 'vertex-model',
+            types: [ModelType.text],
+            endpoint: VertexEndpoint(
+              project: 'test-project',
+              location: 'us-central1',
+              options: GeminiModelOptions(maxOutputTokens: 262144),
+            ),
           ),
-        ),
-      ]);
+        ],
+      );
       final models = config['models'] as List;
-      expect(models[0]['gemini_api_endpoint']['options'],
-          {'max_output_tokens': 262144});
-      expect(models[1]['vertex_endpoint']['options'],
-          {'max_output_tokens': 262144});
+      expect(models[0]['gemini_api_endpoint']['options'], {
+        'max_output_tokens': 262144,
+      });
+      expect(models[1]['vertex_endpoint']['options'], {
+        'max_output_tokens': 262144,
+      });
     });
 
     test('null leaves the options message unset', () {
-      final config = wire(models: [
-        ModelTarget(
-          name: defaultModel,
-          types: [ModelType.text],
-          endpoint: GeminiAPIEndpoint(
-            apiKey: 'k',
-            options: GeminiModelOptions(maxOutputTokens: null),
+      final config = wire(
+        models: [
+          ModelTarget(
+            name: defaultModel,
+            types: [ModelType.text],
+            endpoint: GeminiAPIEndpoint(
+              apiKey: 'k',
+              options: GeminiModelOptions(maxOutputTokens: null),
+            ),
           ),
-        ),
-      ]);
+        ],
+      );
       expect(
-          (config['models'] as List)[0]['gemini_api_endpoint']
-              .containsKey('options'),
-          isFalse);
+        (config['models'] as List)[0]['gemini_api_endpoint'].containsKey(
+          'options',
+        ),
+        isFalse,
+      );
     });
 
     test('eval() keeps maxOutputTokens when applying thinkingLevel', () {
@@ -946,9 +965,11 @@ void main() {
 
     test('mcp_max_output_bytes is sent only when set', () {
       expect(
-          wire(capabilities: CapabilitiesConfig(mcpMaxOutputBytes: 65536))[
-              'mcp_max_output_bytes'],
-          65536);
+        wire(
+          capabilities: CapabilitiesConfig(mcpMaxOutputBytes: 65536),
+        )['mcp_max_output_bytes'],
+        65536,
+      );
       expect(wire().containsKey('mcp_max_output_bytes'), isFalse);
     });
 
@@ -963,33 +984,98 @@ void main() {
 
   test('workflow tools keep delegation enabled and obey subagent denylist', () {
     expect(
-        CapabilitiesConfig(
-                enabledTools: [BuiltinTools.runWorkflow], maxSubagentDepth: 2)
-            .maxSubagentDepth,
-        2);
+      CapabilitiesConfig(
+        enabledTools: [BuiltinTools.runWorkflow],
+        maxSubagentDepth: 2,
+      ).maxSubagentDepth,
+      2,
+    );
     expect(
-        SubagentCapabilities(
-            disabledTools: [BuiltinTools.invokeSubagent],
-            allowedSubagents: ['worker']).allowedSubagents,
-        ['worker']);
-    final config = buildStrategy(subagents: [
-      SubagentConfig(
+      SubagentCapabilities(
+        disabledTools: [BuiltinTools.invokeSubagent],
+        allowedSubagents: ['worker'],
+      ).allowedSubagents,
+      ['worker'],
+    );
+    final config = buildStrategy(
+      subagents: [
+        SubagentConfig(
           name: 'worker',
           description: 'Work',
-          capabilities: SubagentCapabilities(disabledTools: [
-            BuiltinTools.runWorkflow,
-            BuiltinTools.runCommand
-          ]))
-    ]).buildHarnessConfigForTest();
+          capabilities: SubagentCapabilities(
+            disabledTools: [BuiltinTools.runWorkflow, BuiltinTools.runCommand],
+          ),
+        ),
+      ],
+    ).buildHarnessConfigForTest();
     expect(config['harness_side_tools']['run_workflow']['enabled'], isTrue);
     expect(
-        config['custom_subagents'][0]['harness_side_tools']['run_workflow']
-            ['enabled'],
-        isFalse);
+      config['custom_subagents'][0]['harness_side_tools']['run_workflow']['enabled'],
+      isFalse,
+    );
     expect(
-        config['custom_subagents'][0]['harness_side_tools']['run_command']
-            ['enabled'],
-        isFalse);
+      config['custom_subagents'][0]['harness_side_tools']['run_command']['enabled'],
+      isFalse,
+    );
+  });
+
+  group('custom system instructions', () {
+    test('title is sent on the custom part', () {
+      final config = buildStrategy(
+        systemInstructions: CustomSystemInstructions(
+          text: 'Override everything.',
+          title: 'my_title',
+        ),
+      ).buildHarnessConfigForTest();
+      expect(config['system_instructions'], {
+        'custom': {
+          'part': [
+            {'text': 'Override everything.', 'title': 'my_title'},
+          ],
+        },
+      });
+    });
+
+    test('title is omitted when null or empty', () {
+      for (final title in [null, '']) {
+        final config = buildStrategy(
+          systemInstructions: CustomSystemInstructions(
+            text: 'Plain.',
+            title: title,
+          ),
+        ).buildHarnessConfigForTest();
+        expect(config['system_instructions'], {
+          'custom': {
+            'part': [
+              {'text': 'Plain.'},
+            ],
+          },
+        });
+      }
+    });
+
+    test('subagent custom instructions carry the title', () {
+      final config = buildStrategy(
+        subagents: [
+          SubagentConfig(
+            name: 'auditor',
+            description: 'Audits code.',
+            systemInstructions: CustomSystemInstructions(
+              text: 'Never expose credentials.',
+              title: 'SecurityPolicy',
+            ),
+          ),
+        ],
+      ).buildHarnessConfigForTest();
+      final subagent = (config['custom_subagents'] as List).single as Map;
+      expect(subagent['system_instructions'], {
+        'custom': {
+          'part': [
+            {'text': 'Never expose credentials.', 'title': 'SecurityPolicy'},
+          ],
+        },
+      });
+    });
   });
 }
 

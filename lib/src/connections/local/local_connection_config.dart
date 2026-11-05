@@ -34,7 +34,8 @@ String normalizeWorkspacePath(String path) {
   if (uri == null || !uri.hasScheme || uri.scheme == 'file' || isWindowsDrive) {
     var rawPath = normalized;
     if (rawPath.startsWith('~')) {
-      final home = Platform.environment['HOME'] ??
+      final home =
+          Platform.environment['HOME'] ??
           Platform.environment['USERPROFILE'] ??
           '';
       rawPath = rawPath.replaceFirst('~', home);
@@ -96,6 +97,14 @@ String? makeStepId(Object? trajectoryId, Object? stepIndex) {
 @MappableClass()
 abstract class BaseLocalAgentConfig extends AgentConfig
     with BaseLocalAgentConfigMappable {
+  /// Creates a local agent configuration.
+  ///
+  /// Defaults [policies] to [confirmRunCommand] and [workspaces] to the
+  /// current directory.
+  ///
+  /// Throws an [AntigravityValidationException] if both [skillsPaths] and
+  /// [inlineSkills] are set, or if an `allowedSubagents` entry names a
+  /// subagent not declared in [subagents].
   BaseLocalAgentConfig({
     super.systemInstructions,
     CapabilitiesConfig? capabilities,
@@ -118,20 +127,21 @@ abstract class BaseLocalAgentConfig extends AgentConfig
     super.budgetConfig,
     super.compactionConfig,
   }) : super(
-          policies: policies ?? confirmRunCommand(),
-          capabilities: capabilities ?? CapabilitiesConfig(),
-          tools: tools ?? const [],
-          hooks: hooks ?? const [],
-          triggers: triggers ?? const [],
-          mcpServers: mcpServers ?? const [],
-          subagents: subagents ?? const [],
-          workspaces: normalizeWorkspacePaths(workspaces, defaultToCwd: true),
-          skillsPaths: skillsPaths ?? const [],
-        ) {
+         policies: policies ?? confirmRunCommand(),
+         capabilities: capabilities ?? CapabilitiesConfig(),
+         tools: tools ?? const [],
+         hooks: hooks ?? const [],
+         triggers: triggers ?? const [],
+         mcpServers: mcpServers ?? const [],
+         subagents: subagents ?? const [],
+         workspaces: normalizeWorkspacePaths(workspaces, defaultToCwd: true),
+         skillsPaths: skillsPaths ?? const [],
+       ) {
     _validateAllowedSubagents();
     if (this.skillsPaths.isNotEmpty && inlineSkills.isNotEmpty) {
       throw AntigravityValidationException(
-          'LocalHarness supports either skillsPaths or inlineSkills, not both.');
+        'LocalHarness supports either skillsPaths or inlineSkills, not both.',
+      );
     }
   }
 
@@ -234,15 +244,15 @@ class LocalAgentConfig extends BaseLocalAgentConfig
     this.project,
     this.location,
     this.binaryPath,
-  }) : vertex = vertex ??
-            (Platform.environment['GOOGLE_GENAI_USE_VERTEXAI']
-                        ?.toLowerCase() ==
-                    'true' ||
-                Platform.environment['GOOGLE_GENAI_USE_VERTEXAI'] == '1' ||
-                Platform.environment['GOOGLE_GENAI_USE_ENTERPRISE']
-                        ?.toLowerCase() ==
-                    'true' ||
-                Platform.environment['GOOGLE_GENAI_USE_ENTERPRISE'] == '1');
+  }) : vertex =
+           vertex ??
+           (Platform.environment['GOOGLE_GENAI_USE_VERTEXAI']?.toLowerCase() ==
+                   'true' ||
+               Platform.environment['GOOGLE_GENAI_USE_VERTEXAI'] == '1' ||
+               Platform.environment['GOOGLE_GENAI_USE_ENTERPRISE']
+                       ?.toLowerCase() ==
+                   'true' ||
+               Platform.environment['GOOGLE_GENAI_USE_ENTERPRISE'] == '1');
 
   ModelEndpoint? _buildShorthandEndpoint() {
     if (vertex) {
@@ -258,19 +268,13 @@ class LocalAgentConfig extends BaseLocalAgentConfig
   List<ModelTarget> _buildShorthandModels(ModelEndpoint? endpoint) {
     return switch (model) {
       null => [],
-      ModelTarget mt => [
-          mt.copyWith(endpoint: mt.endpoint ?? endpoint),
-        ],
+      ModelTarget mt => [mt.copyWith(endpoint: mt.endpoint ?? endpoint)],
       String name => [
-          ModelTarget(
-            name: name,
-            types: [ModelType.text],
-            endpoint: endpoint,
-          ),
-        ],
+        ModelTarget(name: name, types: [ModelType.text], endpoint: endpoint),
+      ],
       _ => throw ArgumentError(
-          'Expected ModelTarget or String for model, got ${model.runtimeType}',
-        ),
+        'Expected ModelTarget or String for model, got ${model.runtimeType}',
+      ),
     };
   }
 
@@ -314,9 +318,9 @@ class LocalAgentConfig extends BaseLocalAgentConfig
 
   @override
   LocalAgentConfig lightweight() => copyWith(
-        compactionConfig: lightweightCompactionConfig(),
-        capabilities: lightweightCapabilities(),
-      );
+    compactionConfig: lightweightCompactionConfig(),
+    capabilities: lightweightCapabilities(),
+  );
 
   @override
   LocalAgentConfig eval({ThinkingLevel? thinkingLevel = ThinkingLevel.high}) {
@@ -336,8 +340,9 @@ class LocalAgentConfig extends BaseLocalAgentConfig
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
   }) {
-    final effectiveSaveDir =
-        saveDir != null ? Directory(saveDir!).absolute.path : null;
+    final effectiveSaveDir = saveDir != null
+        ? Directory(saveDir!).absolute.path
+        : null;
 
     return LocalConnectionStrategy(
       binaryPath: binaryPath,
@@ -416,8 +421,9 @@ class InteractionsAgentConfig extends LocalAgentConfig
   }) {
     if (triggers.isNotEmpty) {
       throw AntigravityValidationException(
-          'Automated triggers are not yet supported with '
-          'InteractionsAgentConfig.');
+        'Automated triggers are not yet supported with '
+        'InteractionsAgentConfig.',
+      );
     }
   }
 
@@ -428,8 +434,7 @@ class InteractionsAgentConfig extends LocalAgentConfig
   @override
   InteractionsAgentConfig eval({
     ThinkingLevel? thinkingLevel = ThinkingLevel.high,
-  }) =>
-      super.eval(thinkingLevel: thinkingLevel) as InteractionsAgentConfig;
+  }) => super.eval(thinkingLevel: thinkingLevel) as InteractionsAgentConfig;
 
   @override
   ConnectionStrategy createStrategy({
@@ -472,6 +477,11 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
   /// The target OpenAI-compatible base URL (e.g. 'http://localhost:11434/v1').
   final String? baseUrl;
 
+  /// Creates a configuration for an OpenAI-compatible [model] served at
+  /// [baseUrl].
+  ///
+  /// When [baseUrl] is unset and [model] is a [ModelTarget], its endpoint
+  /// base URL is used.
   LocalOpenAIAgentConfig({
     this.model,
     this.baseUrl,
@@ -499,9 +509,9 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
 
   @override
   LocalOpenAIAgentConfig lightweight() => copyWith(
-        compactionConfig: lightweightCompactionConfig(),
-        capabilities: lightweightCapabilities(),
-      );
+    compactionConfig: lightweightCompactionConfig(),
+    capabilities: lightweightCapabilities(),
+  );
 
   @override
   LocalOpenAIAgentConfig eval({
@@ -526,8 +536,9 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
   }) {
-    final effectiveSaveDir =
-        saveDir != null ? Directory(saveDir!).absolute.path : null;
+    final effectiveSaveDir = saveDir != null
+        ? Directory(saveDir!).absolute.path
+        : null;
 
     String modelName = '';
     String? resolvedBaseUrl = baseUrl;
@@ -572,8 +583,13 @@ class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
 /// Hardware backend options for local LiteRT model execution.
 @MappableEnum(caseStyle: CaseStyle.snakeCase)
 enum LiteRTBackend {
+  /// Runs on the CPU.
   cpu,
+
+  /// Runs on the GPU.
   gpu,
+
+  /// Runs on the NPU.
   npu,
 }
 
@@ -612,6 +628,7 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
   )
   final int? maxContextTokens;
 
+  /// Creates a configuration that runs the LiteRT model at [modelPath].
   LiteRTAgentConfig({
     required this.modelPath,
     this.backend = LiteRTBackend.gpu,
@@ -655,9 +672,9 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
 
   @override
   LiteRTAgentConfig lightweight() => copyWith(
-        compactionConfig: lightweightCompactionConfig(),
-        capabilities: lightweightCapabilities(),
-      );
+    compactionConfig: lightweightCompactionConfig(),
+    capabilities: lightweightCapabilities(),
+  );
 
   @override
   LiteRTAgentConfig eval({ThinkingLevel? thinkingLevel = ThinkingLevel.high}) {
@@ -680,8 +697,9 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
     required ToolRunner toolRunner,
     required HookRunner hookRunner,
   }) {
-    final effectiveSaveDir =
-        saveDir != null ? Directory(saveDir!).absolute.path : null;
+    final effectiveSaveDir = saveDir != null
+        ? Directory(saveDir!).absolute.path
+        : null;
 
     return LiteRTConnectionStrategy(
       modelPath: modelPath,

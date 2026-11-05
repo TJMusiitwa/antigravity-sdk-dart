@@ -557,33 +557,27 @@ void main() {
       },
     );
 
-    test(
-      'askUser(mcpConfig, mcpTools) produces policies in server/tool format with handler',
-      () {
-        final policies = askUser(
-          mcpConfig,
-          mcpTools: ['calc'],
-          handler: (_) async => true,
-        );
-        expect(policies, isA<List<Policy>>());
-        final list = policies as List<Policy>;
-        expect(list, hasLength(1));
-        expect(list.first.tool, equals('math/calc'));
-        expect(list.first.decision, equals(Decision.askUser));
-        expect(list.first.askUser, isNotNull);
-      },
-    );
+    test('askUser(mcpConfig, mcpTools) produces policies in server/tool format with handler', () {
+      final policies = askUser(
+        mcpConfig,
+        mcpTools: ['calc'],
+        handler: (_) async => true,
+      );
+      expect(policies, isA<List<Policy>>());
+      final list = policies as List<Policy>;
+      expect(list, hasLength(1));
+      expect(list.first.tool, equals('math/calc'));
+      expect(list.first.decision, equals(Decision.askUser));
+      expect(list.first.askUser, isNotNull);
+    });
 
-    test(
-      'enforce() throws ArgumentError if MCP policies exist but mcpServers is missing/empty',
-      () {
-        final policies = allow(mcpConfig);
-        expect(
-          () => enforce(policies as List<Policy>),
-          throwsA(isA<ArgumentError>()),
-        );
-      },
-    );
+    test('enforce() throws ArgumentError if MCP policies exist but mcpServers is missing/empty', () {
+      final policies = allow(mcpConfig);
+      expect(
+        () => enforce(policies as List<Policy>),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
 
     test('enforce() flattens nested lists of policies', () {
       final List<dynamic> policies = [
@@ -655,25 +649,22 @@ void main() {
       expect(result.allow, isTrue); // default open since no policy matches
     });
 
-    test(
-      'explicit ToolCall.serverName is used over legacy mcp_ prefix parsing',
-      () async {
-        final policies = [
-          deny(mcpConfig, mcpTools: ['calc']), // math/calc -> deny
-          allow('*'),
-        ];
-        final hook = enforce(policies, mcpServers: [mcpConfig]);
-        final ctx = HookContext();
+    test('explicit ToolCall.serverName is used over legacy mcp_ prefix parsing', () async {
+      final policies = [
+        deny(mcpConfig, mcpTools: ['calc']), // math/calc -> deny
+        allow('*'),
+      ];
+      final hook = enforce(policies, mcpServers: [mcpConfig]);
+      final ctx = HookContext();
 
-        // Tool name does NOT follow the legacy 'mcp_<server>_<tool>' convention,
-        // so only the explicit serverName field can resolve it to math/calc.
-        final result = await hook.run(
-          ctx,
-          ToolCall(name: 'calc', serverName: 'math'),
-        );
-        expect(result.allow, isFalse);
-      },
-    );
+      // Tool name does NOT follow the legacy 'mcp_<server>_<tool>' convention,
+      // so only the explicit serverName field can resolve it to math/calc.
+      final result = await hook.run(
+        ctx,
+        ToolCall(name: 'calc', serverName: 'math'),
+      );
+      expect(result.allow, isFalse);
+    });
 
     test(
       'explicit serverName short-circuits legacy mcp_ prefix parsing entirely',
@@ -704,16 +695,15 @@ void main() {
     test('toPolicyConfigProto emits auto_config and stores the auto rule', () {
       final encoded = toPolicyConfigProto([
         auto(
-            handler: (tc, [reason]) async => reason == 'flagged',
-            model: 'gemini-2.5-flash'),
+          handler: (tc, [reason]) async => reason == 'flagged',
+          model: 'gemini-2.5-flash',
+        ),
         deny('run_command', reason: 'blocked'),
       ]);
       expect(
-          encoded.config['auto_config'],
-          equals({
-            'enabled': true,
-            'model': 'gemini-2.5-flash',
-          }));
+        encoded.config['auto_config'],
+        equals({'enabled': true, 'model': 'gemini-2.5-flash'}),
+      );
       expect(encoded.dynamicPolicies['auto'], isA<AutoPolicy>());
       final rules = encoded.config['rules'] as List;
       expect(rules, hasLength(1));
@@ -722,50 +712,56 @@ void main() {
     });
 
     test('a second auto() rule is rejected', () {
-      expect(
-        () => toPolicyConfigProto([auto(), auto()]),
-        throwsArgumentError,
-      );
+      expect(() => toPolicyConfigProto([auto(), auto()]), throwsArgumentError);
     });
 
     test('deny reason is used as the client-side denial message', () async {
       final hook = enforce([deny('run_command', reason: 'no shell')]);
-      final result =
-          await hook.run(HookContext(), ToolCall(name: 'run_command'));
+      final result = await hook.run(
+        HookContext(),
+        ToolCall(name: 'run_command'),
+      );
       expect(result.allow, isFalse);
       expect(result.message, equals('no shell'));
     });
 
     test(
-        'executeAskUser passes the runtime reason only to handlers that take it',
-        () async {
-      String? seen;
-      final withReason = Policy(
-        tool: '*',
-        decision: Decision.askUser,
-        askUser: (tc, [reason]) async {
-          seen = reason;
-          return true;
-        },
-      );
-      expect(
-        await executeAskUser(withReason, ToolCall(name: 'run_command'),
-            reason: 'flagged'),
-        isTrue,
-      );
-      expect(seen, equals('flagged'));
+      'executeAskUser passes the runtime reason only to handlers that take it',
+      () async {
+        String? seen;
+        final withReason = Policy(
+          tool: '*',
+          decision: Decision.askUser,
+          askUser: (tc, [reason]) async {
+            seen = reason;
+            return true;
+          },
+        );
+        expect(
+          await executeAskUser(
+            withReason,
+            ToolCall(name: 'run_command'),
+            reason: 'flagged',
+          ),
+          isTrue,
+        );
+        expect(seen, equals('flagged'));
 
-      final legacy = Policy(
-        tool: '*',
-        decision: Decision.askUser,
-        askUser: (ToolCall tc) async => tc.name == 'view_file',
-      );
-      expect(
-        await executeAskUser(legacy, ToolCall(name: 'view_file'),
-            reason: 'flagged'),
-        isTrue,
-      );
-    });
+        final legacy = Policy(
+          tool: '*',
+          decision: Decision.askUser,
+          askUser: (ToolCall tc) async => tc.name == 'view_file',
+        );
+        expect(
+          await executeAskUser(
+            legacy,
+            ToolCall(name: 'view_file'),
+            reason: 'flagged',
+          ),
+          isTrue,
+        );
+      },
+    );
 
     test('executeAskUser passes reason to a named parameter', () async {
       String? seen;
@@ -777,8 +773,11 @@ void main() {
           return true;
         },
       );
-      await executeAskUser(named, ToolCall(name: 'run_command'),
-          reason: 'flagged');
+      await executeAskUser(
+        named,
+        ToolCall(name: 'run_command'),
+        reason: 'flagged',
+      );
       expect(seen, equals('flagged'));
     });
 
@@ -804,8 +803,10 @@ void main() {
 
     test('client enforce skips auto rules', () async {
       final hook = enforce([auto()]);
-      final result =
-          await hook.run(HookContext(), ToolCall(name: 'run_command'));
+      final result = await hook.run(
+        HookContext(),
+        ToolCall(name: 'run_command'),
+      );
       expect(result.allow, isTrue);
     });
   });
@@ -821,30 +822,42 @@ void main() {
 
       final hook = enforce([rule]);
       final ctx = HookContext();
-      expect((await hook.run(ctx, ToolCall(name: 'invoke_subagent'))).allow,
-          isFalse);
-      expect((await hook.run(ctx, ToolCall(name: 'start_subagent'))).allow,
-          isFalse);
       expect(
-          (await hook.run(
-                  ctx, ToolCall(name: 'start_subagent', serverName: 'mcp')))
-              .allow,
-          isTrue);
+        (await hook.run(ctx, ToolCall(name: 'invoke_subagent'))).allow,
+        isFalse,
+      );
+      expect(
+        (await hook.run(ctx, ToolCall(name: 'start_subagent'))).allow,
+        isFalse,
+      );
+      expect(
+        (await hook.run(
+          ctx,
+          ToolCall(name: 'start_subagent', serverName: 'mcp'),
+        )).allow,
+        isTrue,
+      );
     });
   });
 
   test(
-      'allowAll disables workspace containment unless workspaceOnly is present',
-      () {
-    expect(toPolicyConfigProto([allowAll()]).config['workspace_containment'],
-        'WORKSPACE_CONTAINMENT_DISABLED');
-    expect(
+    'allowAll disables workspace containment unless workspaceOnly is present',
+    () {
+      expect(
+        toPolicyConfigProto([allowAll()]).config['workspace_containment'],
+        'WORKSPACE_CONTAINMENT_DISABLED',
+      );
+      expect(
         toPolicyConfigProto([
           allowAll(),
-          workspaceOnly(['/workspace'])
+          workspaceOnly(['/workspace']),
         ]).config['workspace_containment'],
-        'WORKSPACE_CONTAINMENT_UNSPECIFIED');
-    expect(toPolicyConfigProto([allow('*')]).config['workspace_containment'],
-        'WORKSPACE_CONTAINMENT_UNSPECIFIED');
-  });
+        'WORKSPACE_CONTAINMENT_UNSPECIFIED',
+      );
+      expect(
+        toPolicyConfigProto([allow('*')]).config['workspace_containment'],
+        'WORKSPACE_CONTAINMENT_UNSPECIFIED',
+      );
+    },
+  );
 }

@@ -41,8 +41,10 @@ import 'package:path/path.dart' as p;
 Future<void> main() async {
   final workspace = await Directory.systemTemp.createTemp('sandbox_demo_ws_');
   // Deliberately outside the workspace: a sandboxed command must not reach it.
-  final escapeProbePath =
-      p.join(Directory.systemTemp.path, 'sandbox_escape_probe.txt');
+  final escapeProbePath = p.join(
+    Directory.systemTemp.path,
+    'sandbox_escape_probe.txt',
+  );
   final escapeProbe = File(escapeProbePath);
   if (await escapeProbe.exists()) {
     await escapeProbe.delete();

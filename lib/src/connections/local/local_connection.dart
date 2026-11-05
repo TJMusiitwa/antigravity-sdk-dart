@@ -40,12 +40,15 @@ Map<String, dynamic> _runCommandToolProto(bool enabled, RunCommandConfig? cfg) {
   return {
     'enabled': enabled,
     'enable_daemon_commands': cfg?.enableDaemons ?? false,
-    'max_timeout_ms':
-        timeoutSeconds != null ? (timeoutSeconds * 1000).round() : 0,
+    'max_timeout_ms': timeoutSeconds != null
+        ? (timeoutSeconds * 1000).round()
+        : 0,
     'enable_sandbox': cfg?.enableSandbox ?? false,
   };
 }
 
+/// Strategy that launches the localharness binary and connects to it over a
+/// WebSocket.
 class LocalConnectionStrategy implements ConnectionStrategy {
   final String? _configuredBinaryPath;
   final ToolRunner _toolRunner;
@@ -82,47 +85,31 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   /// Takes [toolRunner] for execution and [hookRunner] to run interceptors.
   LocalConnectionStrategy({
     String? binaryPath,
-    required ToolRunner toolRunner,
-    required HookRunner hookRunner,
-    List<Object>? tools,
-    List<ModelTarget>? models,
-    required dynamic systemInstructions,
-    required CapabilitiesConfig capabilitiesConfig,
-    String? conversationId,
-    SessionContinuationMode? sessionContinuationMode,
-    String? saveDir,
+    required this._toolRunner,
+    required this._hookRunner,
+    this._tools,
+    this._models,
+    required this._systemInstructions,
+    required this._capabilitiesConfig,
+    this._conversationId,
+    this._sessionContinuationMode,
+    this._saveDir,
     required List<String> workspaces,
-    String? appDataDir,
-    required List<String> skillsPaths,
-    List<InlineSkill> inlineSkills = const [],
+    this._appDataDir,
+    required this._skillsPaths,
+    this._inlineSkills = const [],
     List<McpServerConfig>? mcpServers,
     List<SubagentConfig>? subagents,
-    DebugConfig? debugConfig,
-    RetryConfig? retryConfig,
-    BudgetConfig? budgetConfig,
-    CompactionConfig? compactionConfig,
+    this._debugConfig,
+    this._retryConfig,
+    this._budgetConfig,
+    this._compactionConfig,
     List<Policy>? policies,
-  })  : _configuredBinaryPath = binaryPath,
-        _toolRunner = toolRunner,
-        _hookRunner = hookRunner,
-        _tools = tools,
-        _models = models,
-        _systemInstructions = systemInstructions,
-        _capabilitiesConfig = capabilitiesConfig,
-        _conversationId = conversationId,
-        _sessionContinuationMode = sessionContinuationMode,
-        _saveDir = saveDir,
-        _workspaces = normalizeWorkspacePaths(workspaces),
-        _appDataDir = appDataDir,
-        _skillsPaths = skillsPaths,
-        _inlineSkills = inlineSkills,
-        _mcpServers = mcpServers ?? const [],
-        _subagents = subagents ?? const [],
-        _debugConfig = debugConfig,
-        _retryConfig = retryConfig,
-        _budgetConfig = budgetConfig,
-        _compactionConfig = compactionConfig,
-        _policies = policies ?? const [];
+  }) : _configuredBinaryPath = binaryPath,
+       _workspaces = normalizeWorkspacePaths(workspaces),
+       _mcpServers = mcpServers ?? const [],
+       _subagents = subagents ?? const [],
+       _policies = policies ?? const [];
 
   @override
   DebugConfig? get debugConfig => _debugConfig;
@@ -137,7 +124,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
 
   void _validateConnection() {
     if (_models != null) {
-      for (final m in _models!) {
+      for (final m in _models) {
         if (m.endpoint != null) {
           try {
             m.endpoint!.validateEndpoint();
@@ -186,8 +173,10 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     _connection!._startReaderLoop();
   }
 
-  Future<void> _sendHandshakeInputConfig(Process process,
-      {bool useInteractionsApi = false}) async {
+  Future<void> _sendHandshakeInputConfig(
+    Process process, {
+    bool useInteractionsApi = false,
+  }) async {
     final inputConfigBytes = LocalHarnessProto.encodeInputConfig(
       useInteractionsApi: useInteractionsApi,
       storageDirectory: _saveDir ?? '',
@@ -201,7 +190,10 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   }
 
   Future<Never> _failWithProcessStderr(
-      Process process, String message, Object? error) async {
+    Process process,
+    String message,
+    Object? error,
+  ) async {
     process.kill();
     final stderrText = await process.stderr.transform(utf8.decoder).join();
     _logger.severe('$message. Stderr: $stderrText');
@@ -214,12 +206,17 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       return await reader.read(process.stdout);
     } catch (e) {
       await _failWithProcessStderr(
-          process, 'Failed to handshake with localharness', e);
+        process,
+        'Failed to handshake with localharness',
+        e,
+      );
     }
   }
 
   Future<WebSocket> _connectWebSocketWithRetry(
-      LocalHarnessProto outputConfig, Process process) async {
+    LocalHarnessProto outputConfig,
+    Process process,
+  ) async {
     int attempt = 0;
     const maxRetries = 5;
     Object? lastException;
@@ -245,30 +242,32 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       }
       final delay = Duration(milliseconds: 100 * (1 << attempt));
       _logger.warning(
-          'WebSocket connection failed. Retrying in ${delay.inMilliseconds}ms...');
+        'WebSocket connection failed. Retrying in ${delay.inMilliseconds}ms...',
+      );
       await Future.delayed(delay);
     }
     throw StateError('Unreachable');
   }
 
   Future<
-      ({
-        List<Step> initialHistory,
-        Stream<dynamic> messageStream,
-        String? cascadeId,
-        UsageMetadata? cumulativeUsage,
-        Map<String, UsageMetadata>? trajectoryUsages,
-      })> _initializeHarnessSession(
-    WebSocket ws,
-    Process process,
-  ) async {
-    final initCompleter = Completer<
-        ({
-          List<Step> initialHistory,
-          String? cascadeId,
-          UsageMetadata? cumulativeUsage,
-          Map<String, UsageMetadata>? trajectoryUsages,
-        })>();
+    ({
+      List<Step> initialHistory,
+      Stream<dynamic> messageStream,
+      String? cascadeId,
+      UsageMetadata? cumulativeUsage,
+      Map<String, UsageMetadata>? trajectoryUsages,
+    })
+  >
+  _initializeHarnessSession(WebSocket ws, Process process) async {
+    final initCompleter =
+        Completer<
+          ({
+            List<Step> initialHistory,
+            String? cascadeId,
+            UsageMetadata? cumulativeUsage,
+            Map<String, UsageMetadata>? trajectoryUsages,
+          })
+        >();
     final messageController = StreamController<dynamic>();
 
     ws.listen(
@@ -304,20 +303,24 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       );
     } catch (e) {
       await _failWithProcessStderr(
-          process, 'Failed to initialize conversation with localharness', e);
+        process,
+        'Failed to initialize conversation with localharness',
+        e,
+      );
     }
   }
 
   void _handleInitMessage(
     dynamic message,
     Completer<
-            ({
-              List<Step> initialHistory,
-              String? cascadeId,
-              UsageMetadata? cumulativeUsage,
-              Map<String, UsageMetadata>? trajectoryUsages,
-            })>
-        initCompleter,
+      ({
+        List<Step> initialHistory,
+        String? cascadeId,
+        UsageMetadata? cumulativeUsage,
+        Map<String, UsageMetadata>? trajectoryUsages,
+      })
+    >
+    initCompleter,
     StreamController<dynamic> messageController,
   ) {
     if (initCompleter.isCompleted || message is! String) {
@@ -351,12 +354,14 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     String? cascadeId,
     UsageMetadata? cumulativeUsage,
     Map<String, UsageMetadata>? trajectoryUsages,
-  })? _tryParseInitResponse(String message) {
+  })?
+  _tryParseInitResponse(String message) {
     final parsed = jsonDecode(message);
     if (parsed is! Map) return null;
 
-    final normalized =
-        LocalConnection._normalizeJsonKeys(Map<String, dynamic>.from(parsed));
+    final normalized = LocalConnection._normalizeJsonKeys(
+      Map<String, dynamic>.from(parsed),
+    );
     final rawInitResp = normalized['initialize_conversation_response'];
     if (rawInitResp is! Map) return null;
 
@@ -387,8 +392,9 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         final trajId = entryMap['trajectory_id']?.toString() ?? '';
         final usage = entryMap['usage'];
         if (trajId.isNotEmpty && usage is Map) {
-          usages[trajId] =
-              UsageMetadata.fromMap(Map<String, dynamic>.from(usage));
+          usages[trajId] = UsageMetadata.fromMap(
+            Map<String, dynamic>.from(usage),
+          );
         }
       }
     }
@@ -414,21 +420,26 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     _process = null;
   }
 
+  /// Returns the harness config this strategy sends on start, for tests.
   Map<String, dynamic> buildHarnessConfigForTest() => _buildHarnessConfig();
 
   Map<String, dynamic> _buildHarnessConfig() {
     if (_skillsPaths.isNotEmpty && _inlineSkills.isNotEmpty) {
       throw AntigravityValidationException(
-          'LocalHarness supports either skillsPaths or inlineSkills, not both.');
+        'LocalHarness supports either skillsPaths or inlineSkills, not both.',
+      );
     }
     final allToolProtos = _buildToolsProtos();
-    final systemInstructionsProto =
-        _buildSystemInstructionsProto(_systemInstructions);
+    final systemInstructionsProto = _buildSystemInstructionsProto(
+      _systemInstructions,
+    );
     final modelsProtos = _buildModelsProtos();
     final workspacesProto = _workspaces
-        .map((ws) => {
-              'filesystem_workspace': {'directory': ws}
-            })
+        .map(
+          (ws) => {
+            'filesystem_workspace': {'directory': ws},
+          },
+        )
         .toList();
     final rootToolProtos = _resolveRootToolProtos(allToolProtos);
 
@@ -463,25 +474,28 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         'skills_config': {
           'enabled': true,
           'skills': _inlineSkills
-              .map((s) => {
-                    'skill': {
-                      'name': s.name,
-                      'description': s.description,
-                      'content': s.content,
-                      'allowed_tools': s.allowedTools,
-                      'metadata': {
-                        if (s.dependentTools.isNotEmpty)
-                          'dependent_tools': jsonEncode(s.dependentTools),
-                        if (s.dependentSkills.isNotEmpty)
-                          'dependent_skills': jsonEncode(s.dependentSkills),
-                        ...s.metadata,
-                      },
-                    }
-                  })
-              .toList()
+              .map(
+                (s) => {
+                  'skill': {
+                    'name': s.name,
+                    'description': s.description,
+                    'content': s.content,
+                    'allowed_tools': s.allowedTools,
+                    'metadata': {
+                      if (s.dependentTools.isNotEmpty)
+                        'dependent_tools': jsonEncode(s.dependentTools),
+                      if (s.dependentSkills.isNotEmpty)
+                        'dependent_skills': jsonEncode(s.dependentSkills),
+                      ...s.metadata,
+                    },
+                  },
+                },
+              )
+              .toList(),
         },
       'harness_side_tools': harnessSideTools,
-      'compaction_threshold': compaction?.tokenThreshold ??
+      'compaction_threshold':
+          compaction?.tokenThreshold ??
           // ignore: deprecated_member_use_from_same_package
           cfg.compactionThreshold ??
           0,
@@ -490,13 +504,13 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       'finish_tool_schema_json': cfg.finishToolSchemaJson ?? '',
       'app_data_dir': _appDataDir ?? '',
       'mcp_servers': mcpServersProto,
-      if (_budgetConfig != null && _budgetHasLimits(_budgetConfig!))
-        'budget_config': _buildBudgetConfigProto(_budgetConfig!),
+      if (_budgetConfig != null && _budgetHasLimits(_budgetConfig))
+        'budget_config': _buildBudgetConfigProto(_budgetConfig),
       if (enabledHooks.isNotEmpty) 'enabled_hooks': enabledHooks,
       if (customAgentsProtos.isNotEmpty) 'custom_subagents': customAgentsProtos,
       if (retryConfigMap != null && retryConfigMap.isNotEmpty)
         'retry_config': retryConfigMap,
-      if (policyConfig != null) 'policy_config': policyConfig,
+      'policy_config': ?policyConfig,
       if (cfg.mcpMaxOutputBytes != null)
         'mcp_max_output_bytes': cfg.mcpMaxOutputBytes,
     };
@@ -551,9 +565,10 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   }
 
   List<Map<String, dynamic>> _resolveRootToolProtos(
-      List<Map<String, dynamic>> allToolProtos) {
+    List<Map<String, dynamic>> allToolProtos,
+  ) {
     if (_tools != null) {
-      return _tools!
+      return _tools
           .map((tool) => _resolveSingleToolProto(tool, allToolProtos))
           .toList();
     }
@@ -577,17 +592,24 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     return <String, dynamic>{
       'name': tool.name,
       'description': tool.description,
-      'parameters_json_schema': jsonEncode(normalizeSchema(tool.schema.isEmpty
-          ? {'type': 'object', 'properties': <String, dynamic>{}}
-          : tool.schema)),
+      'parameters_json_schema': jsonEncode(
+        normalizeSchema(
+          tool.schema.isEmpty
+              ? {'type': 'object', 'properties': <String, dynamic>{}}
+              : tool.schema,
+        ),
+      ),
     };
   }
 
   Map<String, dynamic> _resolveSingleToolProto(
-      Object tool, List<Map<String, dynamic>> allToolProtos) {
+    Object tool,
+    List<Map<String, dynamic>> allToolProtos,
+  ) {
     if (tool is Tool) {
-      final found =
-          allToolProtos.where((t) => t['name'] == tool.name).firstOrNull;
+      final found = allToolProtos
+          .where((t) => t['name'] == tool.name)
+          .firstOrNull;
       return found ?? _toolToProto(tool);
     } else if (tool is String) {
       final found = allToolProtos.where((t) => t['name'] == tool).firstOrNull;
@@ -614,13 +636,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       };
     }
     if (instructions is CustomSystemInstructions) {
-      return {
-        'custom': {
-          'part': [
-            {'text': instructions.text},
-          ],
-        },
-      };
+      return instructions.toMap();
     }
     if (instructions is SystemInstructions) {
       return instructions.toMap();
@@ -630,7 +646,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
 
   List<Map<String, dynamic>> _buildModelsProtos() {
     if (_models == null) return <Map<String, dynamic>>[];
-    return _models!.map(_buildModelProto).toList();
+    return _models.map(_buildModelProto).toList();
   }
 
   Map<String, dynamic> _buildModelProto(dynamic model) {
@@ -661,8 +677,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         if (ep.baseUrl != null) 'base_url': ep.baseUrl,
         if (ep.httpHeaders != null) 'http_headers': ep.httpHeaders,
         if (ep.apiKey != null) 'api_key': ep.apiKey,
-        if (opts != null) 'options': opts,
-      }
+        'options': ?opts,
+      },
     };
   }
 
@@ -675,8 +691,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         if (ep.project != null) 'project': ep.project,
         if (ep.location != null) 'location': ep.location,
         if (ep.apiKey != null && ep.apiKey!.isNotEmpty) 'api_key': ep.apiKey,
-        if (opts != null) 'options': opts,
-      }
+        'options': ?opts,
+      },
     };
   }
 
@@ -693,12 +709,14 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     CapabilitiesConfig cfg,
     Set<BuiltinTools> activeTools,
   ) {
-    final subagentsEnabled = cfg.enableSubagents &&
+    final subagentsEnabled =
+        cfg.enableSubagents &&
         activeTools.contains(BuiltinTools.invokeSubagent);
     return {
       'run_workflow': {
-        'enabled': cfg.enableSubagents &&
-            activeTools.contains(BuiltinTools.runWorkflow)
+        'enabled':
+            cfg.enableSubagents &&
+            activeTools.contains(BuiltinTools.runWorkflow),
       },
       'subagents': {
         'enabled': subagentsEnabled,
@@ -709,32 +727,33 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       },
       'find': {'enabled': activeTools.contains(BuiltinTools.findFile)},
       'user_questions': {
-        'enabled': activeTools.contains(BuiltinTools.askQuestion)
+        'enabled': activeTools.contains(BuiltinTools.askQuestion),
       },
       'run_command': _runCommandToolProto(
         activeTools.contains(BuiltinTools.runCommand),
         cfg.runCommandConfig,
       ),
       'manage_task': {
-        'enabled': activeTools.contains(BuiltinTools.runCommand) ||
+        'enabled':
+            activeTools.contains(BuiltinTools.runCommand) ||
             activeTools.contains(BuiltinTools.schedule),
       },
       'schedule': {'enabled': activeTools.contains(BuiltinTools.schedule)},
       'file_edit': {'enabled': activeTools.contains(BuiltinTools.editFile)},
       'view_file': {'enabled': activeTools.contains(BuiltinTools.viewFile)},
       'write_to_file': {
-        'enabled': activeTools.contains(BuiltinTools.createFile)
+        'enabled': activeTools.contains(BuiltinTools.createFile),
       },
       'grep_search': {
-        'enabled': activeTools.contains(BuiltinTools.searchDirectory)
+        'enabled': activeTools.contains(BuiltinTools.searchDirectory),
       },
       'list_dir': {'enabled': activeTools.contains(BuiltinTools.listDirectory)},
       'generate_image': {
-        'enabled': activeTools.contains(BuiltinTools.generateImage)
+        'enabled': activeTools.contains(BuiltinTools.generateImage),
       },
       'search_web': {'enabled': activeTools.contains(BuiltinTools.searchWeb)},
       'read_url_content': {
-        'enabled': activeTools.contains(BuiltinTools.readUrlContent)
+        'enabled': activeTools.contains(BuiltinTools.readUrlContent),
       },
     };
   }
@@ -793,7 +812,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   Map<String, dynamic> _subagentSkillsProto(SubagentSkillsConfig config) {
     if (config.overrideConfig?.inlineSkills.isNotEmpty ?? false) {
       throw AntigravityValidationException(
-          'LocalHarness does not support subagent inline skill overrides; use skillsPaths.');
+        'LocalHarness does not support subagent inline skill overrides; use skillsPaths.',
+      );
     }
     if (config.noneConfig != null) return {'none_config': <String, dynamic>{}};
     if (config.inheritConfig != null) {
@@ -801,40 +821,44 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     }
     if (config.overrideConfig != null) {
       return {
-        'override_config': {'skills_paths': config.overrideConfig!.skillsPaths}
+        'override_config': {'skills_paths': config.overrideConfig!.skillsPaths},
       };
     }
     return {};
   }
 
   List<Map<String, dynamic>> _buildCustomAgentsProtos(
-      List<Map<String, dynamic>> allToolProtos) {
+    List<Map<String, dynamic>> allToolProtos,
+  ) {
     return _subagents.map((subagent) {
       final subCap = subagent.capabilities;
       final activeSubTools = subCap == null
           ? BuiltinTools.readOnly().toSet()
           : (subCap.enabledTools?.toSet() ??
-              BuiltinTools.defaultTools()
-                  .toSet()
-                  .difference(subCap.disabledTools?.toSet() ?? {}));
-      final subagentCanSpawn =
-          activeSubTools.contains(BuiltinTools.invokeSubagent);
+                BuiltinTools.defaultTools().toSet().difference(
+                  subCap.disabledTools?.toSet() ?? {},
+                ));
+      final subagentCanSpawn = activeSubTools.contains(
+        BuiltinTools.invokeSubagent,
+      );
 
-      final resolvedSubTools =
-          _resolveSubagentToolProtos(subagent, allToolProtos);
+      final resolvedSubTools = _resolveSubagentToolProtos(
+        subagent,
+        allToolProtos,
+      );
 
-      final subagentInstructionsProto =
-          _buildSubagentSystemInstructions(subagent.systemInstructions);
+      final subagentInstructionsProto = _buildSubagentSystemInstructions(
+        subagent.systemInstructions,
+      );
 
       return {
         'name': subagent.name,
         'description': subagent.description,
-        if (subagentInstructionsProto != null)
-          'system_instructions': subagentInstructionsProto,
+        'system_instructions': ?subagentInstructionsProto,
         'tools': resolvedSubTools,
         'harness_side_tools': {
           'run_workflow': {
-            'enabled': activeSubTools.contains(BuiltinTools.runWorkflow)
+            'enabled': activeSubTools.contains(BuiltinTools.runWorkflow),
           },
           'subagents': {
             'enabled': subagentCanSpawn,
@@ -848,35 +872,36 @@ class LocalConnectionStrategy implements ConnectionStrategy {
             subCap?.runCommandConfig,
           ),
           'manage_task': {
-            'enabled': activeSubTools.contains(BuiltinTools.runCommand) ||
+            'enabled':
+                activeSubTools.contains(BuiltinTools.runCommand) ||
                 activeSubTools.contains(BuiltinTools.schedule),
           },
           'schedule': {
-            'enabled': activeSubTools.contains(BuiltinTools.schedule)
+            'enabled': activeSubTools.contains(BuiltinTools.schedule),
           },
           'file_edit': {
-            'enabled': activeSubTools.contains(BuiltinTools.editFile)
+            'enabled': activeSubTools.contains(BuiltinTools.editFile),
           },
           'view_file': {
-            'enabled': activeSubTools.contains(BuiltinTools.viewFile)
+            'enabled': activeSubTools.contains(BuiltinTools.viewFile),
           },
           'write_to_file': {
-            'enabled': activeSubTools.contains(BuiltinTools.createFile)
+            'enabled': activeSubTools.contains(BuiltinTools.createFile),
           },
           'grep_search': {
-            'enabled': activeSubTools.contains(BuiltinTools.searchDirectory)
+            'enabled': activeSubTools.contains(BuiltinTools.searchDirectory),
           },
           'list_dir': {
-            'enabled': activeSubTools.contains(BuiltinTools.listDirectory)
+            'enabled': activeSubTools.contains(BuiltinTools.listDirectory),
           },
           'generate_image': {
-            'enabled': activeSubTools.contains(BuiltinTools.generateImage)
+            'enabled': activeSubTools.contains(BuiltinTools.generateImage),
           },
           'search_web': {
-            'enabled': activeSubTools.contains(BuiltinTools.searchWeb)
+            'enabled': activeSubTools.contains(BuiltinTools.searchWeb),
           },
           'read_url_content': {
-            'enabled': activeSubTools.contains(BuiltinTools.readUrlContent)
+            'enabled': activeSubTools.contains(BuiltinTools.readUrlContent),
           },
         },
         'agent_behavior':
@@ -892,7 +917,9 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   }
 
   List<Map<String, dynamic>> _resolveSubagentToolProtos(
-      SubagentConfig subagent, List<Map<String, dynamic>> allToolProtos) {
+    SubagentConfig subagent,
+    List<Map<String, dynamic>> allToolProtos,
+  ) {
     final resolvedSubTools = <Map<String, dynamic>>[];
     for (final tool in subagent.tools) {
       if (tool is String) {
@@ -933,13 +960,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       };
     }
     if (instructions is CustomSystemInstructions) {
-      return {
-        'custom': {
-          'part': [
-            {'text': instructions.text},
-          ],
-        },
-      };
+      return instructions.toMap();
     }
     if (instructions is TemplatedSystemInstructions) {
       return {
@@ -1010,9 +1031,8 @@ class HandshakeReader {
     if (_targetLength == null) {
       if (_buffer.length >= 4) {
         final lengthBytes = Uint8List.fromList(_buffer.sublist(0, 4));
-        _targetLength = ByteData.sublistView(
-          lengthBytes,
-        ).getUint32(0, Endian.little);
+        _targetLength = ByteData.sublistView(lengthBytes)
+            .getUint32(0, Endian.little);
         _buffer.removeRange(0, 4);
       }
     }
@@ -1083,10 +1103,10 @@ class LocalConnection implements Connection {
   /// [messageStream] to receive WebSocket events, [toolRunner] to process incoming tool executions,
   /// and [hookRunner] to dispatch lifecycle events.
   LocalConnection({
-    required Process process,
-    required WebSocket ws,
-    required Stream<dynamic> messageStream,
-    required ToolRunner toolRunner,
+    required this._process,
+    required this._ws,
+    required this._messageStream,
+    required this._toolRunner,
     required HookRunner hookRunner,
     List<Step>? initialHistory,
     String? conversationId,
@@ -1094,13 +1114,9 @@ class LocalConnection implements Connection {
     UsageMetadata? cumulativeUsage,
     Map<String, UsageMetadata>? trajectoryUsages,
     Map<String, Policy>? dynamicPolicies,
-  })  : _process = process,
-        _ws = ws,
-        _messageStream = messageStream,
-        _toolRunner = toolRunner,
-        _hookRunner = hookRunner,
-        _dynamicPolicies = dynamicPolicies ?? const {},
-        _convId = conversationId ?? '' {
+  }) : _hookRunner = hookRunner,
+       _dynamicPolicies = dynamicPolicies ?? const {},
+       _convId = conversationId ?? '' {
     if (initialHistory != null) {
       _initialHistory.addAll(initialHistory);
     }
@@ -1111,15 +1127,11 @@ class LocalConnection implements Connection {
       _trajectoryUsages.addAll(trajectoryUsages);
     }
     if (hookRunner.hasHooks) {
-      _hookRouter = HookRouter(
-        hookRunner,
-        (evt) async {
-          if (!_disconnecting) {
-            _ws.add(jsonEncode(evt));
-          }
-        },
-        resultExtractor: extractToolResult,
-      );
+      _hookRouter = HookRouter(hookRunner, (evt) async {
+        if (!_disconnecting) {
+          _ws.add(jsonEncode(evt));
+        }
+      }, resultExtractor: extractToolResult);
     }
   }
 
@@ -1138,12 +1150,12 @@ class LocalConnection implements Connection {
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .forEach((line) {
-      _stderrLines.add(line);
-      if (_stderrLines.length > 50) {
-        _stderrLines.removeAt(0);
-      }
-      _logger.fine('[Harness Stderr] $line');
-    });
+          _stderrLines.add(line);
+          if (_stderrLines.length > 50) {
+            _stderrLines.removeAt(0);
+          }
+          _logger.fine('[Harness Stderr] $line');
+        });
   }
 
   /// Starts the reader loop. Exposed for unit testing.
@@ -1226,7 +1238,8 @@ class LocalConnection implements Connection {
 
     if (normalizedEvent.containsKey('tool_call')) {
       final tc = ToolCall.fromMap(
-          Map<String, dynamic>.from(normalizedEvent['tool_call'] as Map));
+        Map<String, dynamic>.from(normalizedEvent['tool_call'] as Map),
+      );
       _logger.info('Tool call requested: ${tc.name}');
       await _handleToolCall(tc);
       return;
@@ -1288,8 +1301,8 @@ class LocalConnection implements Connection {
           denyReason: allow
               ? ''
               : (reason.isNotEmpty
-                  ? reason
-                  : 'Denied by user (${rule.name.isNotEmpty ? rule.name : rule.tool}).'),
+                    ? reason
+                    : 'Denied by user (${rule.name.isNotEmpty ? rule.name : rule.tool}).'),
         );
       } else if (rule.decision == policy_lib.Decision.askUser) {
         final denyReason =
@@ -1361,13 +1374,15 @@ class LocalConnection implements Connection {
     String denyReason = '',
   }) {
     if (_disconnecting) return;
-    _ws.add(jsonEncode({
-      'policy_decision_response': {
-        'request_id': requestId,
-        'outcome': outcome,
-        'deny_reason': denyReason,
-      },
-    }));
+    _ws.add(
+      jsonEncode({
+        'policy_decision_response': {
+          'request_id': requestId,
+          'outcome': outcome,
+          'deny_reason': denyReason,
+        },
+      }),
+    );
   }
 
   void _handleCallHookRequest(dynamic rawReq) {
@@ -1377,12 +1392,11 @@ class LocalConnection implements Connection {
       unawaited(_hookRouter!.handle(req));
     } else {
       final requestId = req['request_id']?.toString() ?? '';
-      _ws.add(jsonEncode({
-        'call_hook_response': {
-          'request_id': requestId,
-          'empty_result': {},
-        }
-      }));
+      _ws.add(
+        jsonEncode({
+          'call_hook_response': {'request_id': requestId, 'empty_result': {}},
+        }),
+      );
     }
   }
 
@@ -1391,7 +1405,8 @@ class LocalConnection implements Connection {
     final usageUpdate = Map<String, dynamic>.from(rawUpdate);
     if (usageUpdate['total'] is Map) {
       _cumulativeUsage = UsageMetadata.fromMap(
-          Map<String, dynamic>.from(usageUpdate['total'] as Map));
+        Map<String, dynamic>.from(usageUpdate['total'] as Map),
+      );
     }
     if (usageUpdate['agents'] is List) {
       _parseTrajectoryUsages(usageUpdate['agents'] as List);
@@ -1453,7 +1468,8 @@ class LocalConnection implements Connection {
       unawaited(_hookRunner.dispatchPreStep(step));
     }
 
-    final isTerminal = stateStr == 'STATE_DONE' ||
+    final isTerminal =
+        stateStr == 'STATE_DONE' ||
         stateStr == 'DONE' ||
         stateStr == 'STATE_ERROR' ||
         stateStr == 'ERROR';
@@ -1471,7 +1487,8 @@ class LocalConnection implements Connection {
     if (mainTrajectoryId == null && trajectoryId.isNotEmpty) {
       mainTrajectoryId = trajectoryId;
     }
-    final isSubagent = mainTrajectoryId != null &&
+    final isSubagent =
+        mainTrajectoryId != null &&
         trajectoryId.isNotEmpty &&
         trajectoryId != mainTrajectoryId;
 
@@ -1482,8 +1499,9 @@ class LocalConnection implements Connection {
 
     if (isSubagent) {
       if (update['error'] != null && update['error'].toString().isNotEmpty) {
-        _logger
-            .info('Subagent trajectory failed with error: ${update['error']}');
+        _logger.info(
+          'Subagent trajectory failed with error: ${update['error']}',
+        );
       }
       return;
     }
@@ -1509,8 +1527,9 @@ class LocalConnection implements Connection {
       return;
     }
     if (state == 'STATE_CANCELLED' || state == 'CANCELLED') {
-      final errMsg =
-          (error != null && error.isNotEmpty) ? error : 'Turn cancelled';
+      final errMsg = (error != null && error.isNotEmpty)
+          ? error
+          : 'Turn cancelled';
       _safeAddError(AntigravityExecutionException(errMsg));
       _idleState = true;
       _safeAdd(_createIdleSentinelStep());
@@ -1657,8 +1676,10 @@ class LocalConnection implements Connection {
       } else {
         final ctx = _hookRunner.createTurnContext();
         final exception = result.exception ?? Exception(result.error);
-        final recoveryVal =
-            await _hookRunner.dispatchOnToolError(ctx, exception);
+        final recoveryVal = await _hookRunner.dispatchOnToolError(
+          ctx,
+          exception,
+        );
         if (recoveryVal != null) {
           result = ToolResult(
             id: effectiveToolCall.id,
@@ -1688,8 +1709,9 @@ class LocalConnection implements Connection {
     }
   }
 
-  static final _controlCharRegExp =
-      RegExp(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]');
+  static final _controlCharRegExp = RegExp(
+    r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]',
+  );
 
   /// Strips null bytes and dangerous control characters from user text prompts at the wire boundary.
   ///
@@ -1791,8 +1813,7 @@ class LocalConnection implements Connection {
         'tool_response': {
           'id': result.id ?? '',
           'response_json': jsonEncode(responseJson),
-          if (supplementalMedia != null)
-            'supplemental_media': supplementalMedia,
+          'supplemental_media': ?supplementalMedia,
         },
       };
 
@@ -1825,23 +1846,28 @@ class LocalConnection implements Connection {
       } on TimeoutException {
         _process.kill();
         try {
-          exitCode =
-              await _process.exitCode.timeout(const Duration(seconds: 1));
+          exitCode = await _process.exitCode.timeout(
+            const Duration(seconds: 1),
+          );
         } on TimeoutException {
           _process.kill(ProcessSignal.sigkill);
-          exitCode =
-              await _process.exitCode.timeout(const Duration(seconds: 1));
+          exitCode = await _process.exitCode.timeout(
+            const Duration(seconds: 1),
+          );
         }
       }
       try {
         await _stderrDone?.timeout(const Duration(seconds: 1));
-      } on TimeoutException {/* Retain the stderr already collected. */}
+      } on TimeoutException {
+        /* Retain the stderr already collected. */
+      }
       if (exitCode != 0) {
         final stderr = _stderrLines.isEmpty
             ? '(no stderr output)'
             : _stderrLines.join('\n');
         throw AntigravityExecutionException(
-            'Harness process exited with code $exitCode.\nHarness stderr:\n$stderr');
+          'Harness process exited with code $exitCode.\nHarness stderr:\n$stderr',
+        );
       }
     } finally {
       await _stepController.close();
@@ -1924,6 +1950,12 @@ class _StepTracker {
   }
 }
 
+/// Returns the typed result of a built-in tool from a harness [stepUpdate].
+///
+/// Recognizes the `run_command`, `list_directory`, `find_file`,
+/// `search_directory`, `edit_file`, `generate_image`, `search_web`, and
+/// `read_url_content` payloads. Returns null for any other step update or
+/// when the payload is missing its result fields.
 dynamic extractToolResult(Map<String, dynamic> stepUpdate) {
   if (stepUpdate.containsKey('run_command')) {
     return _extractRunCommandResult(stepUpdate['run_command']);
@@ -1943,16 +1975,19 @@ dynamic extractToolResult(Map<String, dynamic> stepUpdate) {
   if (stepUpdate.containsKey('generate_image') &&
       stepUpdate['generate_image'] is Map) {
     return GenerateImageResult.fromMap(
-        Map<String, dynamic>.from(stepUpdate['generate_image'] as Map));
+      Map<String, dynamic>.from(stepUpdate['generate_image'] as Map),
+    );
   }
   if (stepUpdate.containsKey('search_web') && stepUpdate['search_web'] is Map) {
     return SearchWebResult.fromMap(
-        Map<String, dynamic>.from(stepUpdate['search_web'] as Map));
+      Map<String, dynamic>.from(stepUpdate['search_web'] as Map),
+    );
   }
   if (stepUpdate.containsKey('read_url_content') &&
       stepUpdate['read_url_content'] is Map) {
     return ReadUrlContentResult.fromMap(
-        Map<String, dynamic>.from(stepUpdate['read_url_content'] as Map));
+      Map<String, dynamic>.from(stepUpdate['read_url_content'] as Map),
+    );
   }
   return null;
 }
@@ -1973,7 +2008,7 @@ ListDirectoryResult? _extractListDirectoryResult(dynamic ld) {
         isDirectory: r['is_directory'] == true || r['isDirectory'] == true,
         fileSize:
             int.tryParse((r['file_size'] ?? r['fileSize'] ?? '0').toString()) ??
-                0,
+            0,
       );
     }
     return const ListDirectoryEntry();
@@ -1990,8 +2025,10 @@ FindFileResult? _extractFindFileResult(dynamic ff) {
 SearchDirectoryResult? _extractSearchDirectoryResult(dynamic sd) {
   return (sd is Map && sd.containsKey('num_results'))
       ? SearchDirectoryResult(
-          numResults: int.tryParse(
-                  (sd['num_results'] ?? sd['numResults'] ?? '0').toString()) ??
+          numResults:
+              int.tryParse(
+                (sd['num_results'] ?? sd['numResults'] ?? '0').toString(),
+              ) ??
               0,
         )
       : null;
@@ -2003,12 +2040,23 @@ EditFileResult? _extractEditFileResult(dynamic ef, dynamic text) {
       : null;
 }
 
+/// A tool result split into its non-media value and its media attachments.
 class ExtractedMedia {
+  /// The result with media removed, or null if it was entirely media.
   final dynamic cleanedValue;
+
+  /// The [MediaContent] attachments found in the result.
   final List<MediaContent> media;
+
+  /// Creates an extraction of [cleanedValue] and [media].
   ExtractedMedia(this.cleanedValue, this.media);
 }
 
+/// Splits [MediaContent] attachments out of a tool result [value].
+///
+/// Recurses through lists and maps so media can be sent to the model as
+/// supplemental content instead of being JSON-encoded into the text result.
+/// Lists and maps that are empty after removal become null.
 ExtractedMedia extractMediaFromResult(dynamic value) {
   if (value is MediaContent) {
     return ExtractedMedia(null, [value]);
@@ -2050,9 +2098,17 @@ ExtractedMedia _extractMediaFromMap(Map value) {
 
 /// Strategy for establishing connection to an external local OpenAI completions API (Ollama/LM Studio).
 class LocalOpenAIConnectionStrategy extends LocalConnectionStrategy {
+  /// The base URL of the OpenAI-compatible completions API.
   String baseUrl;
+
+  /// The model name sent to the completions API.
   final String modelName;
 
+  /// Creates a strategy that points the harness at [baseUrl] and
+  /// [modelName].
+  ///
+  /// [start] throws an [AntigravityValidationException] if [baseUrl] is
+  /// empty.
   LocalOpenAIConnectionStrategy({
     required this.baseUrl,
     required this.modelName,
@@ -2093,9 +2149,7 @@ class LocalOpenAIConnectionStrategy extends LocalConnectionStrategy {
     final modelCfg = {
       'name': modelName,
       'types': ['MODEL_TYPE_TEXT'],
-      'gemma_endpoint': {
-        'base_url': baseUrl,
-      },
+      'gemma_endpoint': {'base_url': baseUrl},
     };
     final models = List<dynamic>.from(harnessConfig['models'] as List? ?? []);
     models.add(modelCfg);
@@ -2106,17 +2160,41 @@ class LocalOpenAIConnectionStrategy extends LocalConnectionStrategy {
 
 /// Strategy for establishing connection to a local LiteRT loopback API server.
 class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
+  /// Path to the LiteRT model file.
   final String modelPath;
+
+  /// Hardware backend used to run the model.
   final LiteRTBackend backend;
+
+  /// Whether speculative decoding (multi-token prediction) is enabled.
   final bool enableSpeculativeDecoding;
+
+  /// Writable directory for compilation caching, if any.
   final String? cacheDir;
+
+  /// Backend override for audio processing, if any.
   final LiteRTBackend? audioBackend;
+
+  /// Backend override for vision and image processing, if any.
   final LiteRTBackend? visionBackend;
+
+  /// Port for the LiteRT server; 0 picks a random free port.
   final int port;
+
+  /// Whether to download model weights when [modelPath] is missing.
+  ///
+  /// Stored for parity with [LiteRTAgentConfig]; [start] does not act on it.
   final bool downloadIfMissing;
+
+  /// Context-window limit passed to the LiteRT server, if any.
   final int? maxContextTokens;
   Process? _serverProcess;
 
+  /// Creates a strategy that serves [modelPath] through a local LiteRT
+  /// server and connects the harness to it.
+  ///
+  /// [start] throws an [AntigravityValidationException] if [modelPath] does
+  /// not exist.
   LiteRTConnectionStrategy({
     required this.modelPath,
     this.backend = LiteRTBackend.gpu,
@@ -2147,10 +2225,7 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
     super.budgetConfig,
     super.compactionConfig,
     super.policies,
-  }) : super(
-          baseUrl: '',
-          modelName: p.basename(modelPath),
-        );
+  }) : super(baseUrl: '', modelName: p.basename(modelPath));
 
   @override
   void _validateConnection() {
@@ -2170,8 +2245,9 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
 
     final actualPort = await _readLiteRTPort(_serverProcess!);
     final litertBaseUrl = 'http://127.0.0.1:$actualPort';
-    _logger
-        .info('LiteRT Server started on port $actualPort. URL: $litertBaseUrl');
+    _logger.info(
+      'LiteRT Server started on port $actualPort. URL: $litertBaseUrl',
+    );
 
     final client = HttpClient();
     try {
@@ -2190,8 +2266,9 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
     if (!dir.existsSync()) {
       dir.createSync(recursive: true);
     }
-    final scriptFile =
-        File('${dir.path}${Platform.pathSeparator}litert_server.py');
+    final scriptFile = File(
+      '${dir.path}${Platform.pathSeparator}litert_server.py',
+    );
     scriptFile.writeAsStringSync(litertServerPythonScript);
     return scriptFile;
   }
@@ -2211,7 +2288,7 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
       port.toString(),
       if (maxContextTokens != null) ...[
         '--max_context_tokens',
-        maxContextTokens!.toString()
+        maxContextTokens!.toString(),
       ],
     ];
 
@@ -2227,35 +2304,39 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .listen((line) {
-      _logger.fine('[LiteRT Server Stdout] $line');
-      final match = portRegex.firstMatch(line);
-      if (match != null && !portCompleter.isCompleted) {
-        portCompleter.complete(int.parse(match.group(1)!));
-      }
-    });
+          _logger.fine('[LiteRT Server Stdout] $line');
+          final match = portRegex.firstMatch(line);
+          if (match != null && !portCompleter.isCompleted) {
+            portCompleter.complete(int.parse(match.group(1)!));
+          }
+        });
 
     process.stderr
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .listen((line) {
-      _logger.warning('[LiteRT Server Stderr] $line');
-    });
+          _logger.warning('[LiteRT Server Stderr] $line');
+        });
 
     try {
       return await portCompleter.future.timeout(const Duration(seconds: 15));
     } catch (e) {
       process.kill();
       throw Exception(
-          'Failed to receive port from LiteRT server process. Error: $e');
+        'Failed to receive port from LiteRT server process. Error: $e',
+      );
     }
   }
 
   Future<void> _waitForLiteRTHealth(
-      HttpClient client, String litertBaseUrl) async {
+    HttpClient client,
+    String litertBaseUrl,
+  ) async {
     for (var i = 0; i < 60; i++) {
       try {
-        final request =
-            await client.getUrl(Uri.parse('$litertBaseUrl/v1/models'));
+        final request = await client.getUrl(
+          Uri.parse('$litertBaseUrl/v1/models'),
+        );
         final response = await request.close();
         if (response.statusCode == 200) return;
       } catch (_) {}
@@ -2274,18 +2355,22 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
           warmupTimeoutSeconds = scaled;
         }
       }
-      final request =
-          await client.postUrl(Uri.parse('$litertBaseUrl/v1/chat/completions'));
+      final request = await client.postUrl(
+        Uri.parse('$litertBaseUrl/v1/chat/completions'),
+      );
       request.headers.contentType = ContentType.json;
-      request.write(jsonEncode({
-        'model': modelName,
-        'messages': [
-          {'role': 'user', 'content': 'Hello'}
-        ],
-        'stream': false,
-      }));
+      request.write(
+        jsonEncode({
+          'model': modelName,
+          'messages': [
+            {'role': 'user', 'content': 'Hello'},
+          ],
+          'stream': false,
+        }),
+      );
       final response = await request.close().timeout(
-          Duration(milliseconds: (warmupTimeoutSeconds * 1000).round()));
+        Duration(milliseconds: (warmupTimeoutSeconds * 1000).round()),
+      );
       await response.drain();
     } catch (e) {
       _logger.warning('LiteRT warm-up request timed out or failed: $e');

@@ -40,9 +40,7 @@ void main() {
       expect(fromMap.id, equals('tc-1'));
     });
 
-    test(
-        'ToolRunner.processToolCalls preserves all metadata on successful execution',
-        () async {
+    test('ToolRunner.processToolCalls preserves all metadata on successful execution', () async {
       final runner = ToolRunner(
         tools: [
           Tool(
@@ -79,85 +77,93 @@ void main() {
       expect(res.error, isNull);
     });
 
-    test('ToolRunner.processToolCalls preserves all metadata on unknown tool',
-        () async {
-      final runner = ToolRunner(tools: []);
+    test(
+      'ToolRunner.processToolCalls preserves all metadata on unknown tool',
+      () async {
+        final runner = ToolRunner(tools: []);
 
-      final calls = [
-        ToolCall(
-          name: 'non_existent_tool',
-          args: {},
-          id: 'call-id-unknown',
-          callId: 'call-id-unknown',
-          stepId: 'step-11',
-          serverName: 'server-alpha',
-        ),
-      ];
-
-      final results = await runner.processToolCalls(calls);
-      expect(results.length, equals(1));
-      final res = results.first;
-
-      expect(res.name, equals('non_existent_tool'));
-      expect(res.id, equals('call-id-unknown'));
-      expect(res.callId, equals('call-id-unknown'));
-      expect(res.stepId, equals('step-11'));
-      expect(res.serverName, equals('server-alpha'));
-      expect(res.error, contains("Unknown tool: 'non_existent_tool'"));
-    });
-
-    test('ToolRunner.processToolCalls preserves all metadata on exception',
-        () async {
-      final runner = ToolRunner(
-        tools: [
-          Tool(
-            name: 'failing_tool',
-            description: 'Throws error',
-            schema: {},
-            handler: (args, ctx) async =>
-                throw FormatException('Invalid format in tool'),
+        final calls = [
+          ToolCall(
+            name: 'non_existent_tool',
+            args: {},
+            id: 'call-id-unknown',
+            callId: 'call-id-unknown',
+            stepId: 'step-11',
+            serverName: 'server-alpha',
           ),
-        ],
-      );
+        ];
 
-      final calls = [
-        ToolCall(
-          name: 'failing_tool',
-          args: {},
-          id: 'call-id-fail',
-          callId: 'call-id-fail',
-          stepId: 'step-12',
-          serverName: 'fail-server',
-        ),
-      ];
+        final results = await runner.processToolCalls(calls);
+        expect(results.length, equals(1));
+        final res = results.first;
 
-      final results = await runner.processToolCalls(calls);
-      expect(results.length, equals(1));
-      final res = results.first;
+        expect(res.name, equals('non_existent_tool'));
+        expect(res.id, equals('call-id-unknown'));
+        expect(res.callId, equals('call-id-unknown'));
+        expect(res.stepId, equals('step-11'));
+        expect(res.serverName, equals('server-alpha'));
+        expect(res.error, contains("Unknown tool: 'non_existent_tool'"));
+      },
+    );
 
-      expect(res.name, equals('failing_tool'));
-      expect(res.id, equals('call-id-fail'));
-      expect(res.callId, equals('call-id-fail'));
-      expect(res.stepId, equals('step-12'));
-      expect(res.serverName, equals('fail-server'));
-      expect(res.error, contains('Invalid format in tool'));
-      expect(res.exception, isNotNull);
-    });
+    test(
+      'ToolRunner.processToolCalls preserves all metadata on exception',
+      () async {
+        final runner = ToolRunner(
+          tools: [
+            Tool(
+              name: 'failing_tool',
+              description: 'Throws error',
+              schema: {},
+              handler: (args, ctx) async =>
+                  throw FormatException('Invalid format in tool'),
+            ),
+          ],
+        );
+
+        final calls = [
+          ToolCall(
+            name: 'failing_tool',
+            args: {},
+            id: 'call-id-fail',
+            callId: 'call-id-fail',
+            stepId: 'step-12',
+            serverName: 'fail-server',
+          ),
+        ];
+
+        final results = await runner.processToolCalls(calls);
+        expect(results.length, equals(1));
+        final res = results.first;
+
+        expect(res.name, equals('failing_tool'));
+        expect(res.id, equals('call-id-fail'));
+        expect(res.callId, equals('call-id-fail'));
+        expect(res.stepId, equals('step-12'));
+        expect(res.serverName, equals('fail-server'));
+        expect(res.error, contains('Invalid format in tool'));
+        expect(res.exception, isNotNull);
+      },
+    );
   });
 
-  test('tool inspection and iterable batches retain schema and input order',
-      () async {
-    final tool = Tool(
+  test(
+    'tool inspection and iterable batches retain schema and input order',
+    () async {
+      final tool = Tool(
         name: 'echo',
         description: 'Echo a number',
         schema: {'type': 'object'},
-        handler: (args, context) async => args['n']);
-    expect(tool.toString(), contains('echo'));
-    expect(tool.toString(), contains('object'));
-    final runner = ToolRunner(tools: {tool});
-    final results = await runner.processToolCalls(
-        [1, 2].map((n) => ToolCall(id: '$n', name: 'echo', args: {'n': n})));
-    expect(results.map((result) => result.result), [1, 2]);
-    expect(await runner.processToolCalls(const []), isEmpty);
-  });
+        handler: (args, context) async => args['n'],
+      );
+      expect(tool.toString(), contains('echo'));
+      expect(tool.toString(), contains('object'));
+      final runner = ToolRunner(tools: {tool});
+      final results = await runner.processToolCalls(
+        [1, 2].map((n) => ToolCall(id: '$n', name: 'echo', args: {'n': n})),
+      );
+      expect(results.map((result) => result.result), [1, 2]);
+      expect(await runner.processToolCalls(const []), isEmpty);
+    },
+  );
 }

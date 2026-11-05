@@ -1,4 +1,5 @@
 import 'package:antigravity/src/utils/harness_downloader.dart';
+
 import 'dart:io';
 
 import 'package:antigravity/src/utils/binary_discovery.dart';
@@ -156,10 +157,7 @@ void main() {
 
     setUp(() {
       tempHome = Directory.systemTemp.createTempSync('agy_test_home_');
-      BinaryDiscovery.environmentOverride = {
-        'HOME': tempHome.path,
-        'PATH': '',
-      };
+      BinaryDiscovery.environmentOverride = {'HOME': tempHome.path, 'PATH': ''};
     });
 
     tearDown(() {
@@ -167,9 +165,7 @@ void main() {
       if (tempHome.existsSync()) tempHome.deleteSync(recursive: true);
     });
 
-    test(
-        're-downloads binary if cached binary is present but has an older version',
-        () async {
+    test('re-downloads binary if cached binary is present but has an older version', () async {
       final binDir = Directory('${tempHome.path}/.antigravity/bin')
         ..createSync(recursive: true);
       // Create localharness file
@@ -186,18 +182,20 @@ void main() {
       );
     });
 
-    test('returns cached path if cached binary version matches or is newer',
-        () async {
-      final binDir = Directory('${tempHome.path}/.antigravity/bin')
-        ..createSync(recursive: true);
-      final binFile = File('${binDir.path}/localharness')
-        ..writeAsStringSync('binary_content');
-      // Write current default version
-      File('${binDir.path}/.version')
-          .writeAsStringSync(HarnessDownloader.defaultVersion);
+    test(
+      'returns cached path if cached binary version matches or is newer',
+      () async {
+        final binDir = Directory('${tempHome.path}/.antigravity/bin')
+          ..createSync(recursive: true);
+        final binFile = File('${binDir.path}/localharness')
+          ..writeAsStringSync('binary_content');
+        // Write current default version
+        File('${binDir.path}/.version')
+            .writeAsStringSync(HarnessDownloader.defaultVersion);
 
-      final result = await BinaryDiscovery.discover(autoDownload: false);
-      expect(result, equals(binFile.absolute.path));
-    });
+        final result = await BinaryDiscovery.discover(autoDownload: false);
+        expect(result, equals(binFile.absolute.path));
+      },
+    );
   });
 }

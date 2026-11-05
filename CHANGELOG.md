@@ -1,3 +1,62 @@
+## 0.18.0
+
+Syncs with Python SDK v0.1.23.
+
+### Added
+
+* `agent.beta.runWorkflow(args: {...})` passes JSON-encodable input arguments
+  to the workflow script, where they are available as `args`. The prompt
+  includes them as JSON, encoded like Python's `json.dumps`. An empty
+  map sends nothing; values that cannot be encoded (including NaN and
+  infinity) throw an `ArgumentError` before the model is called.
+* `CustomSystemInstructions.title` renders replacement system instructions
+  under `<title>` tags instead of the generic `<System>` section. It is sent as
+  `custom.part[].title` for the main agent and subagents, and omitted when null
+  or empty.
+* `normalizeSchema` maps `read_only`/`write_only` to `readOnly`/`writeOnly`.
+  It also catches up with upstream keywords from earlier releases:
+  `multiple_of`, `exclusive_minimum`, `exclusive_maximum`, `prefix_items`,
+  `property_names`, `dependent_required`, `dependent_schemas`,
+  `unevaluated_properties`, and `unevaluated_items` are now converted to
+  camelCase.
+
+### Changed
+
+* **Workflow validation follows upstream:** `validateWorkflowSource` now
+  rejects `print(...)` calls (including `builtins.print(...)`) anywhere in the
+  script, and no longer rejects imports, `while` loops, `_`-prefixed
+  attributes, or `__`-prefixed names. Top-level `return` and `yield` are still
+  rejected.
+* `runWorkflow` resolves a relative `scriptPath` against every workspace in
+  order, not only the first.
+* `normalizeSchema` keeps `title`, `description`, `summary`, `format`,
+  `pattern`, `example`, `examples`, and `dependentRequired` values as-is, so a
+  description or example of `"STRING"` is no longer lowercased. The keys of
+  `dependentSchemas` are treated as property names, like the keys of
+  `properties`.
+* Media MIME types are trimmed and lowercased (`' IMAGE/PNG '` becomes
+  `image/png`) in the `Image`, `Document`, `Audio`, and `Video` constructors
+  and in `MediaContent.fromBytes`. `fromFile` expands a leading `~` to the
+  home directory.
+* Pre-tool hooks normalize path arguments and pick `canonicalPath` in one
+  pass, in the fixed order of `wirePathArgumentKeys` (now a `List`).
+* The LiteRT loopback server script is synced with upstream: it reuses the
+  LiteRT conversation and KV cache across turns, merges consecutive tool
+  messages into one tool turn, applies the default 16,384 output-token and
+  8,192 thinking-token limits, handles client disconnects, and closes the
+  cached conversation on shutdown.
+* Default harness release: 0.1.23.
+
+### Tooling
+
+* Requires Dart SDK 3.13 or later. Dependencies are upgraded (`mcp_dart`
+  2.4.3, `test` 1.33.0, `build_runner` 2.16.2) and the `analyzer` pin is
+  removed.
+* The code uses private named initializing formals, null-aware collection
+  elements, and wildcard `_` parameters.
+* Every public API member now has a doc comment, and the
+  `public_member_api_docs` lint is enabled so new ones need one too.
+
 ## 0.17.0
 
 Syncs with Python SDK v0.1.22.

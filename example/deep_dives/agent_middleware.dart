@@ -33,6 +33,7 @@
 library;
 
 import 'dart:async';
+
 import 'package:logging/logging.dart';
 import 'package:antigravity/antigravity.dart';
 
@@ -198,8 +199,7 @@ Future<void> main() async {
   final fallbackHook = FallbackHook();
 
   final config = LocalAgentConfig(
-    systemInstructions:
-        'You have access to user lookup, notification, and diagnostic tools. Use them as needed. Keep responses under 2 sentences.',
+    systemInstructions: 'You have access to user lookup, notification, and diagnostic tools. Use them as needed. Keep responses under 2 sentences.',
     tools: [lookupUserTool, sendNotificationTool, sendToUnknownTool],
     hooks: [rateLimitHook, auditHook, fallbackHook],
   );

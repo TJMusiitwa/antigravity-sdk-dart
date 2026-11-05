@@ -18,16 +18,16 @@ final _addNumbers = Tool(
 );
 
 Tool _tool(String name, String description) => Tool(
-      name: name,
-      description: description,
-      schema: {
-        'type': 'object',
-        'properties': {
-          'y': {'type': 'string'},
-        },
-      },
-      handler: (args, _) => args['y'],
-    );
+  name: name,
+  description: description,
+  schema: {
+    'type': 'object',
+    'properties': {
+      'y': {'type': 'string'},
+    },
+  },
+  handler: (args, _) => args['y'],
+);
 
 class _PreTurn extends PreTurnHook {
   @override
@@ -44,9 +44,9 @@ class _PreTool extends PreToolCallDecideHook {
 Matcher _has(Map<String, dynamic> expected) => anyElement(equals(expected));
 
 List<String> _functionNames(List<dynamic> tools) => [
-      for (final t in tools)
-        if (t['type'] == 'function') t['name'] as String,
-    ];
+  for (final t in tools)
+    if (t['type'] == 'function') t['name'] as String,
+];
 
 void main() {
   test('session continuation modes map to interaction IDs', () {
@@ -88,7 +88,7 @@ void main() {
         systemInstructions: TemplatedSystemInstructions(
           identity: 'CustomBot',
           sections: [
-            SystemInstructionSection(title: 'rules', content: 'Rule 1')
+            SystemInstructionSection(title: 'rules', content: 'Rule 1'),
           ],
         ),
       )['appended_developer_instructions'],
@@ -112,8 +112,10 @@ void main() {
         ],
       },
     );
-    expect(() => buildCreateInteractionEvent(systemInstructions: 123),
-        throwsArgumentError);
+    expect(
+      () => buildCreateInteractionEvent(systemInstructions: 123),
+      throwsArgumentError,
+    );
   });
 
   test('tools, MCP servers, and capabilities translate to GAOS tools', () {
@@ -151,60 +153,64 @@ void main() {
     expect(function['description'], 'Adds two numbers.');
     expect((function['parameters']['properties'] as Map).keys, ['a', 'b']);
     expect(
-        tools,
-        _has({
-          'type': 'mcp_server',
-          'name': 'my_stdio',
-          'timeout': '15s',
-          'stdio': {
-            'command': '/bin/mcp',
-            'args': ['--flag'],
-            'env': {'FOO': 'BAR'},
+      tools,
+      _has({
+        'type': 'mcp_server',
+        'name': 'my_stdio',
+        'timeout': '15s',
+        'stdio': {
+          'command': '/bin/mcp',
+          'args': ['--flag'],
+          'env': {'FOO': 'BAR'},
+        },
+        'allowed_tools': [
+          {
+            'mode': 'any',
+            'tools': ['tool_a'],
           },
-          'allowed_tools': [
-            {
-              'mode': 'any',
-              'tools': ['tool_a'],
-            },
-          ],
-        }));
+        ],
+      }),
+    );
     expect(
-        tools,
-        _has({
-          'type': 'mcp_server',
-          'name': 'my_http',
-          'http': {
-            'url': 'https://example.com/mcp',
-            'headers': {'Auth': 'Bearer x'},
+      tools,
+      _has({
+        'type': 'mcp_server',
+        'name': 'my_http',
+        'http': {
+          'url': 'https://example.com/mcp',
+          'headers': {'Auth': 'Bearer x'},
+        },
+        'allowed_tools': [
+          {
+            'mode': 'none',
+            'tools': ['tool_b'],
           },
-          'allowed_tools': [
-            {
-              'mode': 'none',
-              'tools': ['tool_b'],
-            },
-          ],
-        }));
+        ],
+      }),
+    );
     expect(
-        tools,
-        _has({
-          'type': 'bash',
-          'max_timeout_ms': 5000,
-          'enable_daemon_commands': true,
-          'enable_sandbox': true,
-        }));
+      tools,
+      _has({
+        'type': 'bash',
+        'max_timeout_ms': 5000,
+        'enable_daemon_commands': true,
+        'enable_sandbox': true,
+      }),
+    );
     expect(
-        tools,
-        _has({
-          'type': 'filesystem',
-          'supported_operations': [
-            'file_read',
-            'file_write',
-            'file_edit',
-            'file_find',
-            'directory_list',
-            'file_grep',
-          ],
-        }));
+      tools,
+      _has({
+        'type': 'filesystem',
+        'supported_operations': [
+          'file_read',
+          'file_write',
+          'file_edit',
+          'file_find',
+          'directory_list',
+          'file_grep',
+        ],
+      }),
+    );
     for (final type in ['manage_task', 'schedule', 'google_search']) {
       expect(tools, _has({'type': type}));
     }
@@ -248,70 +254,86 @@ void main() {
       toolRunner: runner,
       tools: ['add_numbers', 'unregistered_tool', schemaTool],
     );
-    expect(_functionNames(explicit['tools']),
-        ['add_numbers', 'unregistered_tool', 'schema_fn']);
-    expect(
-        (explicit['tools'] as List)
-            .singleWhere((t) => t['name'] == 'unregistered_tool'),
-        {
-          'type': 'function',
-          'name': 'unregistered_tool',
-          'parameters': {'type': 'object', 'properties': {}},
-        });
-  });
-
-  test('subagent skills modes translate and unsupported options are rejected',
-      () {
-    final subagents = buildCreateInteractionEvent(subagents: [
-      SubagentConfig(
-        name: 's_none',
-        description: 'No skills',
-        skillsConfig: SubagentNoneSkillsConfig(),
-      ),
-      SubagentConfig(
-        name: 's_override',
-        description: 'Override skills',
-        skillsConfig:
-            SubagentOverrideSkillsConfig(skillsPaths: ['/tmp/custom_skills']),
-      ),
-    ])['agent_config']['subagents_config']['custom_subagents'];
-    expect(subagents[0]['skills_config'], {'none_config': {}});
-    expect(subagents[1]['skills_config'], {
-      'override_config': {
-        'skills_paths': ['/tmp/custom_skills'],
-      },
-    });
-
-    expect(
-      () => buildCreateInteractionEvent(subagents: [
-        SubagentConfig(
-          name: 's_inline',
-          description: 'Inline skills unsupported',
-          skillsConfig: SubagentOverrideSkillsConfig(inlineSkills: [
-            InlineSkill(name: 'sk', description: 'd', content: 'i'),
-          ]),
-        ),
-      ]),
-      throwsA(isA<AntigravityValidationException>()),
-    );
-    final modelEvent = buildCreateInteractionEvent(subagents: [
-      SubagentConfig(
-        name: 's_model',
-        description: 'Pinned model subagent',
-        model: 'gemini-2.5-flash',
-      ),
+    expect(_functionNames(explicit['tools']), [
+      'add_numbers',
+      'unregistered_tool',
+      'schema_fn',
     ]);
-    final modelSubagent = ((modelEvent['agent_config']
-        as Map)['subagents_config'] as Map)['custom_subagents'][0] as Map;
-    expect(modelSubagent['model'], {'name': 'gemini-2.5-flash'});
+    expect(
+      (explicit['tools'] as List).singleWhere(
+        (t) => t['name'] == 'unregistered_tool',
+      ),
+      {
+        'type': 'function',
+        'name': 'unregistered_tool',
+        'parameters': {'type': 'object', 'properties': {}},
+      },
+    );
   });
+
+  test(
+    'subagent skills modes translate and unsupported options are rejected',
+    () {
+      final subagents = buildCreateInteractionEvent(
+        subagents: [
+          SubagentConfig(
+            name: 's_none',
+            description: 'No skills',
+            skillsConfig: SubagentNoneSkillsConfig(),
+          ),
+          SubagentConfig(
+            name: 's_override',
+            description: 'Override skills',
+            skillsConfig: SubagentOverrideSkillsConfig(
+              skillsPaths: ['/tmp/custom_skills'],
+            ),
+          ),
+        ],
+      )['agent_config']['subagents_config']['custom_subagents'];
+      expect(subagents[0]['skills_config'], {'none_config': {}});
+      expect(subagents[1]['skills_config'], {
+        'override_config': {
+          'skills_paths': ['/tmp/custom_skills'],
+        },
+      });
+
+      expect(
+        () => buildCreateInteractionEvent(
+          subagents: [
+            SubagentConfig(
+              name: 's_inline',
+              description: 'Inline skills unsupported',
+              skillsConfig: SubagentOverrideSkillsConfig(
+                inlineSkills: [
+                  InlineSkill(name: 'sk', description: 'd', content: 'i'),
+                ],
+              ),
+            ),
+          ],
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      final modelEvent = buildCreateInteractionEvent(
+        subagents: [
+          SubagentConfig(
+            name: 's_model',
+            description: 'Pinned model subagent',
+            model: 'gemini-2.5-flash',
+          ),
+        ],
+      );
+      final modelSubagent =
+          ((modelEvent['agent_config'] as Map)['subagents_config']
+                  as Map)['custom_subagents'][0]
+              as Map;
+      expect(modelSubagent['model'], {'name': 'gemini-2.5-flash'});
+    },
+  );
 
   test('agent_config carries every configured field', () {
-    final hooks = HookRunner(hooks: [
-      _PreTurn(),
-      _PreTool(),
-      FunctionStopHook((_, __) => null),
-    ]);
+    final hooks = HookRunner(
+      hooks: [_PreTurn(), _PreTool(), FunctionStopHook((_, _) => null)],
+    );
     final event = buildCreateInteractionEvent(
       appDataDir: '/tmp/appdata',
       skillsPaths: ['/tmp/skills'],
@@ -373,7 +395,10 @@ void main() {
         maxModelCalls: 10,
         scope: BudgetScope.forwardLooking,
       ),
-      policies: [deny('run_command', reason: 'No bash'), allowAll()],
+      policies: [
+        deny('run_command', reason: 'No bash'),
+        allowAll(),
+      ],
       initialTrajectory: utf8.encode('traj-bytes'),
     );
     final config = event['agent_config'];
@@ -396,7 +421,9 @@ void main() {
       'model_output_retry': {'max_retries': 2},
     });
     expect(
-        config['initial_trajectory'], base64Encode(utf8.encode('traj-bytes')));
+      config['initial_trajectory'],
+      base64Encode(utf8.encode('traj-bytes')),
+    );
     expect(config['workspaces'], [
       {
         'filesystem_workspace': {'directory': '/tmp/ws'},
@@ -446,8 +473,10 @@ void main() {
         'agent_behavior': 'autonomous',
       },
     ]);
-    expect(config['budget_config'],
-        {'max_model_calls': 10, 'scope': 'forward_looking'});
+    expect(config['budget_config'], {
+      'max_model_calls': 10,
+      'scope': 'forward_looking',
+    });
     expect(config['policy_config'], {
       'workspace_containment': 'disabled',
       'rules': [
@@ -463,11 +492,13 @@ void main() {
   });
 
   test('workspaceOnly keeps containment and MCP rules split server names', () {
-    final config = buildCreateInteractionEvent(policies: [
-      workspaceOnly(['/tmp/ws']),
-      allow('my_mcp/tool_a'),
-      allowAll(),
-    ])['agent_config']['policy_config'];
+    final config = buildCreateInteractionEvent(
+      policies: [
+        workspaceOnly(['/tmp/ws']),
+        allow('my_mcp/tool_a'),
+        allowAll(),
+      ],
+    )['agent_config']['policy_config'];
     expect(config, isNot(contains('workspace_containment')));
     expect(config['rules'], [
       for (final tool in BuiltinTools.fileTools())
@@ -483,17 +514,25 @@ void main() {
   });
 
   test('auto and dynamic policies are rejected', () {
-    expect(() => buildCreateInteractionEvent(policies: [auto()]),
-        throwsA(isA<AntigravityValidationException>()));
     expect(
-        () => buildCreateInteractionEvent(policies: [
-              deny('run_command',
-                  when: (tc) => '${tc.args['CommandLine']}'.contains('rm')),
-            ]),
-        throwsA(isA<AntigravityValidationException>()));
+      () => buildCreateInteractionEvent(policies: [auto()]),
+      throwsA(isA<AntigravityValidationException>()),
+    );
     expect(
-        () => buildCreateInteractionEvent(policies: [askUser('run_command')]),
-        throwsA(isA<AntigravityValidationException>()));
+      () => buildCreateInteractionEvent(
+        policies: [
+          deny(
+            'run_command',
+            when: (tc) => '${tc.args['CommandLine']}'.contains('rm'),
+          ),
+        ],
+      ),
+      throwsA(isA<AntigravityValidationException>()),
+    );
+    expect(
+      () => buildCreateInteractionEvent(policies: [askUser('run_command')]),
+      throwsA(isA<AntigravityValidationException>()),
+    );
   });
 
   test('prompt content becomes an input event', () {
@@ -504,97 +543,107 @@ void main() {
       ],
     });
     expect(
-        contentToUserInputEvent(
-            SlashCommand(name: BuiltinSlashCommandName.plan)),
-        {
-          'event_type': 'input',
-          'input_content': [
-            {'type': 'slash_command', 'name': 'plan'},
-          ],
-        });
+      contentToUserInputEvent(SlashCommand(name: BuiltinSlashCommandName.plan)),
+      {
+        'event_type': 'input',
+        'input_content': [
+          {'type': 'slash_command', 'name': 'plan'},
+        ],
+      },
+    );
     expect(
-        contentToUserInputEvent([
-          'Please',
-          SlashCommand(name: BuiltinSlashCommandName.plan),
-          'write a script',
-        ]),
-        {
-          'event_type': 'input',
-          'input_content': [
-            {'type': 'text', 'text': 'Please'},
-            {'type': 'slash_command', 'name': 'plan'},
-            {'type': 'text', 'text': 'write a script'},
-          ],
-        });
+      contentToUserInputEvent([
+        'Please',
+        SlashCommand(name: BuiltinSlashCommandName.plan),
+        'write a script',
+      ]),
+      {
+        'event_type': 'input',
+        'input_content': [
+          {'type': 'text', 'text': 'Please'},
+          {'type': 'slash_command', 'name': 'plan'},
+          {'type': 'text', 'text': 'write a script'},
+        ],
+      },
+    );
     final png = utf8.encode('pngdata');
     expect(
-        contentToUserInputEvent([
-          'Describe this:',
-          Image(mimeType: 'image/png', description: '', data: png),
-        ]),
-        {
-          'event_type': 'input',
-          'content': [
-            {'type': 'text', 'text': 'Describe this:'},
-            {
-              'type': 'image',
-              'mime_type': 'image/png',
-              'data': base64Encode(png)
-            },
-          ],
-        });
+      contentToUserInputEvent([
+        'Describe this:',
+        Image(mimeType: 'image/png', description: '', data: png),
+      ]),
+      {
+        'event_type': 'input',
+        'content': [
+          {'type': 'text', 'text': 'Describe this:'},
+          {
+            'type': 'image',
+            'mime_type': 'image/png',
+            'data': base64Encode(png),
+          },
+        ],
+      },
+    );
   });
 
   test('tool results become function_result events', () {
     expect(
-        toolResultToFunctionResultEvent(
-            callId: 'call-1', toolName: 'my_tool', result: {'sum': 42}),
-        {
-          'event_type': 'function_result',
-          'call_id': 'call-1',
-          'name': 'my_tool',
-          'is_error': false,
-          'result': {'sum': 42},
-        });
+      toolResultToFunctionResultEvent(
+        callId: 'call-1',
+        toolName: 'my_tool',
+        result: {'sum': 42},
+      ),
+      {
+        'event_type': 'function_result',
+        'call_id': 'call-1',
+        'name': 'my_tool',
+        'is_error': false,
+        'result': {'sum': 42},
+      },
+    );
     expect(
-        toolResultToFunctionResultEvent(
-            callId: 'call-2', toolName: 'my_tool', errorMessage: 'boom'),
-        {
-          'event_type': 'function_result',
-          'call_id': 'call-2',
-          'name': 'my_tool',
-          'is_error': true,
-          'result': 'boom',
-        });
+      toolResultToFunctionResultEvent(
+        callId: 'call-2',
+        toolName: 'my_tool',
+        errorMessage: 'boom',
+      ),
+      {
+        'event_type': 'function_result',
+        'call_id': 'call-2',
+        'name': 'my_tool',
+        'is_error': true,
+        'result': 'boom',
+      },
+    );
   });
 
   test('question responses become elicitation_result events', () {
     expect(
-        questionResponsesToElicitationResultEvents(
-          ['q-0', 'q-1'],
-          responses: [
-            QuestionResponse(
-                selectedOptionIds: ['1'], freeformResponse: 'extra'),
-            QuestionResponse(skipped: true),
-          ],
-        ),
-        [
-          {
-            'event_type': 'elicitation_result',
-            'elicitation_id': 'q-0',
-            'multiple_choice': {
-              'selected_choice_labels': ['1'],
-              'user_input': [
-                {'type': 'text', 'text': 'extra'},
-              ],
-            },
+      questionResponsesToElicitationResultEvents(
+        ['q-0', 'q-1'],
+        responses: [
+          QuestionResponse(selectedOptionIds: ['1'], freeformResponse: 'extra'),
+          QuestionResponse(skipped: true),
+        ],
+      ),
+      [
+        {
+          'event_type': 'elicitation_result',
+          'elicitation_id': 'q-0',
+          'multiple_choice': {
+            'selected_choice_labels': ['1'],
+            'user_input': [
+              {'type': 'text', 'text': 'extra'},
+            ],
           },
-          {
-            'event_type': 'elicitation_result',
-            'elicitation_id': 'q-1',
-            'multiple_choice': {},
-          },
-        ]);
+        },
+        {
+          'event_type': 'elicitation_result',
+          'elicitation_id': 'q-1',
+          'multiple_choice': {},
+        },
+      ],
+    );
     expect(questionResponsesToElicitationResultEvents(['q-0'], responses: []), [
       {
         'event_type': 'elicitation_result',
@@ -603,20 +652,24 @@ void main() {
       },
     ]);
     expect(
-        questionResponsesToElicitationResultEvents(['q-0', 'q-1'],
-            cancelled: true),
-        [
-          {
-            'event_type': 'elicitation_result',
-            'elicitation_id': 'q-0',
-            'confirmation': {'is_confirmed': false},
-          },
-        ]);
+      questionResponsesToElicitationResultEvents([
+        'q-0',
+        'q-1',
+      ], cancelled: true),
+      [
+        {
+          'event_type': 'elicitation_result',
+          'elicitation_id': 'q-0',
+          'confirmation': {'is_confirmed': false},
+        },
+      ],
+    );
   });
 
   test('cancel and complete events', () {
     expect(buildCancelInteractionEvent(), {'event_type': 'interaction.cancel'});
-    expect(buildCompleteInteractionEvent(),
-        {'event_type': 'interaction.complete'});
+    expect(buildCompleteInteractionEvent(), {
+      'event_type': 'interaction.complete',
+    });
   });
 }

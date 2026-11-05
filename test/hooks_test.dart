@@ -365,9 +365,7 @@ void main() {
   });
 
   group('Synchronous functional hook execution', () {
-    test(
-        'FunctionInspectHook and FunctionDecideHook work with synchronous callbacks',
-        () async {
+    test('FunctionInspectHook and FunctionDecideHook work with synchronous callbacks', () async {
       bool inspectCalled = false;
       final inspectHook = FunctionInspectHook.stateless((data) {
         inspectCalled = true;
@@ -472,69 +470,76 @@ void main() {
   });
 
   group('Stateless & Context-Aware Hook Adapters', () {
-    test('FunctionInspectHook supports stateful and stateless callbacks',
-        () async {
-      bool statefulCalled = false;
-      bool statelessCalled = false;
+    test(
+      'FunctionInspectHook supports stateful and stateless callbacks',
+      () async {
+        bool statefulCalled = false;
+        bool statelessCalled = false;
 
-      final stateful = FunctionInspectHook<String>((ctx, data) {
-        statefulCalled = true;
-        expect(data, equals('test'));
-      });
-      final stateless = FunctionInspectHook<String>.stateless((data) {
-        statelessCalled = true;
-        expect(data, equals('test'));
-      });
+        final stateful = FunctionInspectHook<String>((ctx, data) {
+          statefulCalled = true;
+          expect(data, equals('test'));
+        });
+        final stateless = FunctionInspectHook<String>.stateless((data) {
+          statelessCalled = true;
+          expect(data, equals('test'));
+        });
 
-      final ctx = HookContext();
-      await stateful.run(ctx, 'test');
-      await stateless.run(ctx, 'test');
+        final ctx = HookContext();
+        await stateful.run(ctx, 'test');
+        await stateless.run(ctx, 'test');
 
-      expect(statefulCalled, isTrue);
-      expect(statelessCalled, isTrue);
-    });
+        expect(statefulCalled, isTrue);
+        expect(statelessCalled, isTrue);
+      },
+    );
 
-    test('FunctionDecideHook supports stateful and stateless callbacks',
-        () async {
-      final stateful = FunctionDecideHook<String>((ctx, data) {
-        return HookResult(allow: true, message: data);
-      });
-      final stateless = FunctionDecideHook<String>.stateless((data) {
-        return HookResult(allow: false, message: data);
-      });
+    test(
+      'FunctionDecideHook supports stateful and stateless callbacks',
+      () async {
+        final stateful = FunctionDecideHook<String>((ctx, data) {
+          return HookResult(allow: true, message: data);
+        });
+        final stateless = FunctionDecideHook<String>.stateless((data) {
+          return HookResult(allow: false, message: data);
+        });
 
-      final ctx = HookContext();
-      final res1 = await stateful.run(ctx, 'allow_me');
-      final res2 = await stateless.run(ctx, 'deny_me');
+        final ctx = HookContext();
+        final res1 = await stateful.run(ctx, 'allow_me');
+        final res2 = await stateless.run(ctx, 'deny_me');
 
-      expect(res1.allow, isTrue);
-      expect(res1.message, equals('allow_me'));
-      expect(res2.allow, isFalse);
-      expect(res2.message, equals('deny_me'));
-    });
+        expect(res1.allow, isTrue);
+        expect(res1.message, equals('allow_me'));
+        expect(res2.allow, isFalse);
+        expect(res2.message, equals('deny_me'));
+      },
+    );
 
-    test('FunctionTransformHook supports stateful and stateless callbacks',
-        () async {
-      final stateful = FunctionTransformHook<int, String>((ctx, data) {
-        return 'count: $data';
-      });
-      final stateless = FunctionTransformHook<int, String>.stateless((data) {
-        return 'stateless: $data';
-      });
+    test(
+      'FunctionTransformHook supports stateful and stateless callbacks',
+      () async {
+        final stateful = FunctionTransformHook<int, String>((ctx, data) {
+          return 'count: $data';
+        });
+        final stateless = FunctionTransformHook<int, String>.stateless((data) {
+          return 'stateless: $data';
+        });
 
-      final ctx = HookContext();
-      expect(await stateful.run(ctx, 5), equals('count: 5'));
-      expect(await stateless.run(ctx, 10), equals('stateless: 10'));
-    });
+        final ctx = HookContext();
+        expect(await stateful.run(ctx, 5), equals('count: 5'));
+        expect(await stateless.run(ctx, 10), equals('stateless: 10'));
+      },
+    );
   });
 
   test('bulk hooks execute in registration order', () async {
     final calls = <int>[];
-    final runner =
-        HookRunner(hooks: [_RecordingPostTurnHook((_) => calls.add(1))]);
+    final runner = HookRunner(
+      hooks: [_RecordingPostTurnHook((_) => calls.add(1))],
+    );
     runner.registerHooks([
       _RecordingPostTurnHook((_) => calls.add(2)),
-      _RecordingPostTurnHook((_) => calls.add(3))
+      _RecordingPostTurnHook((_) => calls.add(3)),
     ]);
     await runner.dispatchPostTurn(runner.createTurnContext(), 'done');
     expect(calls, [1, 2, 3]);
@@ -557,8 +562,7 @@ class _SimpleSessionStartHook extends OnSessionStartHook {
 
 OnSessionStartHook _makeSessionStartHook(
   Future<void> Function(HookContext) fn,
-) =>
-    _SimpleSessionStartHook(fn);
+) => _SimpleSessionStartHook(fn);
 
 class _SimpleSessionEndHook extends OnSessionEndHook {
   final Future<void> Function(HookContext) _fn;
@@ -593,8 +597,7 @@ class _SimplePreTurnHook extends PreTurnHook {
 
 PreTurnHook _makePreTurnHook(
   Future<HookResult> Function(HookContext, dynamic) fn,
-) =>
-    _SimplePreTurnHook(fn);
+) => _SimplePreTurnHook(fn);
 
 class _SimplePreToolCallHook extends PreToolCallDecideHook {
   final Future<HookResult> Function(HookContext, ToolCall) _fn;
@@ -607,8 +610,7 @@ class _SimplePreToolCallHook extends PreToolCallDecideHook {
 
 PreToolCallDecideHook _makePreToolCallHook(
   Future<HookResult> Function(HookContext, ToolCall) fn,
-) =>
-    _SimplePreToolCallHook(fn);
+) => _SimplePreToolCallHook(fn);
 
 class _SimplePostToolCallHook extends PostToolCallHook {
   final Future<void> Function(HookContext, ToolResult) _fn;
@@ -620,8 +622,7 @@ class _SimplePostToolCallHook extends PostToolCallHook {
 
 PostToolCallHook _makePostToolCallHook(
   Future<void> Function(HookContext, ToolResult) fn,
-) =>
-    _SimplePostToolCallHook(fn);
+) => _SimplePostToolCallHook(fn);
 
 class _SimpleToolErrorHook extends OnToolErrorHook {
   final Future<dynamic> Function(HookContext, Exception) _fn;
@@ -634,8 +635,7 @@ class _SimpleToolErrorHook extends OnToolErrorHook {
 
 OnToolErrorHook _makeToolErrorHook(
   Future<dynamic> Function(HookContext, Exception) fn,
-) =>
-    _SimpleToolErrorHook(fn);
+) => _SimpleToolErrorHook(fn);
 
 class _SimpleCompactionHook extends OnCompactionHook {
   final Future<void> Function(HookContext, Step) _fn;
@@ -647,29 +647,27 @@ class _SimpleCompactionHook extends OnCompactionHook {
 
 OnCompactionHook _makeCompactionHook(
   Future<void> Function(HookContext, Step) fn,
-) =>
-    _SimpleCompactionHook(fn);
+) => _SimpleCompactionHook(fn);
 
 class _SimpleInteractionHook extends OnInteractionHook {
   final Future<QuestionHookResult> Function(
     HookContext,
     AskQuestionInteractionSpec,
-  ) _fn;
+  )
+  _fn;
   _SimpleInteractionHook(this._fn);
 
   @override
   Future<QuestionHookResult> run(
     HookContext context,
     AskQuestionInteractionSpec data,
-  ) =>
-      _fn(context, data);
+  ) => _fn(context, data);
 }
 
 OnInteractionHook _makeInteractionHook(
   Future<QuestionHookResult> Function(HookContext, AskQuestionInteractionSpec)
-      fn,
-) =>
-    _SimpleInteractionHook(fn);
+  fn,
+) => _SimpleInteractionHook(fn);
 
 class _RecordingPostTurnHook extends PostTurnHook {
   final void Function(String) onCalled;

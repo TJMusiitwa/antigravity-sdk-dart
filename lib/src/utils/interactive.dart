@@ -150,7 +150,8 @@ class AskQuestionHook extends OnInteractionHook {
   }
 
   static Future<QuestionResponse> _promptSingleQuestion(
-      AskQuestionEntry q) async {
+    AskQuestionEntry q,
+  ) async {
     print("\nQuestion: ${q.question}");
     for (var i = 0; i < q.options.length; i++) {
       print("  ${i + 1}. ${q.options[i].text}");
@@ -168,7 +169,9 @@ class AskQuestionHook extends OnInteractionHook {
   }
 
   static String? _resolveSelectedOptionId(
-      List<AskQuestionOption> options, String ans) {
+    List<AskQuestionOption> options,
+    String ans,
+  ) {
     if (options.isEmpty) return null;
 
     final parsedIdx = int.tryParse(ans);
@@ -191,7 +194,8 @@ class AskQuestionHook extends OnInteractionHook {
 }
 
 List<policy_module.Policy> _upgradePoliciesList(
-    List<policy_module.Policy> policies) {
+  List<policy_module.Policy> policies,
+) {
   final upgraded = <policy_module.Policy>[];
   for (final p in policies) {
     if (p is policy_module.AutoPolicy && p.askUser == null) {
@@ -339,10 +343,14 @@ class Spinner {
   ];
   final bool _enabled;
 
+  /// Creates a spinner that shows [message].
+  ///
+  /// The spinner draws nothing when stdout is not a terminal.
   Spinner({String message = "Thinking..."})
-      : _currentMessage = message,
-        _enabled = stdout.hasTerminal;
+    : _currentMessage = message,
+      _enabled = stdout.hasTerminal;
 
+  /// Replaces the message shown next to the spinner.
   void update(String message) {
     _currentMessage = message;
   }
@@ -359,6 +367,7 @@ class Spinner {
     });
   }
 
+  /// Starts the spinner and makes it the active spinner.
   void start() {
     _activeSpinner = this;
     if (!_enabled) return;
@@ -366,6 +375,7 @@ class Spinner {
     _runTimer();
   }
 
+  /// Stops drawing and clears the line, if the spinner is running.
   void pause() {
     if (!_enabled || !_running) return;
     _running = false;
@@ -374,12 +384,14 @@ class Spinner {
     stdout.write("\r\x1b[K");
   }
 
+  /// Resumes drawing after [pause].
   void resume() {
     if (!_enabled || _running) return;
     _running = true;
     _runTimer();
   }
 
+  /// Stops the spinner, clears the line, and releases the active slot.
   void stop() {
     if (_activeSpinner == this) {
       _activeSpinner = null;

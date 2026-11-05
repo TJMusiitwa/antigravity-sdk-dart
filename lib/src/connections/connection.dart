@@ -88,6 +88,15 @@ abstract class AgentConfig with AgentConfigMappable {
   /// Optional compaction policy overriding capability-level compaction settings.
   final CompactionConfig? compactionConfig;
 
+  /// Creates an agent configuration.
+  ///
+  /// Defaults [capabilities] to read-only built-in tools. Nested lists in
+  /// [policies] are flattened.
+  ///
+  /// Throws an [AntigravityValidationException] if [conversationId] is
+  /// shorter than 32 characters or contains characters other than
+  /// `[a-zA-Z0-9-]`, or if [sessionContinuationMode] is
+  /// [SessionContinuationMode.resume] without a [conversationId].
   AgentConfig({
     this.systemInstructions,
     CapabilitiesConfig? capabilities,
@@ -109,16 +118,17 @@ abstract class AgentConfig with AgentConfigMappable {
     this.retryConfig,
     this.budgetConfig,
     this.compactionConfig,
-  })  : capabilities = capabilities ??
-            CapabilitiesConfig(enabledTools: BuiltinTools.readOnly()),
-        tools = tools ?? const [],
-        policies = flattenPolicies(policies ?? const []),
-        hooks = hooks ?? const [],
-        triggers = triggers ?? const [],
-        mcpServers = mcpServers ?? const [],
-        subagents = subagents ?? const [],
-        workspaces = workspaces ?? const [],
-        skillsPaths = skillsPaths ?? const [] {
+  }) : capabilities =
+           capabilities ??
+           CapabilitiesConfig(enabledTools: BuiltinTools.readOnly()),
+       tools = tools ?? const [],
+       policies = flattenPolicies(policies ?? const []),
+       hooks = hooks ?? const [],
+       triggers = triggers ?? const [],
+       mcpServers = mcpServers ?? const [],
+       subagents = subagents ?? const [],
+       workspaces = workspaces ?? const [],
+       skillsPaths = skillsPaths ?? const [] {
     if (conversationId != null) {
       if (conversationId!.length < 32) {
         throw AntigravityValidationException(
@@ -191,7 +201,8 @@ abstract class AgentConfig with AgentConfigMappable {
   CapabilitiesConfig lightweightCapabilities() {
     final minimalTools = BuiltinTools.minimal();
     final disabled = capabilities.disabledTools;
-    final enabledTools = capabilities.enabledTools ??
+    final enabledTools =
+        capabilities.enabledTools ??
         (disabled == null
             ? minimalTools
             : minimalTools.where((t) => !disabled.contains(t)).toList());
@@ -212,9 +223,7 @@ abstract class AgentConfig with AgentConfigMappable {
   @protected
   CompactionConfig lightweightCompactionConfig() {
     return compactionConfig ??
-        CompactionConfig(
-          tokenThreshold: lightweightCheckpointIntervalTokens,
-        );
+        CompactionConfig(tokenThreshold: lightweightCheckpointIntervalTokens);
   }
 
   /// Returns a copy of this configuration with evaluation presets applied.
@@ -574,10 +583,10 @@ class DebugConfig with DebugConfigMappable {
     dynamic loggingLevel = 'FINE',
     Level? level,
   }) : loggingLevel = level != null
-            ? level.name
-            : (loggingLevel is Level
-                ? loggingLevel.name
-                : loggingLevel as String?);
+           ? level.name
+           : (loggingLevel is Level
+                 ? loggingLevel.name
+                 : loggingLevel as String?);
 
   /// Applies the configured logging level to SDK loggers.
   void applyLogging() {
@@ -588,6 +597,9 @@ class DebugConfig with DebugConfigMappable {
     }
   }
 
+  /// Decodes a [DebugConfig] from a snake_case map.
   static const fromMap = DebugConfigMapper.fromMap;
+
+  /// Decodes a [DebugConfig] from a snake_case JSON string.
   static const fromJson = DebugConfigMapper.fromJson;
 }

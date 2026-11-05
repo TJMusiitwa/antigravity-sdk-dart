@@ -41,10 +41,12 @@ ContentPrimitive _contentItemsToContent(List<dynamic> content) {
     } else if (const {'image', 'audio', 'video', 'document'}.contains(type)) {
       final data = item['data'];
       try {
-        items.add(MediaContent.fromBytes(
-          data is String ? base64Decode(data) : const <int>[],
-          '${item['mime_type'] ?? ''}',
-        ));
+        items.add(
+          MediaContent.fromBytes(
+            data is String ? base64Decode(data) : const <int>[],
+            '${item['mime_type'] ?? ''}',
+          ),
+        );
       } on AntigravityValidationException {
         // Unsupported MIME types are dropped, matching the harness contract.
       }
@@ -104,13 +106,18 @@ dynamic _extractInteractionsToolResult(String toolName, String raw) {
 
 /// Converts a tool result value into JSON-compatible data.
 dynamic _toJsonValue(dynamic value) {
-  return jsonDecode(jsonEncode(value, toEncodable: (Object? o) {
-    try {
-      return (o as dynamic).toMap();
-    } catch (_) {
-      return o.toString();
-    }
-  }));
+  return jsonDecode(
+    jsonEncode(
+      value,
+      toEncodable: (Object? o) {
+        try {
+          return (o as dynamic).toMap();
+        } catch (_) {
+          return o.toString();
+        }
+      },
+    ),
+  );
 }
 
 /// Connection to localharness over the GAOS Interactions JSON protocol.
@@ -126,6 +133,11 @@ class InteractionsConnection extends LocalConnection {
   /// harness to run session-end hooks.
   static const sessionEndTimeout = Duration(seconds: 30);
 
+  /// Creates a connection over an already-started harness [process] and its
+  /// WebSocket [ws].
+  ///
+  /// A non-empty [rootInteractionId] resumes that interaction and becomes the
+  /// main trajectory ID.
   InteractionsConnection({
     required super.process,
     required super.ws,
@@ -133,12 +145,12 @@ class InteractionsConnection extends LocalConnection {
     required super.toolRunner,
     required super.hookRunner,
     String rootInteractionId = '',
-  })  : _assembler =
-            InteractionsStepAssembler(rootInteractionId: rootInteractionId),
-        super(
-          mainTrajectoryId:
-              rootInteractionId.isEmpty ? null : rootInteractionId,
-        );
+  }) : _assembler = InteractionsStepAssembler(
+         rootInteractionId: rootInteractionId,
+       ),
+       super(
+         mainTrajectoryId: rootInteractionId.isEmpty ? null : rootInteractionId,
+       );
 
   /// The root interaction ID, used as the conversation identifier.
   @override
@@ -150,9 +162,11 @@ class InteractionsConnection extends LocalConnection {
   }
 
   void _runInBackground(Future<void> Function() task) {
-    unawaited(task().catchError((Object e) {
-      _logger.severe('Interactions background task failed: $e');
-    }));
+    unawaited(
+      task().catchError((Object e) {
+        _logger.severe('Interactions background task failed: $e');
+      }),
+    );
   }
 
   @override
@@ -191,7 +205,9 @@ class InteractionsConnection extends LocalConnection {
         final usage = parseInteractionUsage(nested is Map ? nested : event);
         if (usage != null) {
           _recordStepUsage(
-              usage, event['sub_interaction_id']?.toString() ?? '');
+            usage,
+            event['sub_interaction_id']?.toString() ?? '',
+          );
         }
       case 'state_update':
         _handleInteractionsStateUpdate(event);
@@ -215,10 +231,10 @@ class InteractionsConnection extends LocalConnection {
   }
 
   Future<void> _emitAssembled(StepAssemblyResult result) => _emitStep(
-        result.step!,
-        dispatchPre: result.dispatchPre,
-        dispatchPost: result.dispatchPost,
-      );
+    result.step!,
+    dispatchPre: result.dispatchPre,
+    dispatchPost: result.dispatchPost,
+  );
 
   /// Enqueues [step], suppressing calls to client tools (which arrive
   /// separately as `function_invocation`), and fires step hooks.
@@ -244,7 +260,8 @@ class InteractionsConnection extends LocalConnection {
     final rootId = _assembler.rootInteractionId.isNotEmpty
         ? _assembler.rootInteractionId
         : mainTrajectoryId ?? '';
-    final isSubagent = subId.isNotEmpty &&
+    final isSubagent =
+        subId.isNotEmpty &&
         ((rootId.isNotEmpty && subId != rootId) ||
             (rootId.isEmpty && parentId.isNotEmpty));
     final error = event['error']?.toString() ?? '';
@@ -268,8 +285,11 @@ class InteractionsConnection extends LocalConnection {
         _idleState = true;
         _safeAdd(LocalConnection._createIdleSentinelStep());
       case 'cancelled':
-        _safeAddError(AntigravityExecutionException(
-            error.isNotEmpty ? error : 'Turn cancelled'));
+        _safeAddError(
+          AntigravityExecutionException(
+            error.isNotEmpty ? error : 'Turn cancelled',
+          ),
+        );
         _idleState = true;
         _safeAdd(LocalConnection._createIdleSentinelStep());
     }
@@ -279,8 +299,11 @@ class InteractionsConnection extends LocalConnection {
     final args = event['on_compaction_args'] is Map
         ? Map<String, dynamic>.from(event['on_compaction_args'] as Map)
         : <String, dynamic>{};
-    final trajectoryId =
-        _firstNonEmpty(args, 'interaction_id', 'trajectory_id');
+    final trajectoryId = _firstNonEmpty(
+      args,
+      'interaction_id',
+      'trajectory_id',
+    );
     final index = int.tryParse('${args['step_index'] ?? 0}') ?? 0;
     final summary = args['summary']?.toString() ?? '';
     return Step(
@@ -298,7 +321,8 @@ class InteractionsConnection extends LocalConnection {
   /// Compaction steps arrive as `compaction` steps on the step stream, so the
   /// `on_compaction` hook request only dispatches the hook.
   Future<void> _handleInteractionsHookRequest(
-      Map<String, dynamic> event) async {
+    Map<String, dynamic> event,
+  ) async {
     _runInBackground(() => _dispatchHookRequest(event));
   }
 
@@ -322,7 +346,8 @@ class InteractionsConnection extends LocalConnection {
           final args = event['pre_turn_args'];
           if (args is Map && args['user_input'] is Map) {
             userInput = _userInputStepToContent(
-                Map<String, dynamic>.from(args['user_input'] as Map));
+              Map<String, dynamic>.from(args['user_input'] as Map),
+            );
           }
           final result = await hooks.dispatchPreTurn(userInput);
           response['pre_turn_result'] = result.allow
@@ -350,13 +375,17 @@ class InteractionsConnection extends LocalConnection {
           }
         case 'on_compaction':
           await hooks.dispatchCompaction(
-              hooks.currentTurnContext, _buildCompactionStep(event));
+            hooks.currentTurnContext,
+            _buildCompactionStep(event),
+          );
           response['empty_result'] = <String, dynamic>{};
         case 'stop':
           response['stop_result'] = await _dispatchStopHook(event);
         default:
-          _logger.warning('Unknown or unhandled hook received -> type: '
-              '$hookType, name: ${event['name']}');
+          _logger.warning(
+            'Unknown or unhandled hook received -> type: '
+            '$hookType, name: ${event['name']}',
+          );
           response['empty_result'] = <String, dynamic>{};
       }
     } catch (e) {
@@ -375,7 +404,7 @@ class InteractionsConnection extends LocalConnection {
   ///
   /// The step ID is the call ID, matching the IDs on streamed tool steps.
   static ({String name, String? server, String? callId, String? stepId})
-      _toolHookIdentity(Map<dynamic, dynamic> args) {
+  _toolHookIdentity(Map<dynamic, dynamic> args) {
     final rawName = args['tool_name']?.toString() ?? '';
     final server = args['server_name']?.toString() ?? '';
     final callId = args['call_id']?.toString() ?? '';
@@ -388,7 +417,8 @@ class InteractionsConnection extends LocalConnection {
   }
 
   Future<Map<String, dynamic>> _dispatchPreToolHook(
-      Map<String, dynamic> event) async {
+    Map<String, dynamic> event,
+  ) async {
     final rawArgs = event['pre_tool_args'];
     final hookArgs = rawArgs is Map ? rawArgs : const {};
     final identity = _toolHookIdentity(hookArgs);
@@ -466,7 +496,8 @@ class InteractionsConnection extends LocalConnection {
   }
 
   Future<Map<String, dynamic>> _dispatchStopHook(
-      Map<String, dynamic> event) async {
+    Map<String, dynamic> event,
+  ) async {
     final rawArgs = event['stop_args'];
     final args = rawArgs is Map ? rawArgs : const {};
     final result = await _hookRunner.dispatchStop(
@@ -476,17 +507,15 @@ class InteractionsConnection extends LocalConnection {
         trajectoryId: _firstNonEmpty(args, 'interaction_id', 'trajectory_id'),
         continuationCount:
             int.tryParse('${args['continuation_count'] ?? 0}') ?? 0,
-        stopReason: _interactionsStopReasons[args['stop_reason']?.toString()] ??
+        stopReason:
+            _interactionsStopReasons[args['stop_reason']?.toString()] ??
             StopReason.unspecified,
         errorMessage: args['error_message']?.toString() ?? '',
       ),
     );
     if (result.decision == StopDecision.continueTurn) {
       final reason = result.reason.trim();
-      return {
-        'decision': 'continue',
-        if (reason.isNotEmpty) 'reason': reason,
-      };
+      return {'decision': 'continue', if (reason.isNotEmpty) 'reason': reason};
     }
     return {'decision': 'allow_stop'};
   }
@@ -514,21 +543,30 @@ class InteractionsConnection extends LocalConnection {
       final result = await _hookRunner.dispatchInteraction(
         _hookRunner.currentTurnContext,
         AskQuestionInteractionSpec(
-            questions: [for (final item in batch) item.question]),
+          questions: [for (final item in batch) item.question],
+        ),
       );
       events = result == null
-          ? questionResponsesToElicitationResultEvents(ids, responses: [
-              for (final _ in ids) QuestionResponse(skipped: true),
-            ])
-          : questionResponsesToElicitationResultEvents(ids,
-              responses: result.responses, cancelled: result.cancelled);
+          ? questionResponsesToElicitationResultEvents(
+              ids,
+              responses: [for (final _ in ids) QuestionResponse(skipped: true)],
+            )
+          : questionResponsesToElicitationResultEvents(
+              ids,
+              responses: result.responses,
+              cancelled: result.cancelled,
+            );
     } catch (e) {
       _logger.severe('Question elicitation failed; sending error answer: $e');
-      events = questionResponsesToElicitationResultEvents(ids, responses: [
-        for (final _ in ids)
-          QuestionResponse(
-              freeformResponse: 'SDK error processing question: $e'),
-      ]);
+      events = questionResponsesToElicitationResultEvents(
+        ids,
+        responses: [
+          for (final _ in ids)
+            QuestionResponse(
+              freeformResponse: 'SDK error processing question: $e',
+            ),
+        ],
+      );
     }
     events.forEach(_sendJsonEvent);
   }
@@ -541,8 +579,8 @@ class InteractionsConnection extends LocalConnection {
     final trajectoryId = subId.isNotEmpty
         ? subId
         : (_assembler.rootInteractionId.isNotEmpty
-            ? _assembler.rootInteractionId
-            : mainTrajectoryId ?? '');
+              ? _assembler.rootInteractionId
+              : mainTrajectoryId ?? '');
     final rawArgs = event['arguments'];
     final call = ToolCall(
       id: callId,
@@ -550,16 +588,18 @@ class InteractionsConnection extends LocalConnection {
       args: rawArgs is Map ? Map<String, dynamic>.from(rawArgs) : {},
     );
     try {
-      _safeAdd(Step(
-        id: callId,
-        stepIndex: 1,
-        trajectoryId: trajectoryId,
-        type: StepType.toolCall,
-        source: StepSource.model,
-        target: StepTarget.environment,
-        status: StepStatus.active,
-        toolCalls: [call],
-      ));
+      _safeAdd(
+        Step(
+          id: callId,
+          stepIndex: 1,
+          trajectoryId: trajectoryId,
+          type: StepType.toolCall,
+          source: StepSource.model,
+          target: StepTarget.environment,
+          status: StepStatus.active,
+          toolCalls: [call],
+        ),
+      );
       ToolResult result;
       try {
         result = (await _toolRunner.processToolCalls([call])).single;
@@ -589,23 +629,34 @@ class InteractionsConnection extends LocalConnection {
     for (final result in results) {
       final id = result.id;
       if (id == null || id.isEmpty) {
-        throw ArgumentError("ToolResult for '${result.name}' is missing an id. "
-            'The InteractionsConnection protocol requires an id to correlate '
-            'results with calls.');
+        throw ArgumentError(
+          "ToolResult for '${result.name}' is missing an id. "
+          'The InteractionsConnection protocol requires an id to correlate '
+          'results with calls.',
+        );
       }
       if (result.error != null) {
-        _sendJsonEvent(toolResultToFunctionResultEvent(
-            callId: id, toolName: result.name, errorMessage: result.error));
+        _sendJsonEvent(
+          toolResultToFunctionResultEvent(
+            callId: id,
+            toolName: result.name,
+            errorMessage: result.error,
+          ),
+        );
         continue;
       }
-      final value =
-          _toJsonValue(extractMediaFromResult(result.result).cleanedValue);
-      _sendJsonEvent(toolResultToFunctionResultEvent(
-        callId: id,
-        toolName: result.name,
-        result:
-            value is Map ? Map<String, dynamic>.from(value) : {'result': value},
-      ));
+      final value = _toJsonValue(
+        extractMediaFromResult(result.result).cleanedValue,
+      );
+      _sendJsonEvent(
+        toolResultToFunctionResultEvent(
+          callId: id,
+          toolName: result.name,
+          result: value is Map
+              ? Map<String, dynamic>.from(value)
+              : {'result': value},
+        ),
+      );
     }
   }
 
@@ -630,8 +681,10 @@ class InteractionsConnection extends LocalConnection {
   /// Automated triggers are not yet supported over the Interactions protocol.
   @override
   Future<void> sendTriggerNotification(String content) {
-    throw UnsupportedError('Automated trigger notifications are not yet '
-        'supported on InteractionsConnection.');
+    throw UnsupportedError(
+      'Automated trigger notifications are not yet '
+      'supported on InteractionsConnection.',
+    );
   }
 
   /// Completes the interaction so the harness runs session-end hooks, then
@@ -692,8 +745,10 @@ class InteractionsConnectionStrategy extends LocalConnectionStrategy {
 
   Map<String, dynamic> _buildCreateInteractionEvent() {
     if (_inlineSkills.isNotEmpty) {
-      _logger.warning('inlineSkills are not supported by '
-          'InteractionsAgentConfig and will be ignored.');
+      _logger.warning(
+        'inlineSkills are not supported by '
+        'InteractionsAgentConfig and will be ignored.',
+      );
     }
     return buildCreateInteractionEvent(
       models: _models,
@@ -721,8 +776,9 @@ class InteractionsConnectionStrategy extends LocalConnectionStrategy {
     _validateConnection();
     final createEvent = _buildCreateInteractionEvent();
 
-    final binaryPath =
-        await BinaryDiscovery.discover(configPath: _configuredBinaryPath);
+    final binaryPath = await BinaryDiscovery.discover(
+      configPath: _configuredBinaryPath,
+    );
     _logger.info('Starting localharness (Interactions API) at: $binaryPath');
     final process = await Process.start(binaryPath, []);
     _process = process;
@@ -744,8 +800,9 @@ class InteractionsConnectionStrategy extends LocalConnectionStrategy {
           if (response is! Map ||
               response['event_type'] != 'interaction.created') {
             throw AntigravityConnectionException(
-                'Expected interaction.created handshake response, got: '
-                '$message');
+              'Expected interaction.created handshake response, got: '
+              '$message',
+            );
           }
           created.complete(response['interaction_id']?.toString() ?? '');
         } catch (e) {
@@ -758,8 +815,11 @@ class InteractionsConnectionStrategy extends LocalConnectionStrategy {
       },
       onDone: () {
         if (!created.isCompleted) {
-          created.completeError(AntigravityConnectionException(
-              'WebSocket closed before the interaction was created.'));
+          created.completeError(
+            AntigravityConnectionException(
+              'WebSocket closed before the interaction was created.',
+            ),
+          );
         }
         messages.close();
       },
@@ -771,7 +831,10 @@ class InteractionsConnectionStrategy extends LocalConnectionStrategy {
       rootInteractionId = await created.future;
     } catch (e) {
       await _failWithProcessStderr(
-          process, 'Failed to initialize interaction with localharness', e);
+        process,
+        'Failed to initialize interaction with localharness',
+        e,
+      );
     }
 
     final connection = InteractionsConnection(

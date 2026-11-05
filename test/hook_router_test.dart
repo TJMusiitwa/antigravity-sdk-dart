@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:antigravity/antigravity.dart';
 import 'package:antigravity/src/connections/local/hook_router.dart';
 import 'package:test/test.dart';
@@ -103,7 +104,9 @@ void main() {
 
       expect(sessionStart.called, isTrue);
       expect(
-          sentEvents.last['call_hook_response']['request_id'], equals('req-1'));
+        sentEvents.last['call_hook_response']['request_id'],
+        equals('req-1'),
+      );
       expect(sentEvents.last['call_hook_response']['empty_result'], isNotNull);
 
       await router.handle({
@@ -113,7 +116,9 @@ void main() {
 
       expect(sessionEnd.called, isTrue);
       expect(
-          sentEvents.last['call_hook_response']['request_id'], equals('req-2'));
+        sentEvents.last['call_hook_response']['request_id'],
+        equals('req-2'),
+      );
     });
 
     test('handles pre turn hook allowing turn', () async {
@@ -130,22 +135,25 @@ void main() {
         'pre_turn_args': {
           'user_input': {
             'parts': [
-              {'text': 'Hello agent'}
-            ]
-          }
-        }
+              {'text': 'Hello agent'},
+            ],
+          },
+        },
       });
 
       expect(
-          sentEvents.last['call_hook_response']['request_id'], equals('req-3'));
+        sentEvents.last['call_hook_response']['request_id'],
+        equals('req-3'),
+      );
       final preTurnResult =
           sentEvents.last['call_hook_response']['pre_turn_result'];
       expect(preTurnResult['decision'], equals('ALLOW'));
     });
 
     test('handles pre turn hook denying turn', () async {
-      final preTurn =
-          MockPreTurnHook(HookResult(allow: false, message: 'Policy Deny'));
+      final preTurn = MockPreTurnHook(
+        HookResult(allow: false, message: 'Policy Deny'),
+      );
       final runner = HookRunner(preTurnHooks: [preTurn]);
       final sentEvents = <Map<String, dynamic>>[];
       final router = HookRouter(runner, (evt) async {
@@ -174,9 +182,7 @@ void main() {
       await router.handle({
         'request_id': 'req-5',
         'type': 'LIFECYCLE_HOOK_POST_TURN',
-        'post_turn_args': {
-          'response_text': 'Completed successfully',
-        }
+        'post_turn_args': {'response_text': 'Completed successfully'},
       });
 
       expect(postTurn.receivedResponse, equals('Completed successfully'));
@@ -186,13 +192,9 @@ void main() {
       final postTool = MockPostToolCallHook();
       final runner = HookRunner(postToolCallHooks: [postTool]);
       final sentEvents = <Map<String, dynamic>>[];
-      final router = HookRouter(
-        runner,
-        (evt) async {
-          sentEvents.add(evt);
-        },
-        resultExtractor: extractToolResult,
-      );
+      final router = HookRouter(runner, (evt) async {
+        sentEvents.add(evt);
+      }, resultExtractor: extractToolResult);
 
       await router.handle({
         'request_id': 'req-6',
@@ -204,9 +206,9 @@ void main() {
               'title': 'Google Home',
               'summary': 'Home of search engine',
               'content_path': '/tmp/google.html',
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
       final tr = postTool.receivedResult;
@@ -234,7 +236,7 @@ void main() {
           'error': 'Failed to execute tool',
           'tool_name': 'view_file',
           'server_name': 'mcp_server_1',
-        }
+        },
       });
 
       expect(toolErrorHook.receivedError, isA<ToolExecutionException>());
@@ -243,7 +245,9 @@ void main() {
       expect(err.toolName, equals('view_file'));
       expect(err.serverName, equals('mcp_server_1'));
       expect(
-          sentEvents.last['call_hook_response']['request_id'], equals('req-7'));
+        sentEvents.last['call_hook_response']['request_id'],
+        equals('req-7'),
+      );
       expect(sentEvents.last['call_hook_response']['empty_result'], isNotNull);
     });
 
@@ -270,11 +274,15 @@ void main() {
       expect(preTool.receivedToolCall!.name, equals('view_file'));
       expect(preTool.receivedToolCall!.serverName, equals('filesystem'));
       expect(preTool.receivedToolCall!.effectiveCallId, equals('call-123'));
-      expect(preTool.receivedToolCall!.canonicalPath,
-          equals('/workspace/example.txt'));
+      expect(
+        preTool.receivedToolCall!.canonicalPath,
+        equals('/workspace/example.txt'),
+      );
 
       expect(
-          sentEvents.last['call_hook_response']['request_id'], equals('req-8'));
+        sentEvents.last['call_hook_response']['request_id'],
+        equals('req-8'),
+      );
       final preToolResult =
           sentEvents.last['call_hook_response']['pre_tool_result'];
       expect(preToolResult['decision'], equals('ALLOW'));
@@ -303,7 +311,9 @@ void main() {
       expect(preTool.receivedToolCall, isNotNull);
       expect(preTool.receivedToolCall!.name, equals('run_command'));
       expect(
-          sentEvents.last['call_hook_response']['request_id'], equals('req-9'));
+        sentEvents.last['call_hook_response']['request_id'],
+        equals('req-9'),
+      );
       final preToolResult =
           sentEvents.last['call_hook_response']['pre_tool_result'];
       expect(preToolResult['decision'], equals('DENY'));
@@ -389,9 +399,7 @@ void main() {
 
     test('handles compaction hook', () async {
       final compactionHook = MockOnCompactionHook();
-      final runner = HookRunner(
-        onCompactionHooks: [compactionHook],
-      );
+      final runner = HookRunner(onCompactionHooks: [compactionHook]);
       final sentEvents = <Map<String, dynamic>>[];
       final router = HookRouter(runner, (evt) async {
         sentEvents.add(evt);
@@ -411,8 +419,10 @@ void main() {
       expect(compactionHook.receivedStep, isNotNull);
       expect(compactionHook.receivedStep!.id, equals('traj_compact:12'));
       expect(compactionHook.receivedStep!.type, equals(StepType.compaction));
-      expect(compactionHook.receivedStep!.content,
-          equals('Compacted 10 earlier steps into summary'));
+      expect(
+        compactionHook.receivedStep!.content,
+        equals('Compacted 10 earlier steps into summary'),
+      );
       expect(compactionHook.receivedStep!.trajectoryId, equals('traj_compact'));
       expect(compactionHook.receivedStep!.stepIndex, equals(12));
 
@@ -425,5 +435,70 @@ void main() {
   test('protoFieldToSdkName keeps invoke_subagent and maps skill_lookup', () {
     expect(protoFieldToSdkName['invoke_subagent'], 'invoke_subagent');
     expect(protoFieldToSdkName['skill_lookup'], 'skill_lookup');
+  });
+
+  group('normalizePathArguments', () {
+    test('normalizes file:// URIs in place and returns the canonical path', () {
+      final args = <String, dynamic>{
+        'file_path': 'file:///workspace/src/main.py',
+        'command': 'build',
+      };
+      expect(normalizePathArguments(args), '/workspace/src/main.py');
+      expect(args['file_path'], '/workspace/src/main.py');
+      expect(args['command'], 'build');
+    });
+
+    test('converts cns:// URIs', () {
+      final args = <String, dynamic>{'path': 'cns://el-d/home/user/data.txt'};
+      expect(normalizePathArguments(args), '/cns/el-d/home/user/data.txt');
+      expect(args['path'], '/cns/el-d/home/user/data.txt');
+    });
+
+    test('uses fixed key priority when several path keys are present', () {
+      final args = <String, dynamic>{
+        'output_path': 'file:///tmp/output.png',
+        'path': 'file:///workspace/doc.md',
+      };
+      expect(normalizePathArguments(args), '/workspace/doc.md');
+      expect(args['path'], '/workspace/doc.md');
+      expect(args['output_path'], '/tmp/output.png');
+    });
+
+    test('returns null without path arguments and ignores empty values', () {
+      expect(
+        normalizePathArguments({'query': 'search query', 'limit': 10}),
+        isNull,
+      );
+      expect(
+        normalizePathArguments({
+          'path': '',
+          'file_path': null,
+          'directory_path': 123,
+        }),
+        isNull,
+      );
+    });
+
+    test('pre_tool hook canonical path follows key priority', () async {
+      final preTool = MockPreToolCallDecideHook(HookResult(allow: true));
+      final router = HookRouter(
+        HookRunner(preToolCallDecideHooks: [preTool]),
+        (_) async {},
+      );
+      await router.handle({
+        'request_id': 'req-paths',
+        'type': 'LIFECYCLE_HOOK_PRE_TOOL',
+        'pre_tool_args': {
+          'tool_name': 'write_to_file',
+          'arguments_json': jsonEncode({
+            'output_path': 'file:///home/user/bar.py',
+            'TargetFile': 'file:///home/user/foo.py',
+          }),
+        },
+      });
+      final call = preTool.receivedToolCall!;
+      expect(call.canonicalPath, '/home/user/foo.py');
+      expect(call.args['output_path'], '/home/user/bar.py');
+    });
   });
 }

@@ -31,9 +31,7 @@ import 'package:antigravity/antigravity.dart';
 
 Future<void> main() async {
   final config = LocalAgentConfig(
-    compactionConfig: CompactionConfig(
-      tokenThreshold: 40000,
-    ),
+    compactionConfig: CompactionConfig(tokenThreshold: 40000),
   );
 
   print('Compaction policy:');

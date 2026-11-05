@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import 'package:dart_mappable/dart_mappable.dart';
+
 import 'config.dart';
 import 'exceptions.dart';
 
@@ -56,10 +57,7 @@ class StopHookResult with StopHookResultMappable {
   final String reason;
 
   /// Creates a [StopHookResult] with the given [decision] and optional continuation [reason].
-  StopHookResult({
-    this.decision = StopDecision.allowStop,
-    this.reason = '',
-  }) {
+  StopHookResult({this.decision = StopDecision.allowStop, this.reason = ''}) {
     if (decision == StopDecision.continueTurn && reason.trim().isEmpty) {
       throw AntigravityValidationException(
         'StopHookResult with decision=CONTINUE requires a non-empty reason.',
@@ -67,8 +65,11 @@ class StopHookResult with StopHookResultMappable {
     }
   }
 
+  /// Decodes a [StopHookResult] from a map.
   factory StopHookResult.fromMap(Map<String, dynamic> map) =>
       StopHookResultMapper.fromMap(map);
+
+  /// Decodes a [StopHookResult] from a JSON string.
   factory StopHookResult.fromJson(String json) =>
       StopHookResultMapper.fromJson(json);
 }
@@ -100,6 +101,9 @@ class StopArgs with StopArgsMappable {
     this.errorMessage = '',
   });
 
+  /// Decodes a [StopArgs] from a map.
+  ///
+  /// A string `stop_reason` value is parsed with [StopReason.fromString].
   factory StopArgs.fromMap(Map<String, dynamic> map) {
     if (map.containsKey('stop_reason') && map['stop_reason'] is String) {
       final copy = Map<String, dynamic>.from(map);
@@ -109,5 +113,6 @@ class StopArgs with StopArgsMappable {
     return StopArgsMapper.fromMap(map);
   }
 
+  /// Decodes a [StopArgs] from a JSON string.
   factory StopArgs.fromJson(String json) => StopArgsMapper.fromJson(json);
 }

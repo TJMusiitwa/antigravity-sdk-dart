@@ -95,9 +95,7 @@ Future<void> main() async {
         'When you need clarification or more information from the user to '
         'fulfill a request, you should use the `ask_question` tool to prompt them.',
     hooks: [StdinInteractionHook()],
-    capabilities: CapabilitiesConfig(
-      agentBehavior: AgentBehavior.interactive,
-    ),
+    capabilities: CapabilitiesConfig(agentBehavior: AgentBehavior.interactive),
   );
 
   final agent = Agent(config);

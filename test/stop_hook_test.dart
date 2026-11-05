@@ -17,7 +17,7 @@ import 'package:test/test.dart';
 
 class _CustomStopHook extends StopHook {
   final Future<StopHookResult?> Function(HookContext context, StopArgs data)
-      _handler;
+  _handler;
   _CustomStopHook(this._handler);
 
   @override
@@ -33,18 +33,30 @@ void main() {
     });
 
     test('fromString handles bare and prefixed strings', () {
-      expect(StopDecision.fromString('CONTINUE'),
-          equals(StopDecision.continueTurn));
-      expect(StopDecision.fromString('DECISION_CONTINUE'),
-          equals(StopDecision.continueTurn));
-      expect(StopDecision.fromString('ALLOW_STOP'),
-          equals(StopDecision.allowStop));
-      expect(StopDecision.fromString('DECISION_ALLOW_STOP'),
-          equals(StopDecision.allowStop));
-      expect(StopDecision.fromString('DECISION_UNSPECIFIED'),
-          equals(StopDecision.allowStop));
-      expect(StopDecision.fromString('unknown_val'),
-          equals(StopDecision.allowStop));
+      expect(
+        StopDecision.fromString('CONTINUE'),
+        equals(StopDecision.continueTurn),
+      );
+      expect(
+        StopDecision.fromString('DECISION_CONTINUE'),
+        equals(StopDecision.continueTurn),
+      );
+      expect(
+        StopDecision.fromString('ALLOW_STOP'),
+        equals(StopDecision.allowStop),
+      );
+      expect(
+        StopDecision.fromString('DECISION_ALLOW_STOP'),
+        equals(StopDecision.allowStop),
+      );
+      expect(
+        StopDecision.fromString('DECISION_UNSPECIFIED'),
+        equals(StopDecision.allowStop),
+      );
+      expect(
+        StopDecision.fromString('unknown_val'),
+        equals(StopDecision.allowStop),
+      );
     });
   });
 
@@ -64,9 +76,7 @@ void main() {
       expect(res.reason, equals('Please elaborate further.'));
     });
 
-    test(
-        'throws AntigravityValidationException when continueTurn has empty or blank reason',
-        () {
+    test('throws AntigravityValidationException when continueTurn has empty or blank reason', () {
       expect(
         () => StopHookResult(decision: StopDecision.continueTurn),
         throwsA(isA<AntigravityValidationException>()),
@@ -147,9 +157,7 @@ void main() {
       expect(runnerWithout.hasHooks, isFalse);
 
       final runnerWith = HookRunner(
-        stopHooks: [
-          FunctionStopHook.stateless((args) => StopHookResult()),
-        ],
+        stopHooks: [FunctionStopHook.stateless((args) => StopHookResult())],
       );
       expect(runnerWith.hasHooks, isTrue);
     });
@@ -158,18 +166,21 @@ void main() {
       final runner = HookRunner();
       expect(runner.stopHooks, isEmpty);
 
-      runner
-          .registerHook(FunctionStopHook.stateless((args) => StopHookResult()));
+      runner.registerHook(
+        FunctionStopHook.stateless((args) => StopHookResult()),
+      );
       expect(runner.stopHooks.length, equals(1));
     });
 
-    test('dispatchStop defaults to allowStop when no hooks registered',
-        () async {
-      final runner = HookRunner();
-      final ctx = runner.createTurnContext();
-      final res = await runner.dispatchStop(ctx, StopArgs());
-      expect(res.decision, equals(StopDecision.allowStop));
-    });
+    test(
+      'dispatchStop defaults to allowStop when no hooks registered',
+      () async {
+        final runner = HookRunner();
+        final ctx = runner.createTurnContext();
+        final res = await runner.dispatchStop(ctx, StopArgs());
+        expect(res.decision, equals(StopDecision.allowStop));
+      },
+    );
 
     test('dispatchStop returns allowStop when hook allows stop', () async {
       final runner = HookRunner(
@@ -219,7 +230,8 @@ void main() {
       final runner = HookRunner(
         stopHooks: [
           FunctionStopHook.stateless(
-              (args) => throw FormatException('crashed')),
+            (args) => throw FormatException('crashed'),
+          ),
         ],
       );
       final ctx = runner.createTurnContext();
@@ -229,13 +241,9 @@ void main() {
       );
     });
 
-    test(
-        'dispatchStop handles null result from hook by falling through to allowStop',
-        () async {
+    test('dispatchStop handles null result from hook by falling through to allowStop', () async {
       final runner = HookRunner(
-        stopHooks: [
-          _CustomStopHook((ctx, data) async => null),
-        ],
+        stopHooks: [_CustomStopHook((ctx, data) async => null)],
       );
       final ctx = runner.createTurnContext();
       final res = await runner.dispatchStop(ctx, StopArgs());

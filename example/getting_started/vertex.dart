@@ -82,8 +82,9 @@ Future<void> main() async {
     config = LocalAgentConfig(vertex: true, apiKey: apiKey);
   } else {
     // Location defaults to a common Vertex AI region when unset.
-    final resolvedLocation =
-        (location == null || location.isEmpty) ? 'us-central1' : location;
+    final resolvedLocation = (location == null || location.isEmpty)
+        ? 'us-central1'
+        : location;
     print(
       'Using Vertex AI Standard Mode '
       '(project: $project, location: $resolvedLocation).',

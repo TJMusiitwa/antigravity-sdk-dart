@@ -25,6 +25,7 @@ library;
 
 import 'dart:async';
 import 'dart:io';
+
 import 'package:antigravity/antigravity.dart';
 
 Future<void> renderChat(ChatResponse response) async {
@@ -71,7 +72,8 @@ Future<void> main() async {
     } on AntigravityCancelledException catch (e) {
       // Programmatic cancellation raises the SDK's custom exception
       print(
-          '\n  [Programmatic Cancel Caught] Turn was aborted by the client: $e');
+        '\n  [Programmatic Cancel Caught] Turn was aborted by the client: $e',
+      );
     } catch (e) {
       print('\n  [Error Caught]: $e');
     }

@@ -95,14 +95,11 @@ class AutoPolicy extends Policy {
   ///
   /// The tool target is always `*`. The decision is [Decision.askUser] when
   /// [askUser] is set, otherwise [Decision.deny].
-  AutoPolicy({
-    super.askUser,
-    super.name = 'auto',
-    this.model,
-  }) : super(
-          tool: '*',
-          decision: askUser != null ? Decision.askUser : Decision.deny,
-        );
+  AutoPolicy({super.askUser, super.name = 'auto', this.model})
+    : super(
+        tool: '*',
+        decision: askUser != null ? Decision.askUser : Decision.deny,
+      );
 }
 
 // --- Builder Helpers ---
@@ -119,8 +116,9 @@ List<Policy> _mcpPolicies(
   final server = mcpConfig.name;
 
   if (mcpTools == null) {
-    final policyName =
-        name.isNotEmpty ? name : '${decision.name.toLowerCase()}_${server}_all';
+    final policyName = name.isNotEmpty
+        ? name
+        : '${decision.name.toLowerCase()}_${server}_all';
     return [
       Policy(
         tool: '$server/*',
@@ -204,14 +202,13 @@ dynamic allow(
   List<String>? mcpTools,
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
-}) =>
-    _createPolicy(
-      Decision.approve,
-      tool,
-      mcpTools: mcpTools,
-      when: when,
-      name: name,
-    );
+}) => _createPolicy(
+  Decision.approve,
+  tool,
+  mcpTools: mcpTools,
+  when: when,
+  name: name,
+);
 
 /// Creates a DENY policy.
 ///
@@ -222,15 +219,14 @@ dynamic deny(
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
   String reason = '',
-}) =>
-    _createPolicy(
-      Decision.deny,
-      tool,
-      mcpTools: mcpTools,
-      when: when,
-      name: name,
-      reason: reason,
-    );
+}) => _createPolicy(
+  Decision.deny,
+  tool,
+  mcpTools: mcpTools,
+  when: when,
+  name: name,
+  reason: reason,
+);
 
 /// Creates an ASK_USER policy.
 ///
@@ -253,16 +249,15 @@ dynamic askUser(
   FutureOr<bool> Function(ToolCall toolCall)? when,
   String name = '',
   String reason = '',
-}) =>
-    _createPolicy(
-      Decision.askUser,
-      tool,
-      mcpTools: mcpTools,
-      handler: handler,
-      when: when,
-      name: name,
-      reason: reason,
-    );
+}) => _createPolicy(
+  Decision.askUser,
+  tool,
+  mcpTools: mcpTools,
+  handler: handler,
+  when: when,
+  name: name,
+  reason: reason,
+);
 
 /// Creates a policy that approves all tool calls without confirmation.
 /// For local agents, also disables workspace containment unless [workspaceOnly]
@@ -393,8 +388,9 @@ List<Policy> workspaceOnly(List<String> workspaces) {
 
   return fileTools
       .map(
-        (tool) => deny(tool, when: outsideWorkspace, name: 'workspace_only')
-            as Policy,
+        (tool) =>
+            deny(tool, when: outsideWorkspace, name: 'workspace_only')
+                as Policy,
       )
       .toList();
 }
@@ -442,16 +438,16 @@ bool _isGlobalWildcard(String tool) => tool == '*';
 bool _isPrefixWildcard(String tool) => tool.endsWith('/*');
 
 int _bucketIndex(Policy p) => switch (p.decision) {
-      Decision.deny when _isGlobalWildcard(p.tool) => _levelGlobalDeny,
-      Decision.askUser when _isGlobalWildcard(p.tool) => _levelGlobalAsk,
-      Decision.approve when _isGlobalWildcard(p.tool) => _levelGlobalAllow,
-      Decision.deny when _isPrefixWildcard(p.tool) => _levelPrefixDeny,
-      Decision.askUser when _isPrefixWildcard(p.tool) => _levelPrefixAsk,
-      Decision.approve when _isPrefixWildcard(p.tool) => _levelPrefixAllow,
-      Decision.deny => _levelSpecificDeny,
-      Decision.askUser => _levelSpecificAsk,
-      Decision.approve => _levelSpecificAllow,
-    };
+  Decision.deny when _isGlobalWildcard(p.tool) => _levelGlobalDeny,
+  Decision.askUser when _isGlobalWildcard(p.tool) => _levelGlobalAsk,
+  Decision.approve when _isGlobalWildcard(p.tool) => _levelGlobalAllow,
+  Decision.deny when _isPrefixWildcard(p.tool) => _levelPrefixDeny,
+  Decision.askUser when _isPrefixWildcard(p.tool) => _levelPrefixAsk,
+  Decision.approve when _isPrefixWildcard(p.tool) => _levelPrefixAllow,
+  Decision.deny => _levelSpecificDeny,
+  Decision.askUser => _levelSpecificAsk,
+  Decision.approve => _levelSpecificAllow,
+};
 
 bool _matchesTarget(String policyTool, String callTarget, bool isMcp) {
   if (policyTool == '*') {
@@ -472,6 +468,11 @@ bool _matchesTarget(String policyTool, String callTarget, bool isMcp) {
   return policyTool == callTarget;
 }
 
+/// Flattens [policies] into a single list, expanding one level of nested
+/// iterables.
+///
+/// Throws an [ArgumentError] if an entry is neither a [Policy] nor an
+/// iterable of [Policy] objects.
 List<Policy> flattenPolicies(List<dynamic> policies) {
   final List<Policy> flat = [];
   for (final p in policies) {
@@ -502,8 +503,8 @@ class PolicyDecideHook extends PreToolCallDecideHook {
 
   /// Creates a new [PolicyDecideHook] instance.
   PolicyDecideHook(this._buckets, {List<String>? serverNames})
-      : _serverNames = List.from(serverNames ?? const [])
-          ..sort((a, b) => b.length.compareTo(a.length));
+    : _serverNames = List.from(serverNames ?? const [])
+        ..sort((a, b) => b.length.compareTo(a.length));
 
   MapEntry<String, String>? _parseMcpTool(String toolName) {
     if (!toolName.startsWith('mcp_')) {
@@ -688,10 +689,10 @@ const String workspaceOnlyPolicyName = 'workspace_only';
 }
 
 String _decisionProto(Decision decision) => switch (decision) {
-      Decision.approve => _policyDecisionAllow,
-      Decision.deny => _policyDecisionDeny,
-      Decision.askUser => _policyDecisionAskUser,
-    };
+  Decision.approve => _policyDecisionAllow,
+  Decision.deny => _policyDecisionDeny,
+  Decision.askUser => _policyDecisionAskUser,
+};
 
 /// Serializes [policies] into the `localharness` `policy_config` map.
 ///
@@ -701,7 +702,7 @@ String _decisionProto(Decision decision) => switch (decision) {
 /// `PolicyDecisionRequest`. At most one [AutoPolicy] is accepted; it is
 /// emitted as `auto_config` and stored under the rule id `auto`.
 ({Map<String, dynamic> config, Map<String, Policy> dynamicPolicies})
-    toPolicyConfigProto(List<dynamic> policies) {
+toPolicyConfigProto(List<dynamic> policies) {
   final flat = flattenPolicies(policies);
   final dynamicPolicies = <String, Policy>{};
   final rules = <Map<String, dynamic>>[];
@@ -725,7 +726,8 @@ String _decisionProto(Decision decision) => switch (decision) {
     final target = _parseToolTarget(p.tool);
     final isWorkspaceOnly = p.name == workspaceOnlyPolicyName;
     hasWorkspaceOnly = hasWorkspaceOnly || isWorkspaceOnly;
-    hasAllowAll = hasAllowAll ||
+    hasAllowAll =
+        hasAllowAll ||
         (p.name == 'allow_all' &&
             p.tool == '*' &&
             p.decision == Decision.approve &&
@@ -749,10 +751,7 @@ String _decisionProto(Decision decision) => switch (decision) {
 
   Map<String, dynamic>? autoConfig;
   if (autoPolicy != null) {
-    autoConfig = {
-      'enabled': true,
-      'model': autoPolicy.model ?? '',
-    };
+    autoConfig = {'enabled': true, 'model': autoPolicy.model ?? ''};
     dynamicPolicies['auto'] = autoPolicy;
   }
 
@@ -762,7 +761,7 @@ String _decisionProto(Decision decision) => switch (decision) {
       'workspace_containment': hasAllowAll && !hasWorkspaceOnly
           ? 'WORKSPACE_CONTAINMENT_DISABLED'
           : 'WORKSPACE_CONTAINMENT_UNSPECIFIED',
-      if (autoConfig != null) 'auto_config': autoConfig,
+      'auto_config': ?autoConfig,
     },
     dynamicPolicies: dynamicPolicies,
   );

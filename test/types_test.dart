@@ -209,22 +209,22 @@ void main() {
 
   group('Step.fromMap()', () {
     Map<String, dynamic> base() => {
-          'id': 'step-1',
-          'step_index': 5,
-          'cascade_id': 'cascade-a',
-          'trajectory_id': 'traj-b',
-          'type': 'TEXT_RESPONSE',
-          'source': 'MODEL',
-          'target': 'TARGET_USER',
-          'status': 'DONE',
-          'content': 'hello world',
-          'content_delta': ' world',
-          'thinking': 'think',
-          'thinking_delta': 'k',
-          'tool_calls': [],
-          'error': '',
-          'is_complete_response': true,
-        };
+      'id': 'step-1',
+      'step_index': 5,
+      'cascade_id': 'cascade-a',
+      'trajectory_id': 'traj-b',
+      'type': 'TEXT_RESPONSE',
+      'source': 'MODEL',
+      'target': 'TARGET_USER',
+      'status': 'DONE',
+      'content': 'hello world',
+      'content_delta': ' world',
+      'thinking': 'think',
+      'thinking_delta': 'k',
+      'tool_calls': [],
+      'error': '',
+      'is_complete_response': true,
+    };
 
     test('parses a complete step correctly', () {
       final step = Step.fromMap(base());
@@ -364,26 +364,26 @@ void main() {
       expect(call.args['b'], equals(4));
     });
 
-    test('builtin tool field takes precedence over mcp_tool when both present',
-        () {
-      final protoJson = {
-        'view_file': {'path': '/tmp/a.txt'},
-        'mcp_tool': {
-          'server_name': 'math',
-          'tool_name': 'calc',
-          'arguments_json': '{}',
-        },
-      };
-      final step = Step.fromMap(protoJson);
-      expect(step.toolCalls.length, equals(1));
-      final call = step.toolCalls[0];
-      expect(call.name, equals('view_file'));
-      expect(call.serverName, isNull);
-    });
-
     test(
-        'mcp_tool with malformed arguments_json logs and falls back to empty args',
-        () {
+      'builtin tool field takes precedence over mcp_tool when both present',
+      () {
+        final protoJson = {
+          'view_file': {'path': '/tmp/a.txt'},
+          'mcp_tool': {
+            'server_name': 'math',
+            'tool_name': 'calc',
+            'arguments_json': '{}',
+          },
+        };
+        final step = Step.fromMap(protoJson);
+        expect(step.toolCalls.length, equals(1));
+        final call = step.toolCalls[0];
+        expect(call.name, equals('view_file'));
+        expect(call.serverName, isNull);
+      },
+    );
+
+    test('mcp_tool with malformed arguments_json logs and falls back to empty args', () {
       final protoJson = {
         'mcp_tool': {
           'server_name': 'math',
@@ -398,24 +398,26 @@ void main() {
       expect(call.args, isEmpty);
     });
 
-    test('Step carries parentTrajectoryId and depth, parsed via Step.fromMap',
-        () {
-      final step = Step(
-        id: 'step_1',
-        parentTrajectoryId: 'parent_traj_999',
-        depth: 2,
-      );
-      expect(step.parentTrajectoryId, equals('parent_traj_999'));
-      expect(step.depth, equals(2));
+    test(
+      'Step carries parentTrajectoryId and depth, parsed via Step.fromMap',
+      () {
+        final step = Step(
+          id: 'step_1',
+          parentTrajectoryId: 'parent_traj_999',
+          depth: 2,
+        );
+        expect(step.parentTrajectoryId, equals('parent_traj_999'));
+        expect(step.depth, equals(2));
 
-      final parsed = Step.fromMap({
-        'id': 'step_2',
-        'parent_trajectory_id': 'traj_root',
-        'depth': 3,
-      });
-      expect(parsed.parentTrajectoryId, equals('traj_root'));
-      expect(parsed.depth, equals(3));
-    });
+        final parsed = Step.fromMap({
+          'id': 'step_2',
+          'parent_trajectory_id': 'traj_root',
+          'depth': 3,
+        });
+        expect(parsed.parentTrajectoryId, equals('traj_root'));
+        expect(parsed.depth, equals(3));
+      },
+    );
 
     test('Step.fromMap normalizes output_path in tool calls', () {
       final parsed = Step.fromMap({
@@ -427,12 +429,14 @@ void main() {
               'prompt': 'A beautiful sunrise',
               'output_path': 'file:///tmp/generated/image.png',
             }),
-          }
+          },
         ],
       });
       expect(parsed.toolCalls.length, equals(1));
-      expect(parsed.toolCalls.first.canonicalPath,
-          equals('/tmp/generated/image.png'));
+      expect(
+        parsed.toolCalls.first.canonicalPath,
+        equals('/tmp/generated/image.png'),
+      );
       expect(
         parsed.toolCalls.first.args['output_path'],
         equals('/tmp/generated/image.png'),
@@ -481,8 +485,10 @@ void main() {
     });
 
     test('preserves null counts when scaling', () {
-      expect(UsageMetadata(totalTokenCount: 10) * 0,
-          equals(UsageMetadata(totalTokenCount: 0)));
+      expect(
+        UsageMetadata(totalTokenCount: 10) * 0,
+        equals(UsageMetadata(totalTokenCount: 0)),
+      );
     });
 
     test('rejects invalid multiplication factors', () {
@@ -554,9 +560,8 @@ void main() {
     });
 
     test('toJson includes enabled_tools when provided', () {
-      final json = CapabilitiesConfig(
-        enabledTools: [BuiltinTools.viewFile],
-      ).toMap();
+      final json = CapabilitiesConfig(enabledTools: [BuiltinTools.viewFile])
+          .toMap();
       expect(json['enabled_tools'], equals(['view_file']));
     });
 
@@ -571,7 +576,9 @@ void main() {
       ).toMap();
 
       expect(
-          json['tool_output_truncation_config'], equals({'max_tokens': 2048}));
+        json['tool_output_truncation_config'],
+        equals({'max_tokens': 2048}),
+      );
     });
 
     test('validates tool output truncation limits', () {
@@ -586,9 +593,7 @@ void main() {
       expect(ToolOutputTruncationConfig(maxTokens: 0).maxTokens, equals(0));
     });
 
-    test(
-        'CapabilitiesConfig supports agentBehavior, maxSubagentDepth, and allowedSubagents',
-        () {
+    test('CapabilitiesConfig supports agentBehavior, maxSubagentDepth, and allowedSubagents', () {
       final caps = CapabilitiesConfig(
         agentBehavior: AgentBehavior.interactive,
         maxSubagentDepth: 3,
@@ -607,9 +612,7 @@ void main() {
       expect(legacyCaps.agentMode, equals(AgentBehavior.interactive));
     });
 
-    test(
-        'CapabilitiesConfig validation for maxSubagentDepth and disabled subagents',
-        () {
+    test('CapabilitiesConfig validation for maxSubagentDepth and disabled subagents', () {
       expect(
         () => CapabilitiesConfig(maxSubagentDepth: 0),
         throwsA(isA<AntigravityValidationException>()),
@@ -617,10 +620,7 @@ void main() {
 
       // Subagents disabled via enableSubagents=false
       expect(
-        () => CapabilitiesConfig(
-          enableSubagents: false,
-          maxSubagentDepth: 2,
-        ),
+        () => CapabilitiesConfig(enableSubagents: false, maxSubagentDepth: 2),
         throwsA(isA<AntigravityValidationException>()),
       );
       expect(
@@ -636,7 +636,7 @@ void main() {
         () => CapabilitiesConfig(
           disabledTools: [
             BuiltinTools.invokeSubagent,
-            BuiltinTools.runWorkflow
+            BuiltinTools.runWorkflow,
           ],
           maxSubagentDepth: 2,
         ),
@@ -653,24 +653,26 @@ void main() {
       );
     });
 
-    test('CapabilitiesConfig and SubagentCapabilities support runCommandConfig',
-        () {
-      final caps = CapabilitiesConfig(
-        runCommandConfig: RunCommandConfig(
-          enableDaemons: true,
-          timeoutSeconds: 600.0,
-        ),
-      );
-      expect(caps.runCommandConfig, isNotNull);
-      expect(caps.runCommandConfig!.enableDaemons, isTrue);
-      expect(caps.runCommandConfig!.timeoutSeconds, equals(600.0));
+    test(
+      'CapabilitiesConfig and SubagentCapabilities support runCommandConfig',
+      () {
+        final caps = CapabilitiesConfig(
+          runCommandConfig: RunCommandConfig(
+            enableDaemons: true,
+            timeoutSeconds: 600.0,
+          ),
+        );
+        expect(caps.runCommandConfig, isNotNull);
+        expect(caps.runCommandConfig!.enableDaemons, isTrue);
+        expect(caps.runCommandConfig!.timeoutSeconds, equals(600.0));
 
-      final subCaps = SubagentCapabilities(
-        runCommandConfig: RunCommandConfig(timeoutSeconds: 30.0),
-      );
-      expect(subCaps.runCommandConfig, isNotNull);
-      expect(subCaps.runCommandConfig!.timeoutSeconds, equals(30.0));
-    });
+        final subCaps = SubagentCapabilities(
+          runCommandConfig: RunCommandConfig(timeoutSeconds: 30.0),
+        );
+        expect(subCaps.runCommandConfig, isNotNull);
+        expect(subCaps.runCommandConfig!.timeoutSeconds, equals(30.0));
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -700,17 +702,17 @@ void main() {
     });
 
     test('defaultTools() excludes askQuestion and deprecated tools', () {
-      final excluded = {
-        BuiltinTools.askQuestion,
-        ...BuiltinTools.deprecated(),
-      };
+      final excluded = {BuiltinTools.askQuestion, ...BuiltinTools.deprecated()};
       expect(
         BuiltinTools.defaultTools(),
         containsAll(
-            BuiltinTools.values.where((tool) => !excluded.contains(tool))),
+          BuiltinTools.values.where((tool) => !excluded.contains(tool)),
+        ),
       );
-      expect(BuiltinTools.defaultTools(),
-          isNot(contains(BuiltinTools.askQuestion)));
+      expect(
+        BuiltinTools.defaultTools(),
+        isNot(contains(BuiltinTools.askQuestion)),
+      );
       expect(
         BuiltinTools.defaultTools(),
         isNot(contains(BuiltinTools.listDirectory)),
@@ -729,11 +731,14 @@ void main() {
 
     test('enum contains read_url_content', () {
       expect(BuiltinTools.readUrlContent.value, equals('read_url_content'));
-      expect(BuiltinTools.readOnly().contains(BuiltinTools.readUrlContent),
-          isTrue);
       expect(
-          BuiltinTools.nondestructive().contains(BuiltinTools.readUrlContent),
-          isTrue);
+        BuiltinTools.readOnly().contains(BuiltinTools.readUrlContent),
+        isTrue,
+      );
+      expect(
+        BuiltinTools.nondestructive().contains(BuiltinTools.readUrlContent),
+        isTrue,
+      );
     });
 
     test('BuiltinTools.minimal() returns the expected tools', () {
@@ -748,17 +753,19 @@ void main() {
       );
     });
 
-    test('BuiltinTools.deprecated() is the directory tools disabled by default',
-        () {
-      expect(
-        BuiltinTools.deprecated(),
-        equals([
-          BuiltinTools.listDirectory,
-          BuiltinTools.searchDirectory,
-          BuiltinTools.findFile,
-        ]),
-      );
-    });
+    test(
+      'BuiltinTools.deprecated() is the directory tools disabled by default',
+      () {
+        expect(
+          BuiltinTools.deprecated(),
+          equals([
+            BuiltinTools.listDirectory,
+            BuiltinTools.searchDirectory,
+            BuiltinTools.findFile,
+          ]),
+        );
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -767,8 +774,9 @@ void main() {
   group('ModelTarget', () {
     test('constructs text model properly', () {
       final ep = GeminiAPIEndpoint(
-          apiKey: 'test-key',
-          options: GeminiModelOptions(thinkingLevel: ThinkingLevel.high));
+        apiKey: 'test-key',
+        options: GeminiModelOptions(thinkingLevel: ThinkingLevel.high),
+      );
       final mt = ModelTarget(name: 'gemini-pro', endpoint: ep);
       expect(mt.name, equals('gemini-pro'));
       expect(mt.types, equals([ModelType.text]));
@@ -807,33 +815,31 @@ void main() {
     });
 
     test('allows enabledTools without disabledTools', () {
-      final sc = SubagentCapabilities(
-        enabledTools: [BuiltinTools.viewFile],
-      );
+      final sc = SubagentCapabilities(enabledTools: [BuiltinTools.viewFile]);
       expect(sc.enabledTools, isNotNull);
     });
 
-    test('SubagentCapabilities supports agentBehavior and allowedSubagents',
-        () {
-      final subCaps = SubagentCapabilities(
-        agentBehavior: AgentBehavior.interactive,
-        allowedSubagents: ['nested_worker'],
-      );
-      expect(subCaps.agentBehavior, equals(AgentBehavior.interactive));
-      expect(subCaps.agentMode, equals(AgentBehavior.interactive));
-      expect(subCaps.allowedSubagents, equals(['nested_worker']));
-
-      // Legacy agentMode parameter support
-      final legacySubCaps = SubagentCapabilities(
-        agentMode: AgentBehavior.interactive,
-      );
-      expect(legacySubCaps.agentBehavior, equals(AgentBehavior.interactive));
-      expect(legacySubCaps.agentMode, equals(AgentBehavior.interactive));
-    });
-
     test(
-        'SubagentCapabilities throws when allowedSubagents is set with invokeSubagent disabled',
-        () {
+      'SubagentCapabilities supports agentBehavior and allowedSubagents',
+      () {
+        final subCaps = SubagentCapabilities(
+          agentBehavior: AgentBehavior.interactive,
+          allowedSubagents: ['nested_worker'],
+        );
+        expect(subCaps.agentBehavior, equals(AgentBehavior.interactive));
+        expect(subCaps.agentMode, equals(AgentBehavior.interactive));
+        expect(subCaps.allowedSubagents, equals(['nested_worker']));
+
+        // Legacy agentMode parameter support
+        final legacySubCaps = SubagentCapabilities(
+          agentMode: AgentBehavior.interactive,
+        );
+        expect(legacySubCaps.agentBehavior, equals(AgentBehavior.interactive));
+        expect(legacySubCaps.agentMode, equals(AgentBehavior.interactive));
+      },
+    );
+
+    test('SubagentCapabilities throws when allowedSubagents is set with invokeSubagent disabled', () {
       expect(
         () => SubagentCapabilities(
           enabledTools: [BuiltinTools.viewFile], // invokeSubagent not enabled
@@ -846,7 +852,7 @@ void main() {
         () => SubagentCapabilities(
           disabledTools: [
             BuiltinTools.invokeSubagent,
-            BuiltinTools.runWorkflow
+            BuiltinTools.runWorkflow,
           ],
           allowedSubagents: ['child_worker'],
         ),
@@ -919,6 +925,17 @@ void main() {
       final custom = json['custom'] as Map;
       final parts = custom['part'] as List;
       expect(parts.first['text'], equals('You are an agent.'));
+      expect(si.title, isNull);
+      expect((parts.first as Map).containsKey('title'), isFalse);
+    });
+
+    test('title is kept when set', () {
+      final si = CustomSystemInstructions(
+        text: 'With title',
+        title: 'my_title',
+      );
+      expect(si.title, 'my_title');
+      expect(si.toMap()['custom']['part'].first['title'], 'my_title');
     });
   });
 
@@ -1236,38 +1253,47 @@ void main() {
       expect(sum.serviceTier, equals(ServiceTier.priority));
     });
 
-    test('usage zero identity preserves nulls and returns an independent copy',
-        () {
-      final usage =
-          UsageMetadata(totalTokenCount: 12, serviceTier: ServiceTier.standard);
-      for (final value in [usage + 0, usage - 0.0]) {
-        expect(value, usage);
-        expect(identical(value, usage), isFalse);
-        expect(value.promptTokenCount, isNull);
-      }
-      expect((usage - UsageMetadata(totalTokenCount: 3)).totalTokenCount, 9);
-      expect(() => usage - 1, throwsArgumentError);
-      expect(() => usage + '0', throwsArgumentError);
-    });
+    test(
+      'usage zero identity preserves nulls and returns an independent copy',
+      () {
+        final usage = UsageMetadata(
+          totalTokenCount: 12,
+          serviceTier: ServiceTier.standard,
+        );
+        for (final value in [usage + 0, usage - 0.0]) {
+          expect(value, usage);
+          expect(identical(value, usage), isFalse);
+          expect(value.promptTokenCount, isNull);
+        }
+        expect((usage - UsageMetadata(totalTokenCount: 3)).totalTokenCount, 9);
+        expect(() => usage - 1, throwsArgumentError);
+        expect(() => usage + '0', throwsArgumentError);
+      },
+    );
   });
 
   group('AgentConfig validation', () {
     test('validates conversationId pattern and length', () {
-      expect(() => LocalAgentConfig(conversationId: 'short'),
-          throwsA(isA<AntigravityValidationException>()));
       expect(
-          () => LocalAgentConfig(
-              conversationId: 'invalid_chars_!!!!!_!!!!!_!!!!!_!!!!!'),
-          throwsA(isA<AntigravityValidationException>()));
+        () => LocalAgentConfig(conversationId: 'short'),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => LocalAgentConfig(
+          conversationId: 'invalid_chars_!!!!!_!!!!!_!!!!!_!!!!!',
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
     });
 
     test('validates resume mode requires conversationId', () {
       expect(
-          () => LocalAgentConfig(
-                sessionContinuationMode: SessionContinuationMode.resume,
-                conversationId: null,
-              ),
-          throwsA(isA<AntigravityValidationException>()));
+        () => LocalAgentConfig(
+          sessionContinuationMode: SessionContinuationMode.resume,
+          conversationId: null,
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
     });
 
     test('allows valid conversationId and resume mode combinations', () {
@@ -1292,9 +1318,12 @@ void main() {
   group('Model endpoints', () {
     test('ModelEndpoint exposes baseUri getter', () {
       final endpoint = GeminiAPIEndpoint(
-          baseUrl: 'https://generativelanguage.googleapis.com');
-      expect(endpoint.baseUri,
-          equals(Uri.parse('https://generativelanguage.googleapis.com')));
+        baseUrl: 'https://generativelanguage.googleapis.com',
+      );
+      expect(
+        endpoint.baseUri,
+        equals(Uri.parse('https://generativelanguage.googleapis.com')),
+      );
     });
 
     test('ServiceTier enum values and GeminiModelOptions support', () {
@@ -1311,46 +1340,51 @@ void main() {
       expect(options.serviceTier, equals(ServiceTier.priority));
     });
 
-    test('VertexEndpoint Express Mode and Standard Mode exclusivity validation',
-        () {
-      // Valid Express Mode
-      final expressEndpoint = VertexEndpoint(apiKey: 'express_key_123');
-      expect(expressEndpoint.apiKey, equals('express_key_123'));
-      expect(expressEndpoint.project, isNull);
-      expect(expressEndpoint.location, isNull);
-      expressEndpoint.validateEndpoint(); // Should not throw
+    test(
+      'VertexEndpoint Express Mode and Standard Mode exclusivity validation',
+      () {
+        // Valid Express Mode
+        final expressEndpoint = VertexEndpoint(apiKey: 'express_key_123');
+        expect(expressEndpoint.apiKey, equals('express_key_123'));
+        expect(expressEndpoint.project, isNull);
+        expect(expressEndpoint.location, isNull);
+        expressEndpoint.validateEndpoint(); // Should not throw
 
-      // Valid Standard Mode
-      final standardEndpoint = VertexEndpoint(
-        project: 'my-project',
-        location: 'us-central1',
-      );
-      expect(standardEndpoint.project, equals('my-project'));
-      expect(standardEndpoint.location, equals('us-central1'));
-      expect(standardEndpoint.apiKey, isNull);
-      standardEndpoint.validateEndpoint(); // Should not throw
+        // Valid Standard Mode
+        final standardEndpoint = VertexEndpoint(
+          project: 'my-project',
+          location: 'us-central1',
+        );
+        expect(standardEndpoint.project, equals('my-project'));
+        expect(standardEndpoint.location, equals('us-central1'));
+        expect(standardEndpoint.apiKey, isNull);
+        standardEndpoint.validateEndpoint(); // Should not throw
 
-      // Mutual exclusivity error
-      final conflictEndpoint = VertexEndpoint(
-        apiKey: 'express_key',
-        project: 'my-project',
-        location: 'us-central1',
-      );
-      expect(
-        () => conflictEndpoint.validateEndpoint(),
-        throwsA(isA<AntigravityValidationException>()),
-      );
-
-      // Missing credentials error (when env vars empty)
-      final emptyEndpoint =
-          VertexEndpoint(project: null, location: null, apiKey: null);
-      if (Platform.environment['GOOGLE_CLOUD_PROJECT'] == null) {
+        // Mutual exclusivity error
+        final conflictEndpoint = VertexEndpoint(
+          apiKey: 'express_key',
+          project: 'my-project',
+          location: 'us-central1',
+        );
         expect(
-          () => emptyEndpoint.validateEndpoint(),
+          () => conflictEndpoint.validateEndpoint(),
           throwsA(isA<AntigravityValidationException>()),
         );
-      }
-    });
+
+        // Missing credentials error (when env vars empty)
+        final emptyEndpoint = VertexEndpoint(
+          project: null,
+          location: null,
+          apiKey: null,
+        );
+        if (Platform.environment['GOOGLE_CLOUD_PROJECT'] == null) {
+          expect(
+            () => emptyEndpoint.validateEndpoint(),
+            throwsA(isA<AntigravityValidationException>()),
+          );
+        }
+      },
+    );
 
     // `Platform.environment` is immutable in-process, so these run a probe
     // subprocess with GOOGLE_CLOUD_PROJECT / GOOGLE_CLOUD_LOCATION actually
@@ -1379,21 +1413,27 @@ void main() {
             as Map<String, dynamic>;
       }
 
-      test('hydrates project and location from the environment when no baseUrl',
-          () async {
-        final out = await runProbe(withBaseUrl: false);
-        expect(out['baseUrl'], isNull);
-        expect(out['project'], equals('env-proj'));
-        expect(out['location'], equals('env-loc'));
-      }, timeout: const Timeout(Duration(minutes: 2)));
+      test(
+        'hydrates project and location from the environment when no baseUrl',
+        () async {
+          final out = await runProbe(withBaseUrl: false);
+          expect(out['baseUrl'], isNull);
+          expect(out['project'], equals('env-proj'));
+          expect(out['location'], equals('env-loc'));
+        },
+        timeout: const Timeout(Duration(minutes: 2)),
+      );
 
-      test('skips environment hydration when a custom baseUrl is set',
-          () async {
-        final out = await runProbe(withBaseUrl: true);
-        expect(out['baseUrl'], equals('http://localhost:8080'));
-        expect(out['project'], isNull);
-        expect(out['location'], isNull);
-      }, timeout: const Timeout(Duration(minutes: 2)));
+      test(
+        'skips environment hydration when a custom baseUrl is set',
+        () async {
+          final out = await runProbe(withBaseUrl: true);
+          expect(out['baseUrl'], equals('http://localhost:8080'));
+          expect(out['project'], isNull);
+          expect(out['location'], isNull);
+        },
+        timeout: const Timeout(Duration(minutes: 2)),
+      );
 
       test('baseUrl endpoint validates without project or location', () {
         final ep = VertexEndpoint(baseUrl: 'http://localhost:8080');
@@ -1409,9 +1449,13 @@ void main() {
       expect(AgentMode.autonomous.value, equals('autonomous'));
       expect(AgentMode.interactive.value, equals('interactive'));
       expect(
-          AgentMode.autonomous.protoValue, equals('AGENT_BEHAVIOR_AUTONOMOUS'));
-      expect(AgentMode.interactive.protoValue,
-          equals('AGENT_BEHAVIOR_INTERACTIVE'));
+        AgentMode.autonomous.protoValue,
+        equals('AGENT_BEHAVIOR_AUTONOMOUS'),
+      );
+      expect(
+        AgentMode.interactive.protoValue,
+        equals('AGENT_BEHAVIOR_INTERACTIVE'),
+      );
 
       final caps = CapabilitiesConfig();
       expect(caps.agentMode, equals(AgentMode.autonomous));
@@ -1436,14 +1480,22 @@ void main() {
     test('AgentBehavior enum values and protoValue mapping', () {
       expect(AgentBehavior.autonomous.value, equals('autonomous'));
       expect(AgentBehavior.interactive.value, equals('interactive'));
-      expect(AgentBehavior.autonomous.protoValue,
-          equals('AGENT_BEHAVIOR_AUTONOMOUS'));
-      expect(AgentBehavior.interactive.protoValue,
-          equals('AGENT_BEHAVIOR_INTERACTIVE'));
-      expect(AgentBehavior.fromString('interactive'),
-          equals(AgentBehavior.interactive));
-      expect(AgentBehavior.fromString('unknown'),
-          equals(AgentBehavior.autonomous));
+      expect(
+        AgentBehavior.autonomous.protoValue,
+        equals('AGENT_BEHAVIOR_AUTONOMOUS'),
+      );
+      expect(
+        AgentBehavior.interactive.protoValue,
+        equals('AGENT_BEHAVIOR_INTERACTIVE'),
+      );
+      expect(
+        AgentBehavior.fromString('interactive'),
+        equals(AgentBehavior.interactive),
+      );
+      expect(
+        AgentBehavior.fromString('unknown'),
+        equals(AgentBehavior.autonomous),
+      );
 
       // Typedef backward compatibility
       final AgentMode mode = AgentBehavior.interactive;
@@ -1459,7 +1511,9 @@ void main() {
 
     test('AgentBehavior.fromString parses minimal', () {
       expect(
-          AgentBehavior.fromString('minimal'), equals(AgentBehavior.minimal));
+        AgentBehavior.fromString('minimal'),
+        equals(AgentBehavior.minimal),
+      );
     });
   });
 
@@ -1481,8 +1535,10 @@ void main() {
     test('ToolExecutionException stepId property and toString formatting', () {
       final exDefault = ToolExecutionException('failed', toolName: 'run_cmd');
       expect(exDefault.stepId, isNull);
-      expect(exDefault.toString(),
-          equals('ToolExecutionException: failed (tool: run_cmd)'));
+      expect(
+        exDefault.toString(),
+        equals('ToolExecutionException: failed (tool: run_cmd)'),
+      );
 
       final ex = ToolExecutionException(
         'query failed',
@@ -1495,7 +1551,8 @@ void main() {
       expect(
         ex.toString(),
         equals(
-            'ToolExecutionException: query failed (tool: mcp_tool, server: mcp_server, callId: call_123, stepId: step_456)'),
+          'ToolExecutionException: query failed (tool: mcp_tool, server: mcp_server, callId: call_123, stepId: step_456)',
+        ),
       );
     });
   });
@@ -1506,8 +1563,11 @@ void main() {
       expect(tc.callId, equals('call_123'));
       expect(tc.effectiveCallId, equals('call_123'));
 
-      final tr =
-          ToolResult(name: 'run_command', callId: 'call_123', result: 'ok');
+      final tr = ToolResult(
+        name: 'run_command',
+        callId: 'call_123',
+        result: 'ok',
+      );
       expect(tr.callId, equals('call_123'));
       expect(tr.effectiveCallId, equals('call_123'));
 
@@ -1560,24 +1620,25 @@ void main() {
   });
 
   group('Prompt validation and sanitization', () {
-    test('prompt sanitization strips null bytes and control chars correctly',
-        () {
-      final sanitized =
-          LocalConnection.sanitizePromptForTest('\x00Hello\x07World\x1f');
-      expect(sanitized, equals(' Hello World '));
-    });
-
     test(
-        'prompt sanitization preserves empty input and collapses all-control to single space',
-        () {
+      'prompt sanitization strips null bytes and control chars correctly',
+      () {
+        final sanitized = LocalConnection.sanitizePromptForTest(
+          '\x00Hello\x07World\x1f',
+        );
+        expect(sanitized, equals(' Hello World '));
+      },
+    );
+
+    test('prompt sanitization preserves empty input and collapses all-control to single space', () {
       expect(LocalConnection.sanitizePromptForTest(''), equals(''));
       expect(
-          LocalConnection.sanitizePromptForTest('\x00\x07\x1f'), equals(' '));
+        LocalConnection.sanitizePromptForTest('\x00\x07\x1f'),
+        equals(' '),
+      );
     });
 
-    test(
-        'Conversation.validatePrompt throws AntigravityValidationException on empty or null prompts',
-        () {
+    test('Conversation.validatePrompt throws AntigravityValidationException on empty or null prompts', () {
       expect(
         () => Conversation.validatePrompt('   '),
         throwsA(isA<AntigravityValidationException>()),
@@ -1640,8 +1701,10 @@ void main() {
       );
       expect(valid.maxRetries, equals(5));
       expect(valid.initialSleepDurationMs, equals(500));
-      expect(valid.initialSleepDuration,
-          equals(const Duration(milliseconds: 500)));
+      expect(
+        valid.initialSleepDuration,
+        equals(const Duration(milliseconds: 500)),
+      );
       expect(valid.exponentialMultiplier, equals(2.0));
       expect(valid.jitterRange, equals(0.1));
     });
@@ -1669,47 +1732,50 @@ void main() {
     });
 
     test(
-        'DebugConfig applyLogging validates level name and supports Level object',
-        () {
-      final valid = DebugConfig(loggingLevel: 'INFO');
-      valid.applyLogging();
-      expect(valid.level, equals(Level.INFO));
+      'DebugConfig applyLogging validates level name and supports Level object',
+      () {
+        final valid = DebugConfig(loggingLevel: 'INFO');
+        valid.applyLogging();
+        expect(valid.level, equals(Level.INFO));
 
-      final typedLevel = DebugConfig(level: Level.WARNING);
-      expect(typedLevel.loggingLevel, equals('WARNING'));
-      expect(typedLevel.level, equals(Level.WARNING));
+        final typedLevel = DebugConfig(level: Level.WARNING);
+        expect(typedLevel.loggingLevel, equals('WARNING'));
+        expect(typedLevel.level, equals(Level.WARNING));
 
-      final invalid = DebugConfig(loggingLevel: 'INVALID_LEVEL');
-      expect(
-        () => invalid.applyLogging(),
-        throwsA(isA<AntigravityValidationException>()),
-      );
-    });
+        final invalid = DebugConfig(loggingLevel: 'INVALID_LEVEL');
+        expect(
+          () => invalid.applyLogging(),
+          throwsA(isA<AntigravityValidationException>()),
+        );
+      },
+    );
 
-    test('DebugConfig serializes and deserializes correctly with LevelMapper',
-        () {
-      final debug =
-          DebugConfig(level: Level.INFO, enableServerSideTracing: true);
-      final map = debug.toMap();
-      expect(map['enable_server_side_tracing'], isTrue);
-      expect(map['logging_level'], equals('INFO'));
-      expect(map['level'], equals('INFO'));
+    test(
+      'DebugConfig serializes and deserializes correctly with LevelMapper',
+      () {
+        final debug = DebugConfig(
+          level: Level.INFO,
+          enableServerSideTracing: true,
+        );
+        final map = debug.toMap();
+        expect(map['enable_server_side_tracing'], isTrue);
+        expect(map['logging_level'], equals('INFO'));
+        expect(map['level'], equals('INFO'));
 
-      final fromMap = DebugConfig.fromMap(map);
-      expect(fromMap.enableServerSideTracing, isTrue);
-      expect(fromMap.loggingLevel, equals('INFO'));
-      expect(fromMap.level, equals(Level.INFO));
+        final fromMap = DebugConfig.fromMap(map);
+        expect(fromMap.enableServerSideTracing, isTrue);
+        expect(fromMap.loggingLevel, equals('INFO'));
+        expect(fromMap.level, equals(Level.INFO));
 
-      final jsonStr = debug.toJson();
-      final fromJson = DebugConfig.fromJson(jsonStr);
-      expect(fromJson.level, equals(Level.INFO));
-    });
+        final jsonStr = debug.toJson();
+        final fromJson = DebugConfig.fromJson(jsonStr);
+        expect(fromJson.level, equals(Level.INFO));
+      },
+    );
   });
 
   group('Local agent config variants', () {
-    test(
-        'LocalOpenAIAgentConfig and LiteRTAgentConfig forward retryConfig and debugConfig',
-        () {
+    test('LocalOpenAIAgentConfig and LiteRTAgentConfig forward retryConfig and debugConfig', () {
       final retry = RetryConfig.benchmark();
       final debug = DebugConfig(loggingLevel: 'INFO');
 
@@ -1737,25 +1803,21 @@ void main() {
       expect(liteRtStrategy.debugConfig, equals(debug));
     });
 
-    test(
-        'BaseLocalAgentConfig validates allowedSubagents against declared subagents',
-        () {
-      final worker =
-          SubagentConfig(name: 'worker', description: 'Worker agent');
+    test('BaseLocalAgentConfig validates allowedSubagents against declared subagents', () {
+      final worker = SubagentConfig(
+        name: 'worker',
+        description: 'Worker agent',
+      );
       final reviewer = SubagentConfig(
         name: 'reviewer',
         description: 'Reviewer agent',
-        capabilities: SubagentCapabilities(
-          allowedSubagents: ['worker'],
-        ),
+        capabilities: SubagentCapabilities(allowedSubagents: ['worker']),
       );
 
       // Valid configuration
       final validConfig = LocalAgentConfig(
         subagents: [worker, reviewer],
-        capabilities: CapabilitiesConfig(
-          allowedSubagents: ['reviewer'],
-        ),
+        capabilities: CapabilitiesConfig(allowedSubagents: ['reviewer']),
       );
       expect(validConfig.subagents.length, equals(2));
 
@@ -1763,9 +1825,7 @@ void main() {
       expect(
         () => LocalAgentConfig(
           subagents: [worker],
-          capabilities: CapabilitiesConfig(
-            allowedSubagents: ['non_existent'],
-          ),
+          capabilities: CapabilitiesConfig(allowedSubagents: ['non_existent']),
         ),
         throwsA(isA<AntigravityValidationException>()),
       );
@@ -1774,14 +1834,10 @@ void main() {
       final invalidReviewer = SubagentConfig(
         name: 'reviewer',
         description: 'Reviewer agent',
-        capabilities: SubagentCapabilities(
-          allowedSubagents: ['unknown_child'],
-        ),
+        capabilities: SubagentCapabilities(allowedSubagents: ['unknown_child']),
       );
       expect(
-        () => LocalAgentConfig(
-          subagents: [worker, invalidReviewer],
-        ),
+        () => LocalAgentConfig(subagents: [worker, invalidReviewer]),
         throwsA(isA<AntigravityValidationException>()),
       );
     });
@@ -1807,6 +1863,59 @@ void main() {
   });
 
   group('MediaContent', () {
+    test('MIME types are trimmed and lowercased', () {
+      expect(
+        Image(data: [1], mimeType: ' IMAGE/PNG\n ', description: '').mimeType,
+        'image/png',
+      );
+      expect(
+        Document(
+          data: [1],
+          mimeType: ' Application/PDF ',
+          description: '',
+        ).mimeType,
+        'application/pdf',
+      );
+      expect(
+        Audio(data: [1], mimeType: ' Audio/MPEG\t', description: '').mimeType,
+        'audio/mpeg',
+      );
+      expect(
+        Video(data: [1], mimeType: ' VIDEO/MP4 ', description: '').mimeType,
+        'video/mp4',
+      );
+    });
+
+    test('fromBytes matches MIME types case-insensitively', () {
+      final image = MediaContent.fromBytes([1], ' IMAGE/PNG\n ');
+      expect(image, isA<Image>());
+      expect(image.mimeType, 'image/png');
+      final doc = MediaContent.fromBytes([1], ' Application/PDF ');
+      expect(doc, isA<Document>());
+      expect(doc.mimeType, 'application/pdf');
+      expect(
+        () => MediaContent.fromBytes([1], 'Text/Unknown'),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+    });
+
+    test('fromFile expands a leading ~ to the home directory', () {
+      final home =
+          Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+      if (home == null) {
+        markTestSkipped('No home directory in the environment.');
+        return;
+      }
+      final dir = Directory(home).createTempSync('.antigravity_media_test_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      File('${dir.path}/doc.pdf').writeAsBytesSync([0x25, 0x50, 0x44, 0x46]);
+      final relative = dir.path.substring(home.length);
+      final media = MediaContent.fromFile('~$relative/doc.pdf');
+      expect(media, isA<Document>());
+      expect(media.mimeType, 'application/pdf');
+      expect(media.data, [0x25, 0x50, 0x44, 0x46]);
+    });
+
     test('Audio accepts extended MIME types', () {
       final mimes = [
         'audio/wav',
@@ -1825,8 +1934,11 @@ void main() {
         'audio/l16',
       ];
       for (final mime in mimes) {
-        final audio =
-            Audio(data: [1, 2, 3], mimeType: mime, description: 'sample audio');
+        final audio = Audio(
+          data: [1, 2, 3],
+          mimeType: mime,
+          description: 'sample audio',
+        );
         expect(audio.mimeType, equals(mime));
       }
     });
@@ -1881,20 +1993,34 @@ void main() {
       expect(map['max_total_tokens'], equals(3000));
 
       // Validation errors
-      expect(() => BudgetConfig(maxModelCalls: 0),
-          throwsA(isA<AntigravityValidationException>()));
-      expect(() => BudgetConfig(maxModelCalls: 2147483648),
-          throwsA(isA<AntigravityValidationException>()));
-      expect(() => BudgetConfig(maxToolCalls: 0),
-          throwsA(isA<AntigravityValidationException>()));
-      expect(() => BudgetConfig(maxToolCalls: 2147483648),
-          throwsA(isA<AntigravityValidationException>()));
-      expect(() => BudgetConfig(maxInputTokens: 0),
-          throwsA(isA<AntigravityValidationException>()));
-      expect(() => BudgetConfig(maxOutputTokens: 0),
-          throwsA(isA<AntigravityValidationException>()));
-      expect(() => BudgetConfig(maxTotalTokens: 0),
-          throwsA(isA<AntigravityValidationException>()));
+      expect(
+        () => BudgetConfig(maxModelCalls: 0),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => BudgetConfig(maxModelCalls: 2147483648),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => BudgetConfig(maxToolCalls: 0),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => BudgetConfig(maxToolCalls: 2147483648),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => BudgetConfig(maxInputTokens: 0),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => BudgetConfig(maxOutputTokens: 0),
+        throwsA(isA<AntigravityValidationException>()),
+      );
+      expect(
+        () => BudgetConfig(maxTotalTokens: 0),
+        throwsA(isA<AntigravityValidationException>()),
+      );
     });
 
     test('BudgetScope.lifetime has protoValue BUDGET_SCOPE_LIFETIME', () {
@@ -1902,13 +2028,14 @@ void main() {
     });
 
     test(
-        'BudgetScope.forwardLooking has protoValue BUDGET_SCOPE_FORWARD_LOOKING',
-        () {
-      expect(
-        BudgetScope.forwardLooking.protoValue,
-        equals('BUDGET_SCOPE_FORWARD_LOOKING'),
-      );
-    });
+      'BudgetScope.forwardLooking has protoValue BUDGET_SCOPE_FORWARD_LOOKING',
+      () {
+        expect(
+          BudgetScope.forwardLooking.protoValue,
+          equals('BUDGET_SCOPE_FORWARD_LOOKING'),
+        );
+      },
+    );
 
     test('BudgetScope serializes to its bare value in BudgetConfig maps', () {
       // toMap() is the SDK-facing representation and stays unprefixed; only
@@ -1925,53 +2052,93 @@ void main() {
   });
 
   group('StopReason', () {
-    test('StopReason enum values and wire string parsing with proto prefixes',
-        () {
-      expect(StopReason.unspecified.value, equals('UNSPECIFIED'));
-      expect(StopReason.maxModelCallsExceeded.value,
-          equals('MAX_MODEL_CALLS_EXCEEDED'));
-      expect(StopReason.maxToolCallsExceeded.value,
-          equals('MAX_TOOL_CALLS_EXCEEDED'));
-      expect(StopReason.maxInputTokensExceeded.value,
-          equals('MAX_INPUT_TOKENS_EXCEEDED'));
-      expect(StopReason.maxOutputTokensExceeded.value,
-          equals('MAX_OUTPUT_TOKENS_EXCEEDED'));
-      expect(StopReason.maxTotalTokensExceeded.value,
-          equals('MAX_TOTAL_TOKENS_EXCEEDED'));
-      expect(StopReason.quotaExhausted.value, equals('QUOTA_EXHAUSTED'));
+    test(
+      'StopReason enum values and wire string parsing with proto prefixes',
+      () {
+        expect(StopReason.unspecified.value, equals('UNSPECIFIED'));
+        expect(
+          StopReason.maxModelCallsExceeded.value,
+          equals('MAX_MODEL_CALLS_EXCEEDED'),
+        );
+        expect(
+          StopReason.maxToolCallsExceeded.value,
+          equals('MAX_TOOL_CALLS_EXCEEDED'),
+        );
+        expect(
+          StopReason.maxInputTokensExceeded.value,
+          equals('MAX_INPUT_TOKENS_EXCEEDED'),
+        );
+        expect(
+          StopReason.maxOutputTokensExceeded.value,
+          equals('MAX_OUTPUT_TOKENS_EXCEEDED'),
+        );
+        expect(
+          StopReason.maxTotalTokensExceeded.value,
+          equals('MAX_TOTAL_TOKENS_EXCEEDED'),
+        );
+        expect(StopReason.quotaExhausted.value, equals('QUOTA_EXHAUSTED'));
 
-      // Proto-prefixed wire strings from localharness
-      expect(StopReason.fromString('STOP_REASON_MAX_MODEL_CALLS_EXCEEDED'),
-          equals(StopReason.maxModelCallsExceeded));
-      expect(StopReason.fromString('STOP_REASON_MAX_TOOL_CALLS_EXCEEDED'),
-          equals(StopReason.maxToolCallsExceeded));
-      expect(StopReason.fromString('STOP_REASON_MAX_INPUT_TOKENS_EXCEEDED'),
-          equals(StopReason.maxInputTokensExceeded));
-      expect(StopReason.fromString('STOP_REASON_MAX_OUTPUT_TOKENS_EXCEEDED'),
-          equals(StopReason.maxOutputTokensExceeded));
-      expect(StopReason.fromString('STOP_REASON_MAX_TOTAL_TOKENS_EXCEEDED'),
-          equals(StopReason.maxTotalTokensExceeded));
-      expect(StopReason.fromString('STOP_REASON_QUOTA_EXHAUSTED'),
-          equals(StopReason.quotaExhausted));
-      expect(StopReason.fromString('STOP_REASON_UNSPECIFIED'),
-          equals(StopReason.unspecified));
+        // Proto-prefixed wire strings from localharness
+        expect(
+          StopReason.fromString('STOP_REASON_MAX_MODEL_CALLS_EXCEEDED'),
+          equals(StopReason.maxModelCallsExceeded),
+        );
+        expect(
+          StopReason.fromString('STOP_REASON_MAX_TOOL_CALLS_EXCEEDED'),
+          equals(StopReason.maxToolCallsExceeded),
+        );
+        expect(
+          StopReason.fromString('STOP_REASON_MAX_INPUT_TOKENS_EXCEEDED'),
+          equals(StopReason.maxInputTokensExceeded),
+        );
+        expect(
+          StopReason.fromString('STOP_REASON_MAX_OUTPUT_TOKENS_EXCEEDED'),
+          equals(StopReason.maxOutputTokensExceeded),
+        );
+        expect(
+          StopReason.fromString('STOP_REASON_MAX_TOTAL_TOKENS_EXCEEDED'),
+          equals(StopReason.maxTotalTokensExceeded),
+        );
+        expect(
+          StopReason.fromString('STOP_REASON_QUOTA_EXHAUSTED'),
+          equals(StopReason.quotaExhausted),
+        );
+        expect(
+          StopReason.fromString('STOP_REASON_UNSPECIFIED'),
+          equals(StopReason.unspecified),
+        );
 
-      // Unprefixed strings
-      expect(StopReason.fromString('MAX_MODEL_CALLS_EXCEEDED'),
-          equals(StopReason.maxModelCallsExceeded));
-      expect(StopReason.fromString('MAX_TOOL_CALLS_EXCEEDED'),
-          equals(StopReason.maxToolCallsExceeded));
-      expect(StopReason.fromString('MAX_INPUT_TOKENS_EXCEEDED'),
-          equals(StopReason.maxInputTokensExceeded));
-      expect(StopReason.fromString('MAX_OUTPUT_TOKENS_EXCEEDED'),
-          equals(StopReason.maxOutputTokensExceeded));
-      expect(StopReason.fromString('MAX_TOTAL_TOKENS_EXCEEDED'),
-          equals(StopReason.maxTotalTokensExceeded));
-      expect(StopReason.fromString('QUOTA_EXHAUSTED'),
-          equals(StopReason.quotaExhausted));
-      expect(
-          StopReason.fromString('UNKNOWN_VAL'), equals(StopReason.unspecified));
-    });
+        // Unprefixed strings
+        expect(
+          StopReason.fromString('MAX_MODEL_CALLS_EXCEEDED'),
+          equals(StopReason.maxModelCallsExceeded),
+        );
+        expect(
+          StopReason.fromString('MAX_TOOL_CALLS_EXCEEDED'),
+          equals(StopReason.maxToolCallsExceeded),
+        );
+        expect(
+          StopReason.fromString('MAX_INPUT_TOKENS_EXCEEDED'),
+          equals(StopReason.maxInputTokensExceeded),
+        );
+        expect(
+          StopReason.fromString('MAX_OUTPUT_TOKENS_EXCEEDED'),
+          equals(StopReason.maxOutputTokensExceeded),
+        );
+        expect(
+          StopReason.fromString('MAX_TOTAL_TOKENS_EXCEEDED'),
+          equals(StopReason.maxTotalTokensExceeded),
+        );
+        expect(
+          StopReason.fromString('QUOTA_EXHAUSTED'),
+          equals(StopReason.quotaExhausted),
+        );
+        expect(
+          StopReason.fromString('UNKNOWN_VAL'),
+          equals(StopReason.unspecified),
+        );
+      },
+    );
   });
 
   group('Tool results', () {
@@ -2043,13 +2210,19 @@ void main() {
       expect(BuiltinTools.invokeSubagent.toString(), 'invoke_subagent');
       // ignore: deprecated_member_use_from_same_package
       expect(BuiltinTools.startSubagent, same(BuiltinTools.invokeSubagent));
-      expect(BuiltinTools.fromValue('invoke_subagent'),
-          BuiltinTools.invokeSubagent);
-      expect(BuiltinTools.fromValue('start_subagent'),
-          BuiltinTools.invokeSubagent);
+      expect(
+        BuiltinTools.fromValue('invoke_subagent'),
+        BuiltinTools.invokeSubagent,
+      );
+      expect(
+        BuiltinTools.fromValue('start_subagent'),
+        BuiltinTools.invokeSubagent,
+      );
       expect(() => BuiltinTools.fromValue('unknown_tool'), throwsArgumentError);
       expect(
-          BuiltinTools.nondestructive(), contains(BuiltinTools.invokeSubagent));
+        BuiltinTools.nondestructive(),
+        contains(BuiltinTools.invokeSubagent),
+      );
     });
 
     test('serialized capabilities accept the deprecated start_subagent', () {
@@ -2060,28 +2233,40 @@ void main() {
       final disabled = CapabilitiesConfig.fromMap({
         'disabled_tools': ['start_subagent', 'run_workflow'],
       });
-      expect(disabled.disabledTools,
-          [BuiltinTools.invokeSubagent, BuiltinTools.runWorkflow]);
-      expect(disabled.toMap()['disabled_tools'],
-          ['invoke_subagent', 'run_workflow']);
+      expect(disabled.disabledTools, [
+        BuiltinTools.invokeSubagent,
+        BuiltinTools.runWorkflow,
+      ]);
+      expect(disabled.toMap()['disabled_tools'], [
+        'invoke_subagent',
+        'run_workflow',
+      ]);
       final sub = SubagentCapabilities.fromMap({
         'enabled_tools': ['start_subagent'],
       });
       expect(sub.enabledTools, [BuiltinTools.invokeSubagent]);
     });
 
-    test('ToolCall and ToolResult normalize builtin names but not MCP names',
-        () {
-      expect(ToolCall(name: 'start_subagent').name, 'invoke_subagent');
-      expect(ToolCall(name: 'start_subagent', serverName: 'mcp').name,
-          'start_subagent');
-      expect(ToolResult(name: 'start_subagent').name, 'invoke_subagent');
-      expect(ToolResult(name: 'start_subagent', serverName: 'mcp').name,
-          'start_subagent');
-      expect(
-          ToolCall.fromMap({'name': 'start_subagent'}).name, 'invoke_subagent');
-      expect(ToolCall(name: 'finish').name, 'finish');
-    });
+    test(
+      'ToolCall and ToolResult normalize builtin names but not MCP names',
+      () {
+        expect(ToolCall(name: 'start_subagent').name, 'invoke_subagent');
+        expect(
+          ToolCall(name: 'start_subagent', serverName: 'mcp').name,
+          'start_subagent',
+        );
+        expect(ToolResult(name: 'start_subagent').name, 'invoke_subagent');
+        expect(
+          ToolResult(name: 'start_subagent', serverName: 'mcp').name,
+          'start_subagent',
+        );
+        expect(
+          ToolCall.fromMap({'name': 'start_subagent'}).name,
+          'invoke_subagent',
+        );
+        expect(ToolCall(name: 'finish').name, 'finish');
+      },
+    );
   });
 
   group('Step.fromMap builtin tool steps', () {
@@ -2149,10 +2334,14 @@ void main() {
     test('validates bounds', () {
       expect(GeminiModelOptions().maxOutputTokens, isNull);
       expect(
-          GeminiModelOptions(maxOutputTokens: 262144).maxOutputTokens, 262144);
+        GeminiModelOptions(maxOutputTokens: 262144).maxOutputTokens,
+        262144,
+      );
       for (final invalid in [0, -1, 2147483648]) {
-        expect(() => GeminiModelOptions(maxOutputTokens: invalid),
-            throwsA(isA<AntigravityValidationException>()));
+        expect(
+          () => GeminiModelOptions(maxOutputTokens: invalid),
+          throwsA(isA<AntigravityValidationException>()),
+        );
       }
     });
   });
@@ -2160,19 +2349,24 @@ void main() {
   group('CapabilitiesConfig.mcpMaxOutputBytes', () {
     test('validates bounds and defaults to null', () {
       expect(CapabilitiesConfig().mcpMaxOutputBytes, isNull);
-      expect(CapabilitiesConfig(mcpMaxOutputBytes: 65536).mcpMaxOutputBytes,
-          65536);
+      expect(
+        CapabilitiesConfig(mcpMaxOutputBytes: 65536).mcpMaxOutputBytes,
+        65536,
+      );
       for (final invalid in [0, -1, 2147483648]) {
-        expect(() => CapabilitiesConfig(mcpMaxOutputBytes: invalid),
-            throwsA(isA<AntigravityValidationException>()));
+        expect(
+          () => CapabilitiesConfig(mcpMaxOutputBytes: invalid),
+          throwsA(isA<AntigravityValidationException>()),
+        );
       }
     });
 
     test('serializes as mcp_max_output_bytes', () {
       expect(
-          CapabilitiesConfig(mcpMaxOutputBytes: 65536)
-              .toMap()['mcp_max_output_bytes'],
-          65536);
+        CapabilitiesConfig(mcpMaxOutputBytes: 65536)
+            .toMap()['mcp_max_output_bytes'],
+        65536,
+      );
     });
   });
 }

@@ -11,25 +11,43 @@ part 'step.mapper.dart';
 
 final _logger = Logger('antigravity.step');
 
+/// High-level type of a step.
 @MappableEnum(caseStyle: CaseStyle.upperCase, defaultValue: StepType.unknown)
 enum StepType {
+  /// A text response.
   @MappableValue('TEXT_RESPONSE')
   textResponse('TEXT_RESPONSE'),
+
+  /// A tool call.
   @MappableValue('TOOL_CALL')
   toolCall('TOOL_CALL'),
+
+  /// A system message.
   @MappableValue('SYSTEM_MESSAGE')
   systemMessage('SYSTEM_MESSAGE'),
+
+  /// A context compaction.
   @MappableValue('COMPACTION')
   compaction('COMPACTION'),
+
+  /// A finish step.
   @MappableValue('FINISH')
   finish('FINISH'),
+
+  /// A thinking step.
   @MappableValue('THINKING')
   thinking('THINKING'),
+
+  /// An unrecognized step type.
   unknown('UNKNOWN');
 
+  /// The wire string for this value.
   final String value;
   const StepType(this.value);
 
+  /// Parses a [StepType] from its wire string or Dart enum name.
+  ///
+  /// Returns [StepType.unknown] for unrecognized values.
   static StepType fromString(String val) {
     final res = StepTypeMapper.fromValue(val);
     if (res == StepType.unknown && val != 'UNKNOWN' && val != 'unknown') {
@@ -42,19 +60,31 @@ enum StepType {
   }
 }
 
+/// Source of a step.
 @MappableEnum(caseStyle: CaseStyle.upperCase, defaultValue: StepSource.unknown)
 enum StepSource {
+  /// The system.
   @MappableValue('SYSTEM')
   system('SYSTEM'),
+
+  /// The user.
   @MappableValue('USER')
   user('USER'),
+
+  /// The model.
   @MappableValue('MODEL')
   model('MODEL'),
+
+  /// An unrecognized source.
   unknown('UNKNOWN');
 
+  /// The wire string for this value.
   final String value;
   const StepSource(this.value);
 
+  /// Parses a [StepSource] from its wire string or Dart enum name.
+  ///
+  /// Returns [StepSource.unknown] for unrecognized values.
   static StepSource fromString(String val) {
     final res = StepSourceMapper.fromValue(val);
     if (res == StepSource.unknown && val != 'UNKNOWN' && val != 'unknown') {
@@ -67,19 +97,31 @@ enum StepSource {
   }
 }
 
+/// Target of a step interaction.
 @MappableEnum(caseStyle: CaseStyle.upperCase, defaultValue: StepTarget.unknown)
 enum StepTarget {
+  /// Targets the user.
   @MappableValue('TARGET_USER')
   user('TARGET_USER'),
+
+  /// Targets the environment.
   @MappableValue('TARGET_ENVIRONMENT')
   environment('TARGET_ENVIRONMENT'),
+
+  /// No target specified.
   @MappableValue('TARGET_UNSPECIFIED')
   unspecified('TARGET_UNSPECIFIED'),
+
+  /// An unrecognized target.
   unknown('UNKNOWN');
 
+  /// The wire string for this value.
   final String value;
   const StepTarget(this.value);
 
+  /// Parses a [StepTarget] from its wire string or Dart enum name.
+  ///
+  /// Returns [StepTarget.unknown] for unrecognized values.
   static StepTarget fromString(String val) {
     final res = StepTargetMapper.fromValue(val);
     if (res == StepTarget.unknown && val != 'UNKNOWN' && val != 'unknown') {
@@ -92,23 +134,39 @@ enum StepTarget {
   }
 }
 
+/// Status of a step.
 @MappableEnum(caseStyle: CaseStyle.upperCase, defaultValue: StepStatus.unknown)
 enum StepStatus {
+  /// The step is in progress.
   @MappableValue('ACTIVE')
   active('ACTIVE'),
+
+  /// The step is done.
   @MappableValue('DONE')
   done('DONE'),
+
+  /// The step is waiting for the user.
   @MappableValue('WAITING_FOR_USER')
   waitingForUser('WAITING_FOR_USER'),
+
+  /// The step failed with an error.
   @MappableValue('ERROR')
   error('ERROR'),
+
+  /// The step was canceled.
   @MappableValue('CANCELED')
   canceled('CANCELED'),
+
+  /// An unrecognized status.
   unknown('UNKNOWN');
 
+  /// The wire string for this value.
   final String value;
   const StepStatus(this.value);
 
+  /// Parses a [StepStatus] from its wire string or Dart enum name.
+  ///
+  /// Returns [StepStatus.unknown] for unrecognized values.
   static StepStatus fromString(String val) {
     final res = StepStatusMapper.fromValue(val);
     if (res == StepStatus.unknown && val != 'UNKNOWN' && val != 'unknown') {
@@ -137,13 +195,14 @@ class SandboxStatus with SandboxStatusMappable {
   /// sandbox is available.
   final String? unavailableReason;
 
-  SandboxStatus({
-    required this.available,
-    this.unavailableReason,
-  });
+  /// Creates a [SandboxStatus].
+  SandboxStatus({required this.available, this.unavailableReason});
 
+  /// Decodes a [SandboxStatus] from a map.
   factory SandboxStatus.fromMap(Map<String, dynamic> map) =>
       SandboxStatusMapper.fromMap(map);
+
+  /// Decodes a [SandboxStatus] from a JSON string.
   factory SandboxStatus.fromJson(String json) =>
       SandboxStatusMapper.fromJson(json);
 }
@@ -151,28 +210,62 @@ class SandboxStatus with SandboxStatusMappable {
 /// Experimental metadata for a run_workflow tool step.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class WorkflowProgress with WorkflowProgressMappable {
+  /// The path to the workflow script being executed, when `run_workflow`
+  /// is invoked with a script file path.
   final String scriptPath;
+
+  /// The inline workflow script source, when `run_workflow` is invoked with
+  /// inline source.
   final String script;
+
+  /// A brief description of the workflow run.
   final String description;
+
+  /// The formatted workflow log and result text produced by the script.
   final String output;
-  WorkflowProgress(
-      {this.scriptPath = '',
-      this.script = '',
-      this.description = '',
-      this.output = ''});
+
+  /// Creates a [WorkflowProgress].
+  WorkflowProgress({
+    this.scriptPath = '',
+    this.script = '',
+    this.description = '',
+    this.output = '',
+  });
+
+  /// Decodes a [WorkflowProgress] from a map.
   static const fromMap = WorkflowProgressMapper.fromMap;
+
+  /// Decodes a [WorkflowProgress] from a JSON string.
   static const fromJson = WorkflowProgressMapper.fromJson;
 }
 
+/// Token usage metadata from the model API.
+///
+/// Fields are null when the data is not available (for example, the step
+/// did not involve a model call). A value of 0 means the model explicitly
+/// reported zero tokens for that category.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class UsageMetadata with UsageMetadataMappable {
+  /// The number of tokens in the prompt.
   final int? promptTokenCount;
+
+  /// The number of tokens from cached content, a subset of the prompt
+  /// tokens.
   final int? cachedContentTokenCount;
+
+  /// The number of tokens in the generated candidates, excluding thinking.
   final int? candidatesTokenCount;
+
+  /// The number of tokens used for thinking.
   final int? thoughtsTokenCount;
+
+  /// The sum of prompt, candidates, and thinking tokens.
   final int? totalTokenCount;
+
+  /// The service tier used for inference.
   final ServiceTier? serviceTier;
 
+  /// Creates a [UsageMetadata].
   UsageMetadata({
     this.promptTokenCount,
     this.cachedContentTokenCount,
@@ -182,8 +275,11 @@ class UsageMetadata with UsageMetadataMappable {
     this.serviceTier,
   });
 
+  /// Decodes a [UsageMetadata] from a map.
   factory UsageMetadata.fromMap(Map<String, dynamic> map) =>
       UsageMetadataMapper.fromMap(map);
+
+  /// Decodes a [UsageMetadata] from a JSON string.
   factory UsageMetadata.fromJson(String json) =>
       UsageMetadataMapper.fromJson(json);
 
@@ -192,7 +288,10 @@ class UsageMetadata with UsageMetadataMappable {
     if (other is num && other == 0) return UsageMetadata.fromMap(toMap());
     if (other is! UsageMetadata) {
       throw ArgumentError.value(
-          other, 'other', 'Expected UsageMetadata or numeric zero');
+        other,
+        'other',
+        'Expected UsageMetadata or numeric zero',
+      );
     }
     ServiceTier? mergedTier;
     if (serviceTier == other.serviceTier) {
@@ -220,7 +319,10 @@ class UsageMetadata with UsageMetadataMappable {
     if (other is num && other == 0) return UsageMetadata.fromMap(toMap());
     if (other is! UsageMetadata) {
       throw ArgumentError.value(
-          other, 'other', 'Expected UsageMetadata or numeric zero');
+        other,
+        'other',
+        'Expected UsageMetadata or numeric zero',
+      );
     }
     return UsageMetadata(
       promptTokenCount: (promptTokenCount ?? 0) - (other.promptTokenCount ?? 0),
@@ -267,8 +369,9 @@ class UsageMetadata with UsageMetadataMappable {
       thoughtsTokenCount: thoughtsTokenCount != null
           ? (thoughtsTokenCount! * factor).round()
           : null,
-      totalTokenCount:
-          totalTokenCount != null ? (totalTokenCount! * factor).round() : null,
+      totalTokenCount: totalTokenCount != null
+          ? (totalTokenCount! * factor).round()
+          : null,
       serviceTier: serviceTier,
     );
   }
@@ -344,6 +447,7 @@ class Step with StepMappable {
   )
   final UsageMetadata? usageMetadata;
 
+  /// Creates a [Step].
   Step({
     this.id = '',
     this.stepIndex = 0,
@@ -367,6 +471,9 @@ class Step with StepMappable {
     this.usageMetadata,
   });
 
+  /// Decodes a [Step] from a map.
+  ///
+  /// Normalizes the raw wire map before decoding.
   factory Step.fromMap(Map<String, dynamic> map) {
     final updatedMap = _normalizeStepKeys(map);
     _normalizeContentFields(updatedMap);
@@ -377,7 +484,8 @@ class Step with StepMappable {
     if (workflow is Map) {
       final progress = <String, dynamic>{};
       for (final key in ['script_path', 'script', 'description', 'output']) {
-        final value = workflow[key] ??
+        final value =
+            workflow[key] ??
             (key == 'script_path' ? workflow['scriptPath'] : null);
         progress[key] = value is String ? value : '';
       }
@@ -433,10 +541,10 @@ class Step with StepMappable {
       final err = map['error'];
       map['error'] = err is Map
           ? (err['error_message'] ??
-                  err['errorMessage'] ??
-                  map['error_message'] ??
-                  '')
-              .toString()
+                    err['errorMessage'] ??
+                    map['error_message'] ??
+                    '')
+                .toString()
           : err.toString();
     } else if (map.containsKey('error_message')) {
       map['error'] = map['error_message'];
@@ -471,8 +579,9 @@ class Step with StepMappable {
     raw.forEach((k, v) {
       if (v != null) {
         final snakeKey = _toSnakeCase(k.toString());
-        normalized[snakeKey] =
-            v is num ? v.toInt() : int.tryParse(v.toString());
+        normalized[snakeKey] = v is num
+            ? v.toInt()
+            : int.tryParse(v.toString());
       }
     });
     map['usage_metadata'] = normalized;
@@ -496,7 +605,8 @@ class Step with StepMappable {
   };
 
   static List<Map<String, dynamic>> _extractToolCalls(
-      Map<String, dynamic> map) {
+    Map<String, dynamic> map,
+  ) {
     final singleCall = _extractSingleActiveTool(map);
     if (singleCall != null) {
       return [singleCall];
@@ -509,7 +619,8 @@ class Step with StepMappable {
   }
 
   static Map<String, dynamic>? _extractSingleActiveTool(
-      Map<String, dynamic> map) {
+    Map<String, dynamic> map,
+  ) {
     final detected =
         _findBuiltinTool(map) ?? _findMcpTool(map) ?? _findCustomTool(map);
 
@@ -537,10 +648,9 @@ class Step with StepMappable {
     String name,
     Map<String, dynamic> args,
     String? serverName,
-    String? id
-  })? _findBuiltinTool(
-    Map<String, dynamic> map,
-  ) {
+    String? id,
+  })?
+  _findBuiltinTool(Map<String, dynamic> map) {
     for (final entry in _toolFields.entries) {
       final protoField = entry.key;
       final camel = _toCamelCase(protoField);
@@ -564,18 +674,17 @@ class Step with StepMappable {
     String name,
     Map<String, dynamic> args,
     String? serverName,
-    String? id
-  })? _findMcpTool(
-    Map<String, dynamic> map,
-  ) {
+    String? id,
+  })?
+  _findMcpTool(Map<String, dynamic> map) {
     final mcpKey = map.containsKey('mcp_tool')
         ? 'mcp_tool'
         : (map.containsKey('mcpTool') ? 'mcpTool' : null);
     if (mcpKey == null || map[mcpKey] is! Map) return null;
 
     final dict = Map<String, dynamic>.from(map[mcpKey] as Map);
-    final serverName =
-        (dict['server_name'] ?? dict['serverName'] ?? '').toString();
+    final serverName = (dict['server_name'] ?? dict['serverName'] ?? '')
+        .toString();
     final toolName = (dict['tool_name'] ?? dict['toolName'] ?? '').toString();
     final argsJson = dict['arguments_json'] ?? dict['argumentsJson'] ?? '{}';
     final args = _decodeToolArguments(argsJson);
@@ -587,10 +696,9 @@ class Step with StepMappable {
     String name,
     Map<String, dynamic> args,
     String? serverName,
-    String? id
-  })? _findCustomTool(
-    Map<String, dynamic> map,
-  ) {
+    String? id,
+  })?
+  _findCustomTool(Map<String, dynamic> map) {
     final customKey = map.containsKey('custom_tool')
         ? 'custom_tool'
         : (map.containsKey('customTool') ? 'customTool' : null);
@@ -614,7 +722,7 @@ class Step with StepMappable {
       name: name,
       args: args,
       serverName: null,
-      id: tcDict['id']?.toString()
+      id: tcDict['id']?.toString(),
     );
   }
 
@@ -664,7 +772,8 @@ class Step with StepMappable {
       if (rawCall is! Map) continue;
       final callMap = Map<String, dynamic>.from(rawCall);
       final args = _decodeToolArguments(
-          callMap['arguments_json'] ?? callMap['arguments']);
+        callMap['arguments_json'] ?? callMap['arguments'],
+      );
       final canonicalPath =
           _normalizeToolPathArgs(args) ?? callMap['canonical_path']?.toString();
 
@@ -734,6 +843,7 @@ class Step with StepMappable {
     return snake.replaceAllMapped(exp, (m) => m.group(1)!.toUpperCase());
   }
 
+  /// Decodes a [Step] from a JSON string.
   factory Step.fromJson(String json) => StepMapper.fromJson(json);
 }
 

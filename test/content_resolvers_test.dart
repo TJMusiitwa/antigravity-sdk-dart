@@ -13,20 +13,27 @@
 // limitations under the License.
 
 import 'dart:io';
+
 import 'package:antigravity/antigravity.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('MediaContent.fromBytes and MediaContent.fromFile statics', () {
     test('fromBytes resolves image, document, audio, and video types', () {
-      final img = MediaContent.fromBytes([1, 2, 3], 'image/png',
-          description: 'Sample PNG');
+      final img = MediaContent.fromBytes(
+        [1, 2, 3],
+        'image/png',
+        description: 'Sample PNG',
+      );
       expect(img, isA<Image>());
       expect(img.mimeType, equals('image/png'));
       expect(img.description, equals('Sample PNG'));
 
-      final doc = MediaContent.fromBytes([4, 5, 6], 'application/pdf',
-          description: 'Report');
+      final doc = MediaContent.fromBytes(
+        [4, 5, 6],
+        'application/pdf',
+        description: 'Report',
+      );
       expect(doc, isA<Document>());
       expect(doc.mimeType, equals('application/pdf'));
 
@@ -47,13 +54,16 @@ void main() {
     });
 
     test('fromFile resolves file based on extension and path', () {
-      final tempDir =
-          Directory.systemTemp.createTempSync('antigravity_content_test');
+      final tempDir = Directory.systemTemp.createTempSync(
+        'antigravity_content_test',
+      );
       try {
         final imgFile = File('${tempDir.path}/test.png')
           ..writeAsBytesSync([1, 2, 3]);
-        final media =
-            MediaContent.fromFile(imgFile.path, description: 'Local image');
+        final media = MediaContent.fromFile(
+          imgFile.path,
+          description: 'Local image',
+        );
         expect(media, isA<Image>());
         expect(media.mimeType, equals('image/png'));
         expect(media.description, equals('Local image'));

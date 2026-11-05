@@ -178,7 +178,10 @@ class LocalHarnessProto {
   }
 
   static void _skipUnknownWireField(
-      List<int> bytes, List<int> indexRef, int wireType) {
+    List<int> bytes,
+    List<int> indexRef,
+    int wireType,
+  ) {
     switch (wireType) {
       case 0:
         decodeVarint(bytes, indexRef);

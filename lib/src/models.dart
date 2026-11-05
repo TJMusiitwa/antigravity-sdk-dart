@@ -26,18 +26,31 @@ const String defaultImageGenerationModel = 'gemini-3.1-flash-lite-image';
 /// See https://ai.google.dev/gemini-api/docs/thinking#thinking-levels for details.
 @MappableEnum(defaultValue: ThinkingLevel.minimal)
 enum ThinkingLevel {
+  /// Minimal thinking.
   minimal('minimal'),
+
+  /// Low thinking.
   low('low'),
+
+  /// Medium thinking.
   medium('medium'),
+
+  /// High thinking.
   high('high'),
 
   /// Enables the highest reasoning capability level on compatible models.
   @MappableValue('extra_high')
   extraHigh('extra_high');
 
+  /// The wire value of this level.
   final String value;
+
+  /// Creates a [ThinkingLevel] with the given wire [value].
   const ThinkingLevel(this.value);
 
+  /// Returns the [ThinkingLevel] whose wire value is [val].
+  ///
+  /// Returns [ThinkingLevel.minimal] if [val] is not recognized.
   static ThinkingLevel fromString(String val) {
     try {
       return ThinkingLevelMapper.fromValue(val);
@@ -53,13 +66,24 @@ enum ThinkingLevel {
 /// See https://ai.google.dev/gemini-api/docs/priority-inference for details.
 @MappableEnum(defaultValue: ServiceTier.standard)
 enum ServiceTier {
+  /// Standard processing tier.
   standard('standard'),
+
+  /// Prioritized inference tier.
   priority('priority'),
+
+  /// Flex processing tier.
   flex('flex');
 
+  /// The wire value of this tier.
   final String value;
+
+  /// Creates a [ServiceTier] with the given wire [value].
   const ServiceTier(this.value);
 
+  /// Returns the [ServiceTier] whose wire value is [val].
+  ///
+  /// Returns [ServiceTier.standard] if [val] is not recognized.
   static ServiceTier fromString(String val) {
     try {
       return ServiceTierMapper.fromValue(val);
@@ -72,10 +96,16 @@ enum ServiceTier {
 /// Discriminator for model purpose.
 @MappableEnum()
 enum ModelType {
+  /// A text generation model.
   text('text'),
+
+  /// An image generation model.
   image('image');
 
+  /// The wire value of this model type.
   final String value;
+
+  /// Creates a [ModelType] with the given wire [value].
   const ModelType(this.value);
 }
 
@@ -86,12 +116,19 @@ enum ModelType {
   ignoreNull: true,
 )
 abstract class ModelEndpoint with ModelEndpointMappable {
+  /// Custom base URL for the model API, or null for the default.
+  ///
+  /// When set, [validateEndpoint] skips credential checks.
   final String? baseUrl;
+
+  /// Extra HTTP headers sent with model requests.
   final Map<String, String>? httpHeaders;
 
   /// Returns the base URL as a strongly-typed Dart [Uri].
   Uri? get baseUri => baseUrl != null ? Uri.tryParse(baseUrl!) : null;
 
+  /// Creates a [ModelEndpoint] with an optional [baseUrl] and
+  /// [httpHeaders].
   ModelEndpoint({this.baseUrl, this.httpHeaders});
 
   /// Validates the configuration of the endpoint.
@@ -104,7 +141,10 @@ const int maxGeminiOutputTokens = 2147483647;
 /// Gemini-specific model options.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class GeminiModelOptions with GeminiModelOptionsMappable {
+  /// Thinking level for models that support extended thinking.
   final ThinkingLevel? thinkingLevel;
+
+  /// Service tier for inference.
   final ServiceTier? serviceTier;
 
   /// Maximum number of output tokens the model may generate per step.
@@ -114,6 +154,10 @@ class GeminiModelOptions with GeminiModelOptionsMappable {
   /// than 64k tokens.
   final int? maxOutputTokens;
 
+  /// Creates [GeminiModelOptions].
+  ///
+  /// Throws an [AntigravityValidationException] if [maxOutputTokens] is
+  /// outside `(0, 2147483647]`.
   GeminiModelOptions({
     this.thinkingLevel,
     this.serviceTier,
@@ -136,9 +180,16 @@ class GeminiModelOptions with GeminiModelOptionsMappable {
   ignoreNull: true,
 )
 class GeminiAPIEndpoint extends ModelEndpoint with GeminiAPIEndpointMappable {
+  /// Gemini API key.
+  ///
+  /// When null, the `GEMINI_API_KEY` environment variable must be set unless
+  /// [baseUrl] is given.
   final String? apiKey;
+
+  /// Gemini-specific model options.
   final GeminiModelOptions? options;
 
+  /// Creates a [GeminiAPIEndpoint].
   GeminiAPIEndpoint({
     super.baseUrl,
     super.httpHeaders,
@@ -168,9 +219,16 @@ class GeminiAPIEndpoint extends ModelEndpoint with GeminiAPIEndpointMappable {
   ignoreNull: true,
 )
 class VertexEndpoint extends ModelEndpoint with VertexEndpointMappable {
+  /// Google Cloud project ID for Standard Mode.
   final String? project;
+
+  /// Google Cloud location for Standard Mode.
   final String? location;
+
+  /// API key for Vertex AI Express Mode.
   final String? apiKey;
+
+  /// Gemini-specific model options.
   final GeminiModelOptions? options;
 
   /// Creates a new [VertexEndpoint] targeting Google Vertex AI.
@@ -186,16 +244,16 @@ class VertexEndpoint extends ModelEndpoint with VertexEndpointMappable {
     String? location,
     this.apiKey,
     this.options,
-  })  : project = (baseUrl != null && baseUrl.isNotEmpty)
-            ? project
-            : ((apiKey == null || apiKey.isEmpty)
-                ? (project ?? Platform.environment['GOOGLE_CLOUD_PROJECT'])
-                : project),
-        location = (baseUrl != null && baseUrl.isNotEmpty)
-            ? location
-            : ((apiKey == null || apiKey.isEmpty)
-                ? (location ?? Platform.environment['GOOGLE_CLOUD_LOCATION'])
-                : location);
+  }) : project = (baseUrl != null && baseUrl.isNotEmpty)
+           ? project
+           : ((apiKey == null || apiKey.isEmpty)
+                 ? (project ?? Platform.environment['GOOGLE_CLOUD_PROJECT'])
+                 : project),
+       location = (baseUrl != null && baseUrl.isNotEmpty)
+           ? location
+           : ((apiKey == null || apiKey.isEmpty)
+                 ? (location ?? Platform.environment['GOOGLE_CLOUD_LOCATION'])
+                 : location);
 
   @override
   void validateEndpoint() {
@@ -203,9 +261,11 @@ class VertexEndpoint extends ModelEndpoint with VertexEndpointMappable {
       return; // External API, validation is done by the external API.
     }
 
-    final hasRegionalAuth = (project != null && project!.isNotEmpty) &&
+    final hasRegionalAuth =
+        (project != null && project!.isNotEmpty) &&
         (location != null && location!.isNotEmpty);
-    final hasAnyRegionalArg = (project != null && project!.isNotEmpty) ||
+    final hasAnyRegionalArg =
+        (project != null && project!.isNotEmpty) ||
         (location != null && location!.isNotEmpty);
     final hasExpressAuth = apiKey != null && apiKey!.isNotEmpty;
 
@@ -226,10 +286,18 @@ class VertexEndpoint extends ModelEndpoint with VertexEndpointMappable {
 /// Configuration for a single model.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class ModelTarget with ModelTargetMappable {
+  /// Model name, such as [defaultModel].
   final String? name;
+
+  /// Purposes this model serves. Defaults to `[ModelType.text]`.
   final List<ModelType> types;
+
+  /// Endpoint used to reach the model.
   ModelEndpoint? endpoint;
 
+  /// Creates a [ModelTarget].
+  ///
+  /// [types] defaults to `[ModelType.text]` when null.
   ModelTarget({this.name, List<ModelType>? types, this.endpoint})
-      : types = types ?? [ModelType.text];
+    : types = types ?? [ModelType.text];
 }

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:antigravity/src/connections/local/local_connection.dart';
+import 'package:antigravity/src/connections/local/litert_server_python.dart';
 import 'package:antigravity/src/connections/local/local_connection_config.dart';
 import 'package:antigravity/src/hooks/hooks.dart';
 import 'package:antigravity/src/tools/tool_runner.dart';
@@ -42,8 +43,10 @@ void main() {
       final modelCfg = config['models'].last as Map<String, dynamic>;
       expect(modelCfg['name'], equals('gemma-2'));
       expect(modelCfg['types'], contains('MODEL_TYPE_TEXT'));
-      expect(modelCfg['gemma_endpoint']['base_url'],
-          equals('http://localhost:11434/v1'));
+      expect(
+        modelCfg['gemma_endpoint']['base_url'],
+        equals('http://localhost:11434/v1'),
+      );
     });
   });
 
@@ -67,8 +70,11 @@ void main() {
 
   group('extractMediaFromResult', () {
     test('extracts media from single MediaContent', () {
-      final img =
-          Image(mimeType: 'image/png', description: 'test', data: [1, 2, 3]);
+      final img = Image(
+        mimeType: 'image/png',
+        description: 'test',
+        data: [1, 2, 3],
+      );
       final extracted = extractMediaFromResult(img);
       expect(extracted.cleanedValue, isNull);
       expect(extracted.media, hasLength(1));
@@ -76,8 +82,11 @@ void main() {
     });
 
     test('extracts media recursively from List', () {
-      final img =
-          Image(mimeType: 'image/png', description: 'test', data: [1, 2, 3]);
+      final img = Image(
+        mimeType: 'image/png',
+        description: 'test',
+        data: [1, 2, 3],
+      );
       final list = ['hello', img, 'world'];
       final extracted = extractMediaFromResult(list);
       expect(extracted.cleanedValue, equals(['hello', 'world']));
@@ -86,8 +95,11 @@ void main() {
     });
 
     test('extracts media recursively from Map', () {
-      final img =
-          Image(mimeType: 'image/png', description: 'test', data: [1, 2, 3]);
+      final img = Image(
+        mimeType: 'image/png',
+        description: 'test',
+        data: [1, 2, 3],
+      );
       final map = {'msg': 'hello', 'attachment': img};
       final extracted = extractMediaFromResult(map);
       expect(extracted.cleanedValue, equals({'msg': 'hello'}));
@@ -106,6 +118,35 @@ void main() {
     test('default capabilities is enabled and has standard config', () {
       final config = LocalAgentConfig();
       expect(config.capabilities.enabledTools, isNull);
+    });
+  });
+
+  group('litertServerPythonScript', () {
+    test('caches the LiteRT conversation across turns', () {
+      const script = litertServerPythonScript;
+      expect(script, contains('def _get_or_create_conversation('));
+      expect(script, contains('def close_conversation(self) -> None:'));
+      expect(
+        script,
+        contains('_CONVERSATION_CACHE_SERVER_ATTRS: tuple[str, ...] = ('),
+      );
+      // Consecutive tool messages are merged into one tool turn.
+      expect(script, contains('pending_tool_responses.append('));
+    });
+
+    test('launcher reports its port and closes the conversation on exit', () {
+      const script = litertServerPythonScript;
+      expect(script, contains('if __name__ == "__main__":'));
+      expect(script, contains('print(f"LITERT_SERVER_PORT:{addr[1]}"'));
+      expect(
+        script,
+        contains(
+          '    finally:\n'
+          '      with server.engine_lock:\n'
+          '        server.close_conversation()',
+        ),
+      );
+      expect(script, isNot(contains("'''")));
     });
   });
 }

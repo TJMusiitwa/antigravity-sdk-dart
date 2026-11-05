@@ -94,14 +94,22 @@ String interactionsStepId(String trajectoryId, int stepIndex) =>
 
 /// A question elicitation parsed from an `elicitation_call` step.
 class ParsedElicitation {
+  /// The elicitation ID, used as the call ID when answering.
   final String elicitationId;
 
   /// The question batch this elicitation belongs to.
   final String groupKey;
+
+  /// The trajectory that issued the elicitation.
   final String trajectoryId;
+
+  /// The index of the `elicitation_call` step within its trajectory.
   final int stepIndex;
+
+  /// The question and its answer options.
   final AskQuestionEntry question;
 
+  /// Creates a parsed elicitation.
   ParsedElicitation({
     required this.elicitationId,
     required this.groupKey,
@@ -113,13 +121,25 @@ class ParsedElicitation {
 
 /// The outcome of assembling one `step.*` event.
 class StepAssemblyResult {
+  /// The step to emit, or null if the event produced no step.
   final Step? step;
+
+  /// Whether to dispatch pre-step hooks for [step].
   final bool dispatchPre;
+
+  /// Whether to dispatch post-step hooks for [step].
   final bool dispatchPost;
+
+  /// Token usage reported by a `step.stop` event, if any.
   final UsageMetadata? stepUsage;
+
+  /// The trajectory the event belongs to.
   final String trajectoryId;
+
+  /// The question elicitation parsed from the step, if any.
   final ParsedElicitation? elicitation;
 
+  /// Creates an assembly result.
   StepAssemblyResult({
     this.step,
     this.dispatchPre = false,
@@ -231,7 +251,8 @@ String extractTextFromContent(dynamic content) {
 }
 
 ({Map<String, dynamic> args, String? canonicalPath}) _normalizeToolArgs(
-    Map<String, dynamic> args) {
+  Map<String, dynamic> args,
+) {
   final normalized = Map<String, dynamic>.from(args);
   String? canonicalPath;
   for (final key in wirePathArgumentKeys) {
@@ -256,7 +277,10 @@ String extractTextFromContent(dynamic content) {
 /// Builtin wire names (e.g. `invoke_subagent`) are mapped through
 /// [protoFieldToSdkName]; MCP tool names are kept verbatim.
 String _resolveDefaultToolName(
-    String kind, String subtype, Map<String, dynamic> stepMap) {
+  String kind,
+  String subtype,
+  Map<String, dynamic> stepMap,
+) {
   final name = _stringValue(stepMap['name']);
   if (name.isNotEmpty) {
     return kind == 'mcp_server_tool' ? name : protoFieldToSdkName[name] ?? name;
@@ -291,10 +315,12 @@ ParsedElicitation? _parseElicitationCall(
       final choice = choices[i];
       if (choice is! Map) continue;
       final label = _stringValue(choice['label']);
-      options.add(AskQuestionOption(
-        id: label.isEmpty ? '${i + 1}' : label,
-        text: extractTextFromContent(choice['display'] ?? const []),
-      ));
+      options.add(
+        AskQuestionOption(
+          id: label.isEmpty ? '${i + 1}' : label,
+          text: extractTextFromContent(choice['display'] ?? const []),
+        ),
+      );
     }
   }
   return ParsedElicitation(
@@ -319,8 +345,8 @@ class InteractionsStepAssembler {
   final Map<(String, String), Queue<ToolCall>> _pendingCallsByKind = {};
   final Map<String, String> _parentTrajectories = {};
 
-  InteractionsStepAssembler({String rootInteractionId = ''})
-      : _rootInteractionId = rootInteractionId;
+  /// Creates an assembler for the main trajectory [rootInteractionId].
+  InteractionsStepAssembler({this._rootInteractionId = ''});
 
   /// The root interaction (main trajectory) ID.
   String get rootInteractionId => _rootInteractionId;
@@ -338,7 +364,8 @@ class InteractionsStepAssembler {
   }
 
   ({String trajectoryId, String parentId, int depth}) _resolveTrajectory(
-      Map<String, dynamic> event) {
+    Map<String, dynamic> event,
+  ) {
     final subId = _stringValue(event['sub_interaction_id']);
     if (subId.isEmpty || subId == _rootInteractionId) {
       return (trajectoryId: _rootInteractionId, parentId: '', depth: 0);
@@ -380,25 +407,26 @@ class InteractionsStepAssembler {
       String errorMessage = '',
       bool isToolCallStep = false,
       bool isToolResultStep = false,
-    }) =>
-        _store(_StepState(
-          trajectoryId: traj.trajectoryId,
-          parentTrajectoryId: traj.parentId,
-          depth: traj.depth,
-          stepIndex: index,
-          subtype: subtype,
-          type: type,
-          source: source,
-          target: target,
-          description: description,
-          content: content,
-          thinking: thinking,
-          toolCalls: toolCalls,
-          isError: isError,
-          errorMessage: errorMessage,
-          isToolCallStep: isToolCallStep,
-          isToolResultStep: isToolResultStep,
-        ));
+    }) => _store(
+      _StepState(
+        trajectoryId: traj.trajectoryId,
+        parentTrajectoryId: traj.parentId,
+        depth: traj.depth,
+        stepIndex: index,
+        subtype: subtype,
+        type: type,
+        source: source,
+        target: target,
+        description: description,
+        content: content,
+        thinking: thinking,
+        toolCalls: toolCalls,
+        isError: isError,
+        errorMessage: errorMessage,
+        isToolCallStep: isToolCallStep,
+        isToolResultStep: isToolResultStep,
+      ),
+    );
 
     StepAssemblyResult started(
       _StepState state, {
@@ -406,16 +434,17 @@ class InteractionsStepAssembler {
       String contentDelta = '',
       String thinkingDelta = '',
       ParsedElicitation? elicitation,
-    }) =>
-        StepAssemblyResult(
-          step: _buildStep(state,
-              status: status,
-              contentDelta: contentDelta,
-              thinkingDelta: thinkingDelta),
-          dispatchPre: true,
-          trajectoryId: traj.trajectoryId,
-          elicitation: elicitation,
-        );
+    }) => StepAssemblyResult(
+      step: _buildStep(
+        state,
+        status: status,
+        contentDelta: contentDelta,
+        thinkingDelta: thinkingDelta,
+      ),
+      dispatchPre: true,
+      trajectoryId: traj.trajectoryId,
+      elicitation: elicitation,
+    );
 
     final stepId = interactionsStepId(traj.trajectoryId, index);
     switch (subtype) {
@@ -434,14 +463,16 @@ class InteractionsStepAssembler {
       case 'model_output':
         final text = extractTextFromContent(stepMap['content'] ?? const []);
         final state = newState(
-          type:
-              description == 'Finish' ? StepType.finish : StepType.textResponse,
+          type: description == 'Finish'
+              ? StepType.finish
+              : StepType.textResponse,
           content: text,
         );
         return started(state, contentDelta: text);
       case 'compaction':
-        final text =
-            description.isNotEmpty ? description : 'Context compaction';
+        final text = description.isNotEmpty
+            ? description
+            : 'Context compaction';
         final state = newState(
           type: StepType.compaction,
           source: StepSource.system,
@@ -449,8 +480,11 @@ class InteractionsStepAssembler {
         );
         return started(state);
       case 'elicitation_call':
-        final elicitation =
-            _parseElicitationCall(stepMap, traj.trajectoryId, index);
+        final elicitation = _parseElicitationCall(
+          stepMap,
+          traj.trajectoryId,
+          index,
+        );
         final callId = elicitation?.elicitationId ?? stepId;
         final call = ToolCall(
           name: BuiltinTools.askQuestion.value,
@@ -467,12 +501,16 @@ class InteractionsStepAssembler {
           toolCalls: [call],
           isToolCallStep: true,
         );
-        return started(state,
-            status: StepStatus.waitingForUser, elicitation: elicitation);
+        return started(
+          state,
+          status: StepStatus.waitingForUser,
+          elicitation: elicitation,
+        );
       case 'elicitation_result':
         final id = _stringValue(stepMap['elicitation_id']);
         final callId = id.isEmpty ? stepId : id;
-        final call = (id.isEmpty ? null : _pendingCallsById.remove(id)) ??
+        final call =
+            (id.isEmpty ? null : _pendingCallsById.remove(id)) ??
             ToolCall(
               name: BuiltinTools.askQuestion.value,
               args: {},
@@ -491,10 +529,15 @@ class InteractionsStepAssembler {
     final callKind = _callToResultKind[subtype];
     if (callKind != null) {
       final call = _buildToolCallFromCallStep(
-          subtype, stepMap, traj.trajectoryId, index);
+        subtype,
+        stepMap,
+        traj.trajectoryId,
+        index,
+      );
       if (call.id?.isNotEmpty ?? false) _pendingCallsById[call.id!] = call;
       _pendingCallsByKind
-          .putIfAbsent((traj.trajectoryId, callKind), Queue.new).add(call);
+          .putIfAbsent((traj.trajectoryId, callKind), Queue.new)
+          .add(call);
       final state = newState(
         type: StepType.toolCall,
         target: StepTarget.environment,
@@ -507,7 +550,11 @@ class InteractionsStepAssembler {
 
     if (_resultToCallKind.containsKey(subtype)) {
       final resolved = _resolveToolResultFromResultStep(
-          subtype, stepMap, traj.trajectoryId, index);
+        subtype,
+        stepMap,
+        traj.trajectoryId,
+        index,
+      );
       newState(
         type: StepType.toolCall,
         target: StepTarget.environment,
@@ -539,16 +586,18 @@ class InteractionsStepAssembler {
 
     var state = _steps[(traj.trajectoryId, index)];
     final dispatchPre = state == null;
-    state ??= _store(_StepState(
-      trajectoryId: traj.trajectoryId,
-      parentTrajectoryId: traj.parentId,
-      depth: traj.depth,
-      stepIndex: index,
-      subtype: isThoughtDelta ? 'thought' : 'model_output',
-      type: isThoughtDelta ? StepType.thinking : StepType.textResponse,
-      source: StepSource.model,
-      target: StepTarget.user,
-    ));
+    state ??= _store(
+      _StepState(
+        trajectoryId: traj.trajectoryId,
+        parentTrajectoryId: traj.parentId,
+        depth: traj.depth,
+        stepIndex: index,
+        subtype: isThoughtDelta ? 'thought' : 'model_output',
+        type: isThoughtDelta ? StepType.thinking : StepType.textResponse,
+        source: StepSource.model,
+        target: StepTarget.user,
+      ),
+    );
 
     if (isThoughtDelta ||
         (state.type == StepType.thinking && deltaType != 'text')) {
@@ -579,7 +628,8 @@ class InteractionsStepAssembler {
     final traj = _resolveTrajectory(event);
     final index = _intValue(event['index']);
     final usage = parseInteractionUsage(event['usage']);
-    final state = _steps[(traj.trajectoryId, index)] ??
+    final state =
+        _steps[(traj.trajectoryId, index)] ??
         _StepState(
           trajectoryId: traj.trajectoryId,
           parentTrajectoryId: traj.parentId,
@@ -596,7 +646,9 @@ class InteractionsStepAssembler {
     // call step itself is not emitted again.
     if (state.isToolCallStep) {
       return StepAssemblyResult(
-          stepUsage: usage, trajectoryId: traj.trajectoryId);
+        stepUsage: usage,
+        trajectoryId: traj.trajectoryId,
+      );
     }
 
     if (state.subtype == 'model_output' &&
@@ -606,8 +658,10 @@ class InteractionsStepAssembler {
       state.type = StepType.unknown;
     }
     return StepAssemblyResult(
-      step: _buildStep(state,
-          status: state.isError ? StepStatus.error : StepStatus.done),
+      step: _buildStep(
+        state,
+        status: state.isError ? StepStatus.error : StepStatus.done,
+      ),
       dispatchPost: true,
       stepUsage: usage,
       trajectoryId: traj.trajectoryId,
@@ -647,7 +701,8 @@ class InteractionsStepAssembler {
       toolCalls: List.of(state.toolCalls),
       error: state.errorMessage,
       structuredOutput: structuredOutput,
-      isCompleteResponse: state.source == StepSource.model &&
+      isCompleteResponse:
+          state.source == StepSource.model &&
           status == StepStatus.done &&
           state.content.isNotEmpty &&
           state.target == StepTarget.user &&
@@ -690,8 +745,9 @@ class InteractionsStepAssembler {
         rawArgs.putIfAbsent('url', () => urls.firstOrNull ?? '');
       case 'skill_lookup_call':
         rawArgs.putIfAbsent('operation', () => '');
-        rawArgs['requested_skill_names'] =
-            _listValue(rawArgs['requested_skill_names']);
+        rawArgs['requested_skill_names'] = _listValue(
+          rawArgs['requested_skill_names'],
+        );
     }
 
     final normalized = _normalizeToolArgs(rawArgs);
@@ -707,7 +763,7 @@ class InteractionsStepAssembler {
   }
 
   ({ToolCall call, bool isError, String errorMessage, String summary})
-      _resolveToolResultFromResultStep(
+  _resolveToolResultFromResultStep(
     String subtype,
     Map<String, dynamic> stepMap,
     String trajectoryId,
@@ -745,8 +801,9 @@ class InteractionsStepAssembler {
       case 'function_result':
         final result = stepMap['result'];
         if (isError) {
-          errorMessage =
-              result == null ? 'Tool execution failed' : result.toString();
+          errorMessage = result == null
+              ? 'Tool execution failed'
+              : result.toString();
         } else if (result is String) {
           summary = result;
         }

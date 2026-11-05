@@ -1,6 +1,9 @@
 /// Base connection exception for Google Antigravity SDK.
 class AntigravityConnectionException implements Exception {
+  /// Description of the error.
   final String message;
+
+  /// Creates an [AntigravityConnectionException] with [message].
   AntigravityConnectionException(this.message);
 
   @override
@@ -16,6 +19,8 @@ class AntigravityValidationException implements Exception, ArgumentError {
   @override
   final String? name;
 
+  /// Creates an [AntigravityValidationException] with [message] and an
+  /// optional [invalidValue] and argument [name].
   AntigravityValidationException(this.message, {this.invalidValue, this.name});
 
   @override
@@ -27,7 +32,10 @@ class AntigravityValidationException implements Exception, ArgumentError {
 
 /// Exception thrown when an active turn is cancelled programmatically.
 class AntigravityCancelledException implements Exception {
+  /// Description of the cancellation.
   final String message;
+
+  /// Creates an [AntigravityCancelledException] with an optional [message].
   AntigravityCancelledException([
     this.message = 'The request was cancelled by the client.',
   ]);
@@ -38,7 +46,10 @@ class AntigravityCancelledException implements Exception {
 
 /// Exception thrown when the agent execution encounters a terminal error.
 class AntigravityExecutionException implements Exception {
+  /// Description of the error.
   final String message;
+
+  /// Creates an [AntigravityExecutionException] with [message].
   AntigravityExecutionException(this.message);
 
   @override
@@ -62,6 +73,7 @@ class ToolExecutionException implements Exception {
   /// The optional trajectory step correlation ID.
   final String? stepId;
 
+  /// Creates a [ToolExecutionException] with [message] and tool metadata.
   ToolExecutionException(
     this.message, {
     this.toolName = '',

@@ -13,41 +13,68 @@ const int _maxInt32 = 2147483647; // 2^31 - 1
 /// Identifiers for common connection-provided builtin tools.
 @MappableEnum()
 enum BuiltinTools {
+  /// List directory contents. Deprecated and disabled by default.
   @MappableValue('list_directory')
   listDirectory('list_directory'),
+
+  /// Search within directories (grep). Deprecated and disabled by default.
   @MappableValue('search_directory')
   searchDirectory('search_directory'),
+
+  /// Find files by name within a directory. Deprecated and disabled by
+  /// default.
   @MappableValue('find_file')
   findFile('find_file'),
+
+  /// View file contents.
   @MappableValue('view_file')
   viewFile('view_file'),
+
+  /// Create a new file.
   @MappableValue('create_file')
   createFile('create_file'),
+
+  /// Edit an existing file.
   @MappableValue('edit_file')
   editFile('edit_file'),
+
+  /// Execute a shell command.
   @MappableValue('run_command')
   runCommand('run_command'),
+
+  /// Ask the user a clarifying question.
   @MappableValue('ask_question')
   askQuestion('ask_question'),
 
   /// Invoke a subagent.
   @MappableValue('invoke_subagent')
   invokeSubagent('invoke_subagent'),
+
+  /// Execute a multi-agent workflow script.
   @MappableValue('run_workflow')
   runWorkflow('run_workflow'),
+
+  /// Generate or edit images.
   @MappableValue('generate_image')
   generateImage('generate_image'),
+
+  /// Search the web.
   @MappableValue('search_web')
   searchWeb('search_web'),
+
+  /// Read content from a URL.
   @MappableValue('read_url_content')
   readUrlContent('read_url_content'),
 
   /// Schedule a one-shot timer or recurring cron job.
   @MappableValue('schedule')
   schedule('schedule'),
+
+  /// Finish the conversation and return structured output.
   @MappableValue('finish')
   finish('finish');
 
+  /// Wire name of the tool, such as `view_file`.
   final String value;
   const BuiltinTools(this.value);
 
@@ -92,12 +119,7 @@ enum BuiltinTools {
   /// Excludes [listDirectory], [searchDirectory], and [findFile], which are
   /// disabled by default. See [deprecated].
   static List<BuiltinTools> readOnly() {
-    return [
-      viewFile,
-      readUrlContent,
-      schedule,
-      finish,
-    ];
+    return [viewFile, readUrlContent, schedule, finish];
   }
 
   /// Returns the default non-destructive tools.
@@ -124,12 +146,7 @@ enum BuiltinTools {
   ///
   /// Includes `run_command`, `view_file`, `create_file`, and `edit_file`.
   static List<BuiltinTools> minimal() {
-    return [
-      runCommand,
-      viewFile,
-      createFile,
-      editFile,
-    ];
+    return [runCommand, viewFile, createFile, editFile];
   }
 
   /// Returns deprecated builtin tools that are disabled by default.
@@ -139,17 +156,15 @@ enum BuiltinTools {
   /// and are only enabled when explicitly requested via
   /// [CapabilitiesConfig.enabledTools].
   static List<BuiltinTools> deprecated() {
-    return [
-      listDirectory,
-      searchDirectory,
-      findFile,
-    ];
+    return [listDirectory, searchDirectory, findFile];
   }
 
+  /// Returns the file tools: [viewFile], [createFile], and [editFile].
   static List<BuiltinTools> fileTools() {
     return [viewFile, createFile, editFile];
   }
 
+  /// Returns every builtin tool, including the [deprecated] ones.
   static List<BuiltinTools> allTools() {
     return BuiltinTools.values;
   }
@@ -175,6 +190,7 @@ String normalizeBuiltinToolName(String name, {String? serverName}) {
 /// Lets `fromMap`/`fromJson` accept `start_subagent` for
 /// [BuiltinTools.invokeSubagent].
 class BuiltinToolListHook extends MappingHook {
+  /// Creates a [BuiltinToolListHook].
   const BuiltinToolListHook();
 
   @override
@@ -190,19 +206,28 @@ class BuiltinToolListHook extends MappingHook {
 /// Operational execution behavior for an agent or subagent.
 @MappableEnum(defaultValue: AgentBehavior.autonomous)
 enum AgentBehavior {
+  /// Non-interactive, automated execution: the agent must accomplish the task
+  /// on its own.
   autonomous('autonomous'),
+
+  /// Collaborative execution with a human: the agent asks for clarifications
+  /// and keeps the user in the loop when needed.
   interactive('interactive'),
 
   /// Minimal behavior: reduced tool surface and low-overhead execution.
   @MappableValue('minimal')
   minimal('minimal');
 
+  /// Wire value of the behavior, such as `autonomous`.
   final String value;
   const AgentBehavior(this.value);
 
   /// Returns the corresponding Protobuf enum string value.
   String get protoValue => 'AGENT_BEHAVIOR_${value.toUpperCase()}';
 
+  /// Parses an [AgentBehavior] from its wire value [val].
+  ///
+  /// Returns [autonomous] when [val] is not recognized.
   static AgentBehavior fromString(String val) {
     try {
       return AgentBehaviorMapper.fromValue(val);
@@ -255,6 +280,10 @@ class RunCommandConfig with RunCommandConfigMappable {
   /// platforms/environments where the sandbox is unavailable. Defaults to false.
   final bool enableSandbox;
 
+  /// Creates a [RunCommandConfig].
+  ///
+  /// Throws an [AntigravityValidationException] if [timeoutSeconds] is not
+  /// greater than 0.
   RunCommandConfig({
     this.enableDaemons = false,
     this.timeoutSeconds,
@@ -267,8 +296,11 @@ class RunCommandConfig with RunCommandConfigMappable {
     }
   }
 
+  /// Decodes a [RunCommandConfig] from a map.
   factory RunCommandConfig.fromMap(Map<String, dynamic> map) =>
       RunCommandConfigMapper.fromMap(map);
+
+  /// Decodes a [RunCommandConfig] from a JSON string.
   factory RunCommandConfig.fromJson(String json) =>
       RunCommandConfigMapper.fromJson(json);
 }
@@ -293,6 +325,10 @@ class ToolOutputTruncationConfig with ToolOutputTruncationConfigMappable {
   /// truncation.
   final int maxTokens;
 
+  /// Creates a [ToolOutputTruncationConfig] with the given [maxTokens].
+  ///
+  /// Throws an [AntigravityValidationException] if [maxTokens] is negative or
+  /// greater than 2147483647.
   ToolOutputTruncationConfig({required this.maxTokens}) {
     if (maxTokens < 0 || maxTokens > _maxInt32) {
       throw AntigravityValidationException(
@@ -301,8 +337,11 @@ class ToolOutputTruncationConfig with ToolOutputTruncationConfigMappable {
     }
   }
 
+  /// Decodes a [ToolOutputTruncationConfig] from a map.
   factory ToolOutputTruncationConfig.fromMap(Map<String, dynamic> map) =>
       ToolOutputTruncationConfigMapper.fromMap(map);
+
+  /// Decodes a [ToolOutputTruncationConfig] from a JSON string.
   factory ToolOutputTruncationConfig.fromJson(String json) =>
       ToolOutputTruncationConfigMapper.fromJson(json);
 }
@@ -391,6 +430,16 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
   /// Backward compatibility alias for [agentBehavior].
   AgentBehavior get agentMode => agentBehavior;
 
+  /// Creates a [CapabilitiesConfig].
+  ///
+  /// [agentMode] is a backward compatibility alias for [agentBehavior], which
+  /// takes precedence when both are set. [agentBehavior] defaults to
+  /// [AgentBehavior.autonomous].
+  ///
+  /// Throws an [AntigravityValidationException] if both [enabledTools] and
+  /// [disabledTools] are set, if a numeric limit is out of range, or if
+  /// [maxSubagentDepth] or [allowedSubagents] is set while subagents are
+  /// disabled.
   CapabilitiesConfig({
     this.enableSubagents = true,
     AgentBehavior? agentBehavior,
@@ -405,12 +454,12 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
     this.toolOutputTruncationConfig,
     this.mcpMaxOutputBytes,
   }) : agentBehavior = resolveAgentBehaviorAndWarn(
-          agentBehavior: agentBehavior,
-          agentMode: agentMode,
-          enabledTools: enabledTools,
-          targetName: 'CapabilitiesConfig',
-          logger: _logger,
-        ) {
+         agentBehavior: agentBehavior,
+         agentMode: agentMode,
+         enabledTools: enabledTools,
+         targetName: 'CapabilitiesConfig',
+         logger: _logger,
+       ) {
     if (enabledTools != null && disabledTools != null) {
       throw AntigravityValidationException(
         'enabledTools and disabledTools are mutually exclusive.',
@@ -441,7 +490,8 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
         'maxSubagentDepth must be greater than or equal to 1, got $maxSubagentDepth',
       );
     }
-    final subagentDisabled = !enableSubagents ||
+    final subagentDisabled =
+        !enableSubagents ||
         (disabledTools != null &&
             disabledTools!.contains(BuiltinTools.invokeSubagent) &&
             disabledTools!.contains(BuiltinTools.runWorkflow)) ||
@@ -463,8 +513,11 @@ class CapabilitiesConfig with CapabilitiesConfigMappable {
     }
   }
 
+  /// Decodes a [CapabilitiesConfig] from a map.
   factory CapabilitiesConfig.fromMap(Map<String, dynamic> map) =>
       CapabilitiesConfigMapper.fromMap(map);
+
+  /// Decodes a [CapabilitiesConfig] from a JSON string.
   factory CapabilitiesConfig.fromJson(String json) =>
       CapabilitiesConfigMapper.fromJson(json);
 }

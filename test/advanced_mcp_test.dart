@@ -179,15 +179,21 @@ void main() {
   test('MCP eager loading works on both transports and URI factory', () {
     final servers = <McpServerConfig>[
       McpStdioServer(
-          name: 'stdio', command: 'server', forceAllToolsEager: true),
+        name: 'stdio',
+        command: 'server',
+        forceAllToolsEager: true,
+      ),
       McpStreamableHttpServer.fromUri(
-          name: 'http',
-          uri: Uri.parse('https://example.com/mcp'),
-          forceAllToolsEager: true),
+        name: 'http',
+        uri: Uri.parse('https://example.com/mcp'),
+        forceAllToolsEager: true,
+      ),
     ];
     for (final server in servers) {
       expect(
-          McpServerConfig.fromJson(server.toJson()).forceAllToolsEager, isTrue);
+        McpServerConfig.fromJson(server.toJson()).forceAllToolsEager,
+        isTrue,
+      );
     }
     final config = LocalConnectionStrategy(
       toolRunner: ToolRunner(),

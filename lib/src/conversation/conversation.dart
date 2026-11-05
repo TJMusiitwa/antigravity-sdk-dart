@@ -27,10 +27,10 @@ class Conversation {
   /// Creates a new [Conversation] on the given underlying connection.
   Conversation(
     this._connection, {
-    HookRunner? hookRunner,
+    this._hookRunner,
     List<Step>? history,
     int? maxHistorySize,
-  }) : _hookRunner = hookRunner {
+  }) {
     if (maxHistorySize != null) this.maxHistorySize = maxHistorySize;
     if (history != null) _history.addAll(history);
     _history.addAll(_connection.initialHistory);
@@ -144,14 +144,20 @@ class Conversation {
     return null;
   }
 
+  /// Checks that [prompt] has content to send.
+  ///
+  /// Throws an [AntigravityValidationException] if [prompt] is null, a blank
+  /// string, an empty iterable, or an iterable with no non-blank content.
   static void validatePrompt(dynamic prompt) {
     if (prompt == null) {
       throw AntigravityValidationException(
-          "chat() requires non-empty message content. Got null.");
+        "chat() requires non-empty message content. Got null.",
+      );
     }
     if (prompt is String && prompt.trim().isEmpty) {
       throw AntigravityValidationException(
-          "chat() requires a non-empty message string. Got: '$prompt'");
+        "chat() requires a non-empty message string. Got: '$prompt'",
+      );
     }
     if (prompt is Iterable) {
       _validateIterablePrompt(prompt);
@@ -161,7 +167,8 @@ class Conversation {
   static void _validateIterablePrompt(Iterable prompt) {
     if (prompt.isEmpty) {
       throw AntigravityValidationException(
-          "chat() requires non-empty message content. Got an empty list.");
+        "chat() requires non-empty message content. Got an empty list.",
+      );
     }
     final hasContent = prompt.any((item) {
       if (item is String) return item.trim().isNotEmpty;
@@ -170,7 +177,8 @@ class Conversation {
     });
     if (!hasContent) {
       throw AntigravityValidationException(
-          "chat() requires non-empty message content. Got: $prompt");
+        "chat() requires non-empty message content. Got: $prompt",
+      );
     }
   }
 
@@ -211,11 +219,12 @@ class Conversation {
 
   Future<ChatResponse?> _checkPreTurnDenial(dynamic prompt) async {
     if (_hookRunner == null) return null;
-    final res = await _hookRunner!.dispatchPreTurn(prompt);
+    final res = await _hookRunner.dispatchPreTurn(prompt);
     if (res.allow) return null;
 
-    final message =
-        res.message.isNotEmpty ? res.message : 'Turn execution denied by hook.';
+    final message = res.message.isNotEmpty
+        ? res.message
+        : 'Turn execution denied by hook.';
     _logger.warning("Turn denied by hook: $message");
 
     final canceledStep = Step(
@@ -261,8 +270,11 @@ class Conversation {
     StreamSubscription subscription,
   ) {
     if (step.id == 'idle_sentinel') {
-      _finalizeTurn(subscription, controller,
-          _history.isEmpty ? '' : _history.last.content);
+      _finalizeTurn(
+        subscription,
+        controller,
+        _history.isEmpty ? '' : _history.last.content,
+      );
       return;
     }
 
@@ -308,12 +320,14 @@ class Conversation {
 
     if (isModel && isTargetUser && step.status != StepStatus.error) {
       if (step.thinkingDelta.isNotEmpty) {
-        controller
-            .add(Thought(stepIndex: step.stepIndex, text: step.thinkingDelta));
+        controller.add(
+          Thought(stepIndex: step.stepIndex, text: step.thinkingDelta),
+        );
       }
       if (step.contentDelta.isNotEmpty) {
-        controller
-            .add(Text(stepIndex: step.stepIndex, text: step.contentDelta));
+        controller.add(
+          Text(stepIndex: step.stepIndex, text: step.contentDelta),
+        );
       }
     }
 
@@ -333,8 +347,8 @@ class Conversation {
   ) {
     _lastTurnStopReason = _connection.lastTurnStopReason;
     if (_hookRunner != null) {
-      final ctx = _hookRunner!.createTurnContext();
-      _hookRunner!.dispatchPostTurn(ctx, lastContent).catchError((
+      final ctx = _hookRunner.createTurnContext();
+      _hookRunner.dispatchPostTurn(ctx, lastContent).catchError((
         Object err,
         StackTrace st,
       ) {
@@ -349,6 +363,7 @@ class Conversation {
   Future<void> send(ContentPrimitive? prompt, {Map<String, dynamic>? kwargs}) =>
       _connection.send(prompt, kwargs: kwargs);
 
+  /// Returns the stream of steps from the underlying connection.
   Stream<Step> receiveSteps() => _connection.receiveSteps();
 
   void _accumulateUsage(UsageMetadata usage) {
@@ -375,18 +390,18 @@ class Conversation {
   Future<void> disconnect() async {
     // Session end hook
     if (_hookRunner != null) {
-      await _hookRunner!.dispatchSessionEnd();
+      await _hookRunner.dispatchSessionEnd();
     }
     await _connection.disconnect();
   }
 
   static UsageMetadata _zeroUsage() => UsageMetadata(
-        promptTokenCount: 0,
-        cachedContentTokenCount: 0,
-        candidatesTokenCount: 0,
-        thoughtsTokenCount: 0,
-        totalTokenCount: 0,
-      );
+    promptTokenCount: 0,
+    cachedContentTokenCount: 0,
+    candidatesTokenCount: 0,
+    thoughtsTokenCount: 0,
+    totalTokenCount: 0,
+  );
 
   void _enforceMaxHistory() {
     if (maxHistorySize != null && _history.length > maxHistorySize!) {

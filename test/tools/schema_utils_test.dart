@@ -134,6 +134,225 @@ void main() {
       expect(normalized['default'], equals('DEFAULT_VAL'));
     });
 
+    test('maps read_only and write_only to camelCase', () {
+      final normalized = normalizeSchema({
+        'type': 'object',
+        'properties': {
+          'id': {'type': 'string', 'read_only': true},
+          'password': {'type': 'string', 'write_only': true},
+        },
+      }) as Map<String, dynamic>;
+      final props = normalized['properties'] as Map<String, dynamic>;
+      expect(props['id'], {'type': 'string', 'readOnly': true});
+      expect(props['password'], {'type': 'string', 'writeOnly': true});
+    });
+
+    test('preserves metadata strings that look like type names', () {
+      final normalized = normalizeSchema({
+        'type': 'object',
+        'title': 'OBJECT',
+        'description': 'STRING',
+        'summary': 'NUMBER',
+        'format': 'INTEGER',
+        'pattern': 'BOOLEAN',
+        'properties': {
+          'val': {
+            'type': 'STRING',
+            'title': 'STRING',
+            'description': 'OBJECT',
+            'format': 'NUMBER',
+            'pattern': 'ARRAY',
+          },
+        },
+      }) as Map<String, dynamic>;
+      expect(normalized['type'], 'object');
+      expect(normalized['title'], 'OBJECT');
+      expect(normalized['description'], 'STRING');
+      expect(normalized['summary'], 'NUMBER');
+      expect(normalized['format'], 'INTEGER');
+      expect(normalized['pattern'], 'BOOLEAN');
+      expect((normalized['properties'] as Map)['val'], {
+        'type': 'string',
+        'title': 'STRING',
+        'description': 'OBJECT',
+        'format': 'NUMBER',
+        'pattern': 'ARRAY',
+      });
+    });
+
+    test('preserves example and examples literals', () {
+      final normalized = normalizeSchema({
+        'type': 'STRING',
+        'example': 'STRING',
+        'examples': ['STRING', 'OBJECT', 'NULL'],
+      }) as Map<String, dynamic>;
+      expect(normalized['type'], 'string');
+      expect(normalized['example'], 'STRING');
+      expect(normalized['examples'], ['STRING', 'OBJECT', 'NULL']);
+    });
+
+    test('maps extended keywords and normalizes their subschemas', () {
+      final normalized = normalizeSchema({
+        'multiple_of': 5,
+        'exclusive_minimum': 0,
+        'exclusive_maximum': 100,
+        'prefix_items': [
+          {'type': 'STRING'},
+          {'type': 'INTEGER'},
+        ],
+        'property_names': {'pattern': r'^[a-z]+$'},
+        'dependent_required': {
+          'credit_card': ['billing_address'],
+        },
+        'dependent_schemas': {
+          'credit_card': {
+            'properties': {
+              'billing_address': {'type': 'STRING'},
+            },
+          },
+        },
+        'unevaluated_properties': false,
+        'unevaluated_items': {'type': 'STRING'},
+      }) as Map<String, dynamic>;
+      expect(normalized, {
+        'multipleOf': 5,
+        'exclusiveMinimum': 0,
+        'exclusiveMaximum': 100,
+        'prefixItems': [
+          {'type': 'string'},
+          {'type': 'integer'},
+        ],
+        'propertyNames': {'pattern': r'^[a-z]+$'},
+        'dependentRequired': {
+          'credit_card': ['billing_address'],
+        },
+        'dependentSchemas': {
+          'credit_card': {
+            'properties': {
+              'billing_address': {'type': 'string'},
+            },
+          },
+        },
+        'unevaluatedProperties': false,
+        'unevaluatedItems': {'type': 'string'},
+      });
+    });
+
+    test('keeps dependentRequired property names and lists as-is', () {
+      final normalized = normalizeSchema({
+        'type': 'OBJECT',
+        'properties': {
+          'type': {'type': 'STRING'},
+          'min_items': {'type': 'INTEGER'},
+          'STATUS': {'type': 'STRING'},
+        },
+        'dependent_required': {
+          'type': ['min_items', 'properties'],
+          'STATUS': ['STRING', 'OBJECT', 'NULL'],
+          'schema_key': ['another_prop'],
+        },
+      }) as Map<String, dynamic>;
+      expect(normalized['type'], 'object');
+      expect(normalized['dependentRequired'], {
+        'type': ['min_items', 'properties'],
+        'STATUS': ['STRING', 'OBJECT', 'NULL'],
+        'schema_key': ['another_prop'],
+      });
+    });
+
+    test('preserves nested example data', () {
+      const complexExample = {
+        'type': 'CUSTOM_RECORD',
+        'data': {
+          'STRING': 'VALUE',
+          'flags': ['BOOLEAN', 'NULL'],
+          'nested': {'format': 'INTEGER'},
+        },
+      };
+      final normalized = normalizeSchema({
+        'type': 'OBJECT',
+        'example': complexExample,
+        'examples': [
+          complexExample,
+          {'code': 'ARRAY'},
+        ],
+      }) as Map<String, dynamic>;
+      expect(normalized['example'], complexExample);
+      expect(normalized['examples'], [
+        complexExample,
+        {'code': 'ARRAY'},
+      ]);
+    });
+
+    test('dependentSchemas keys are property names, not keywords', () {
+      final normalized = normalizeSchema({
+        'dependent_schemas': {
+          'any_of': {
+            'properties': {
+              'token': {'type': 'STRING'},
+              'scope': {
+                'type': 'STRING',
+                'enum': ['READ', 'WRITE'],
+              },
+            },
+            'dependent_required': {
+              'token': ['scope'],
+            },
+          },
+        },
+      }) as Map<String, dynamic>;
+      final schemas = normalized['dependentSchemas'] as Map<String, dynamic>;
+      expect(schemas.keys, ['any_of']);
+      expect(schemas['any_of'], {
+        'properties': {
+          'token': {'type': 'string'},
+          'scope': {
+            'type': 'string',
+            'enum': ['READ', 'WRITE'],
+          },
+        },
+        'dependentRequired': {
+          'token': ['scope'],
+        },
+      });
+    });
+
+    test('handles deeply nested subschema composition', () {
+      final normalized = normalizeSchema({
+        'type': 'OBJECT',
+        'properties': {
+          'data_tuple': {
+            'type': 'ARRAY',
+            'prefix_items': [
+              'STRING',
+              {'type': 'INTEGER', 'multiple_of': 2.5},
+              {'type': 'OBJECT', 'additional_properties': false},
+            ],
+          },
+        },
+      }) as Map<String, dynamic>;
+      final prefixItems =
+          (normalized['properties'] as Map)['data_tuple']['prefixItems'];
+      expect(prefixItems, [
+        'string',
+        {'type': 'integer', 'multipleOf': 2.5},
+        {'type': 'object', 'additionalProperties': false},
+      ]);
+    });
+
+    test('handles empty and edge-case schemas', () {
+      expect(normalizeSchema(<String, dynamic>{}), isEmpty);
+      expect(normalizeSchema([]), isEmpty);
+      expect(normalizeSchema({'type': []}), {'type': []});
+      expect(
+        normalizeSchema({
+          'additional_properties': true,
+          'unevaluated_properties': false,
+        }),
+        {'additionalProperties': true, 'unevaluatedProperties': false},
+      );
+    });
+
     test('passes through non-schema primitives unchanged', () {
       expect(normalizeSchema(42), equals(42));
       expect(normalizeSchema(3.14), equals(3.14));

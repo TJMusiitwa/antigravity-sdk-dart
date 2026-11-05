@@ -35,9 +35,7 @@ import 'package:antigravity/antigravity.dart';
 Future<void> main() async {
   // Configure the agent to use the web search tool.
   final config = LocalAgentConfig(
-    capabilities: CapabilitiesConfig(
-      enabledTools: [BuiltinTools.searchWeb],
-    ),
+    capabilities: CapabilitiesConfig(enabledTools: [BuiltinTools.searchWeb]),
   );
 
   final agent = Agent(config);

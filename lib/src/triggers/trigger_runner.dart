@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'triggers.dart';
 import '../connections/connection.dart';
 
@@ -11,11 +12,8 @@ class TriggerRunner {
   bool _isRunning = false;
 
   /// Creates a new [TriggerRunner] instance.
-  TriggerRunner({
-    required List<Trigger> triggers,
-    required Connection connection,
-  })  : _triggers = List.from(triggers),
-        _connection = connection;
+  TriggerRunner({required List<Trigger> triggers, required this._connection})
+    : _triggers = List.from(triggers);
 
   /// True if triggers are active and running.
   bool get isRunning => _isRunning;

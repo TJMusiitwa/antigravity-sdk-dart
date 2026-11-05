@@ -45,9 +45,7 @@ Future<void> demoMaxModelCalls() async {
   print('1. Testing maxModelCalls budget limit (maxModelCalls: 1)');
   print('=' * 60);
 
-  final config = LocalAgentConfig(
-    budgetConfig: BudgetConfig(maxModelCalls: 1),
-  );
+  final config = LocalAgentConfig(budgetConfig: BudgetConfig(maxModelCalls: 1));
 
   final agent = Agent(config);
   await agent.start();
@@ -59,7 +57,8 @@ Future<void> demoMaxModelCalls() async {
     print('  Turn 1 stop reason: ${res1.stopReason}');
     if (res1.stopReason == StopReason.maxModelCallsExceeded) {
       print(
-          '  [Limit Reached] Session model call budget reached after Turn 1.');
+        '  [Limit Reached] Session model call budget reached after Turn 1.',
+      );
     }
 
     // Turn 2: Attempting another turn when session model budget is exhausted
@@ -186,7 +185,8 @@ Future<void> demoMaxOutputTokens() async {
   try {
     // Turn 1 produces > 30 output tokens
     print(
-        'Turn 1: Requesting a long response that exceeds 30 output tokens...');
+      'Turn 1: Requesting a long response that exceeds 30 output tokens...',
+    );
     final res1 = await agent.chat(
       'Write a detailed paragraph explaining photosynthesis.',
     );
@@ -239,7 +239,8 @@ Future<void> demoMaxTotalTokens() async {
 
     // Turn 2: Cumulative total tokens exceed 100
     print(
-        '\nTurn 2: Attempting next turn with exhausted total token budget...');
+      '\nTurn 2: Attempting next turn with exhausted total token budget...',
+    );
     final res2 = await agent.chat('Tell me more.');
     await res2.text(); // Drain response stream
     print('  Turn 2 stop reason: ${res2.stopReason}');
@@ -261,8 +262,9 @@ Future<void> demoForwardLookingResume() async {
   print('6. Testing BudgetScope.forwardLooking on a resumed session');
   print('=' * 60);
 
-  final saveDir =
-      await Directory.systemTemp.createTemp('forward_looking_demo_');
+  final saveDir = await Directory.systemTemp.createTemp(
+    'forward_looking_demo_',
+  );
   try {
     // Session 1: a lifetime-scoped budget of one model call, which the first
     // turn consumes entirely.

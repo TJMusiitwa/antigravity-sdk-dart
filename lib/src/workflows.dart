@@ -20,6 +20,7 @@ class WorkflowException implements Exception {
   /// A description of the rule the script violates.
   final String message;
 
+  /// Creates an exception describing the violated rule in [message].
   WorkflowException(this.message);
 
   @override
@@ -30,16 +31,21 @@ const _returnYieldMessage =
     'return/yield statements are not allowed in workflow scripts; use '
     'workflows.log(...) to emit output';
 
+const _printMessage =
+    'print() is not allowed in workflow scripts; use '
+    'workflows.log(...) to emit output';
+
 /// Validates Python workflow [source] against the `run_workflow` rules, so a
 /// disallowed script fails before the model is asked to run it.
 ///
 /// Rejects, with a [WorkflowException]:
-/// - `import` and `from ... import` statements;
-/// - `while` loops (use bounded `for` loops);
-/// - attributes starting with `_` and names starting with `__`;
 /// - `return` outside a nested `def`, and `yield` anywhere;
+/// - calls to `print(...)` (including `builtins.print(...)`) anywhere; use
+///   `workflows.log(...)` to emit output instead;
 /// - unterminated strings, unbalanced brackets, and inconsistent indentation,
 ///   reported as `workflow syntax error`.
+///
+/// Imports, `while` loops, and private names are allowed.
 ///
 /// This is a lexical check, not a full Python parser: a script that passes may
 /// still contain syntax errors, which the harness reports when it runs the
@@ -49,7 +55,7 @@ void validateWorkflowSource(String source) {
   _checkIndentation(lines);
   _checkReturnAndYield(lines);
   for (final line in lines) {
-    _checkLine(line);
+    _checkPrintCalls(line);
   }
 }
 
@@ -92,9 +98,13 @@ class _PythonLexer {
 
   static final _namePattern = RegExp(r'[^\W\d]\w*', unicode: true);
   static final _numberPattern = RegExp(
-      r'(\d[\d_]*\.?[\d_]*|\.\d[\d_]*)([eE][+-]?\d+)?[jJ]?|0[xXoObB][\da-fA-F_]+');
-  static final _stringPrefix =
-      RegExp(r'([rRbBuUfF]{1,2})?("""|' "'''" r'''|"|')''');
+    r'(\d[\d_]*\.?[\d_]*|\.\d[\d_]*)([eE][+-]?\d+)?[jJ]?|0[xXoObB][\da-fA-F_]+',
+  );
+  static final _stringPrefix = RegExp(
+    r'([rRbBuUfF]{1,2})?("""|'
+    "'''"
+    r'''|"|')''',
+  );
   static const _operators = [
     '**=', '//=', '>>=', '<<=', '...', '->', ':=', //
     '**', '//', '<<', '>>', '<=', '>=', '==', '!=',
@@ -146,7 +156,9 @@ class _PythonLexer {
           _consumeNewline();
         } else {
           throw _syntaxError(
-              'unexpected character after line continuation', _line);
+            'unexpected character after line continuation',
+            _line,
+          );
         }
       } else if (_stringPrefix.matchAsPrefix(_src, _pos) case final m?) {
         _pos = m.end;
@@ -171,8 +183,10 @@ class _PythonLexer {
         tokens.add(_Token(_Kind.op, c));
         _pos++;
       } else {
-        final op = _operators.firstWhere((o) => _src.startsWith(o, _pos),
-            orElse: () => c);
+        final op = _operators.firstWhere(
+          (o) => _src.startsWith(o, _pos),
+          orElse: () => c,
+        );
         tokens.add(_Token(_Kind.op, op));
         _pos += op.length;
       }
@@ -233,10 +247,11 @@ class _PythonLexer {
       _pos++;
     }
     throw _syntaxError(
-        triple
-            ? 'unterminated triple-quoted string literal'
-            : 'unterminated string literal',
-        start);
+      triple
+          ? 'unterminated triple-quoted string literal'
+          : 'unterminated string literal',
+      start,
+    );
   }
 }
 
@@ -259,8 +274,10 @@ void _checkIndentation(List<_LogicalLine> lines) {
       stack.removeLast();
     }
     if (line.indent != stack.last) {
-      throw _syntaxError('unindent does not match any outer indentation level',
-          line.lineNumber);
+      throw _syntaxError(
+        'unindent does not match any outer indentation level',
+        line.lineNumber,
+      );
     }
   }
   if (lines.isNotEmpty && lines.last.opensBlock) {
@@ -287,51 +304,21 @@ void _checkReturnAndYield(List<_LogicalLine> lines) {
   }
 }
 
-void _checkLine(_LogicalLine line) {
+/// Rejects calls to the built-in `print`: a bare `print(...)`, or
+/// `builtins.print(...)` / `__builtins__.print(...)`.
+void _checkPrintCalls(_LogicalLine line) {
   final tokens = line.tokens;
-  for (var i = 0; i < tokens.length; i++) {
-    final token = tokens[i];
-    if (token.kind != _Kind.name) continue;
+  for (var i = 0; i + 1 < tokens.length; i++) {
+    if (!tokens[i].isName('print') || !tokens[i + 1].isOp('(')) continue;
     final previous = i > 0 ? tokens[i - 1] : null;
-    final next = i + 1 < tokens.length ? tokens[i + 1] : null;
-    if (previous != null && previous.isOp('.')) {
-      if (token.text.startsWith('_')) {
-        throw WorkflowException(
-            "attribute '${token.text}' is not allowed in workflow scripts");
-      }
-      continue;
-    }
-    switch (token.text) {
-      case 'import':
-        throw WorkflowException(
-            'import statements are not allowed in workflow scripts');
-      case 'while':
-        throw WorkflowException('while loops are not allowed in workflow '
-            'scripts; use bounded for loops');
-    }
-    if (token.text.startsWith('__') &&
-        !_isDefinitionName(previous) &&
-        !_isParameterOrKeyword(line, previous, next)) {
-      throw WorkflowException(
-          "name '${token.text}' is not allowed in workflow scripts");
-    }
+    if (previous != null && previous.isName('def')) continue;
+    final dotted = previous != null && previous.isOp('.');
+    if (!dotted) throw WorkflowException(_printMessage);
+    final owner = i > 1 ? tokens[i - 2] : null;
+    final isBuiltins =
+        owner != null &&
+        (owner.isName('builtins') || owner.isName('__builtins__')) &&
+        (i < 3 || !tokens[i - 3].isOp('.'));
+    if (isBuiltins) throw WorkflowException(_printMessage);
   }
-}
-
-/// Whether a name follows `def` or `class` (a definition, not a reference).
-bool _isDefinitionName(_Token? previous) =>
-    previous != null && (previous.isName('def') || previous.isName('class'));
-
-/// Whether a name is a call keyword argument or a function parameter, which
-/// Python parses as an argument rather than a name reference.
-bool _isParameterOrKeyword(_LogicalLine line, _Token? previous, _Token? next) {
-  final afterSeparator = previous != null &&
-      (previous.isOp('(') ||
-          previous.isOp(',') ||
-          previous.isOp('*') ||
-          previous.isOp('**'));
-  if (!afterSeparator || next == null) return false;
-  if (next.isOp('=')) return true;
-  return line.startsFunction &&
-      (next.isOp(',') || next.isOp(')') || next.isOp(':'));
 }

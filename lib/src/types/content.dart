@@ -8,6 +8,7 @@ import 'exceptions.dart';
 
 part 'content.mapper.dart';
 
+/// Image MIME types accepted by [Image].
 const supportedImageMimes = {
   "image/bmp",
   "image/jpeg",
@@ -15,6 +16,7 @@ const supportedImageMimes = {
   "image/webp",
 };
 
+/// Document MIME types accepted by [Document].
 const supportedDocumentMimes = {
   "application/pdf",
   "application/json",
@@ -27,6 +29,7 @@ const supportedDocumentMimes = {
   "text/xml",
 };
 
+/// Audio MIME types accepted by [Audio].
 const supportedAudioMimes = {
   "audio/wav",
   "audio/x-wav",
@@ -44,6 +47,7 @@ const supportedAudioMimes = {
   "audio/l16",
 };
 
+/// Video MIME types accepted by [Video].
 const supportedVideoMimes = {
   "video/3gpp",
   "video/avi",
@@ -102,8 +106,25 @@ String _guessMimeType(String path) {
   return mime;
 }
 
+/// Expands a leading `~` (the current user's home directory), like Python's
+/// `Path.expanduser()`. Other paths are returned unchanged.
+String _expandUser(String path) {
+  if (path != '~' && !path.startsWith('~/') && !path.startsWith(r'~\')) {
+    return path;
+  }
+  final home =
+      Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+  if (home == null || home.isEmpty) return path;
+  return home + path.substring(1);
+}
+
+/// Trims surrounding whitespace and lowercases a MIME type string.
+String _normalizeMime(String mimeType) => mimeType.trim().toLowerCase();
+
 ({String mime, Uint8List data}) _readFileAndMime(dynamic fileOrPath) {
-  final path = fileOrPath is File ? fileOrPath.path : fileOrPath as String;
+  final path = _expandUser(
+    fileOrPath is File ? fileOrPath.path : fileOrPath as String,
+  );
   final file = File(path);
   if (!file.existsSync()) {
     throw FileSystemException("File not found", path);
@@ -113,25 +134,36 @@ String _guessMimeType(String path) {
   return (mime: mime, data: data);
 }
 
+/// Base class for multimedia content attachments.
 sealed class MediaContent {
+  /// The MIME type, trimmed and lowercased (`' IMAGE/PNG '` becomes
+  /// `'image/png'`).
   final String mimeType;
+
+  /// Text description of the media.
   final String description;
+
+  /// Raw media bytes.
   final List<int> data;
 
   /// Returns the underlying media data as a strongly-typed Dart [Uint8List].
   Uint8List get bytes => Uint8List.fromList(data);
 
+  /// Creates a [MediaContent], normalizing [mimeType].
   MediaContent({
-    required this.mimeType,
+    required String mimeType,
     required this.description,
     required this.data,
-  });
+  }) : mimeType = _normalizeMime(mimeType);
 
+  /// Creates the media type that matches [mimeType], which is matched
+  /// case-insensitively after trimming whitespace.
   static MediaContent fromBytes(
     List<int> data,
-    String mimeType, {
+    String rawMimeType, {
     String description = '',
   }) {
+    final mimeType = _normalizeMime(rawMimeType);
     if (supportedImageMimes.contains(mimeType)) {
       return Image(mimeType: mimeType, description: description, data: data);
     } else if (supportedDocumentMimes.contains(mimeType)) {
@@ -142,10 +174,13 @@ sealed class MediaContent {
       return Video(mimeType: mimeType, description: description, data: data);
     } else {
       throw AntigravityValidationException(
-          "Unsupported MIME type: '$mimeType'");
+        "Unsupported MIME type: '$rawMimeType'",
+      );
     }
   }
 
+  /// Reads [fileOrPath] (a [File] or path; a leading `~` is expanded to the
+  /// home directory) and creates the media type for its extension.
   static MediaContent fromFile(dynamic fileOrPath, {String description = ''}) {
     final fileData = _readFileAndMime(fileOrPath);
     final mime = fileData.mime;
@@ -165,7 +200,12 @@ sealed class MediaContent {
   }
 }
 
+/// Image content attachment.
 class Image extends MediaContent {
+  /// Creates an [Image].
+  ///
+  /// Throws an [AntigravityValidationException] if [mimeType] is not in
+  /// [supportedImageMimes].
   Image({
     required super.mimeType,
     required super.description,
@@ -173,15 +213,20 @@ class Image extends MediaContent {
   }) {
     if (!supportedImageMimes.contains(mimeType)) {
       throw AntigravityValidationException(
-          "Unsupported Image MIME type: '$mimeType'");
+        "Unsupported Image MIME type: '$mimeType'",
+      );
     }
   }
 
+  /// Reads [fileOrPath] (a [File] or path; a leading `~` is expanded to the
+  /// home directory) and creates an [Image], inferring the MIME type from the
+  /// file extension.
   factory Image.fromFile(dynamic fileOrPath, {String description = ''}) {
     final fileData = _readFileAndMime(fileOrPath);
     if (!supportedImageMimes.contains(fileData.mime)) {
       throw AntigravityValidationException(
-          "Unsupported Image MIME type: '${fileData.mime}'");
+        "Unsupported Image MIME type: '${fileData.mime}'",
+      );
     }
     return Image(
       mimeType: fileData.mime,
@@ -191,7 +236,12 @@ class Image extends MediaContent {
   }
 }
 
+/// Document content attachment.
 class Document extends MediaContent {
+  /// Creates a [Document].
+  ///
+  /// Throws an [AntigravityValidationException] if [mimeType] is not in
+  /// [supportedDocumentMimes].
   Document({
     required super.mimeType,
     required super.description,
@@ -199,15 +249,20 @@ class Document extends MediaContent {
   }) {
     if (!supportedDocumentMimes.contains(mimeType)) {
       throw AntigravityValidationException(
-          "Unsupported Document MIME type: '$mimeType'");
+        "Unsupported Document MIME type: '$mimeType'",
+      );
     }
   }
 
+  /// Reads [fileOrPath] (a [File] or path; a leading `~` is expanded to the
+  /// home directory) and creates a [Document], inferring the MIME type from
+  /// the file extension.
   factory Document.fromFile(dynamic fileOrPath, {String description = ''}) {
     final fileData = _readFileAndMime(fileOrPath);
     if (!supportedDocumentMimes.contains(fileData.mime)) {
       throw AntigravityValidationException(
-          "Unsupported Document MIME type: '${fileData.mime}'");
+        "Unsupported Document MIME type: '${fileData.mime}'",
+      );
     }
     return Document(
       mimeType: fileData.mime,
@@ -217,7 +272,12 @@ class Document extends MediaContent {
   }
 }
 
+/// Audio content attachment.
 class Audio extends MediaContent {
+  /// Creates an [Audio].
+  ///
+  /// Throws an [AntigravityValidationException] if [mimeType] is not in
+  /// [supportedAudioMimes].
   Audio({
     required super.mimeType,
     required super.description,
@@ -225,15 +285,20 @@ class Audio extends MediaContent {
   }) {
     if (!supportedAudioMimes.contains(mimeType)) {
       throw AntigravityValidationException(
-          "Unsupported Audio MIME type: '$mimeType'");
+        "Unsupported Audio MIME type: '$mimeType'",
+      );
     }
   }
 
+  /// Reads [fileOrPath] (a [File] or path; a leading `~` is expanded to the
+  /// home directory) and creates an [Audio], inferring the MIME type from the
+  /// file extension.
   factory Audio.fromFile(dynamic fileOrPath, {String description = ''}) {
     final fileData = _readFileAndMime(fileOrPath);
     if (!supportedAudioMimes.contains(fileData.mime)) {
       throw AntigravityValidationException(
-          "Unsupported Audio MIME type: '${fileData.mime}'");
+        "Unsupported Audio MIME type: '${fileData.mime}'",
+      );
     }
     return Audio(
       mimeType: fileData.mime,
@@ -243,7 +308,12 @@ class Audio extends MediaContent {
   }
 }
 
+/// Video content attachment.
 class Video extends MediaContent {
+  /// Creates a [Video].
+  ///
+  /// Throws an [AntigravityValidationException] if [mimeType] is not in
+  /// [supportedVideoMimes].
   Video({
     required super.mimeType,
     required super.description,
@@ -251,15 +321,20 @@ class Video extends MediaContent {
   }) {
     if (!supportedVideoMimes.contains(mimeType)) {
       throw AntigravityValidationException(
-          "Unsupported Video MIME type: '$mimeType'");
+        "Unsupported Video MIME type: '$mimeType'",
+      );
     }
   }
 
+  /// Reads [fileOrPath] (a [File] or path; a leading `~` is expanded to the
+  /// home directory) and creates a [Video], inferring the MIME type from the
+  /// file extension.
   factory Video.fromFile(dynamic fileOrPath, {String description = ''}) {
     final fileData = _readFileAndMime(fileOrPath);
     if (!supportedVideoMimes.contains(fileData.mime)) {
       throw AntigravityValidationException(
-          "Unsupported Video MIME type: '${fileData.mime}'");
+        "Unsupported Video MIME type: '${fileData.mime}'",
+      );
     }
     return Video(
       mimeType: fileData.mime,
@@ -270,24 +345,36 @@ class Video extends MediaContent {
 }
 
 /// Union representation of dynamic prompt inputs.
-typedef ContentPrimitive
-    = dynamic; // String, MediaContent, SlashCommand, or List<ContentPrimitive>
+typedef ContentPrimitive =
+    dynamic; // String, MediaContent, SlashCommand, or List<ContentPrimitive>
 
 @MappableEnum(caseStyle: CaseStyle.snakeCase)
+/// Supported built-in slash commands.
 enum BuiltinSlashCommandName {
+  /// Plans before executing a task: generates an implementation plan
+  /// artifact and awaits user approval.
   @MappableValue('plan')
   plan('plan');
 
+  /// The wire value of this command name.
   final String value;
+
+  /// Creates a [BuiltinSlashCommandName] with the given wire [value].
   const BuiltinSlashCommandName(this.value);
 }
 
+/// Slash command prompt input.
 @MappableClass()
 class SlashCommand with SlashCommandMappable {
+  /// Built-in command to run.
   final BuiltinSlashCommandName name;
 
+  /// Creates a [SlashCommand] for [name].
   SlashCommand({required this.name});
 
+  /// Decodes a [SlashCommand] from a map.
   static const fromMap = SlashCommandMapper.fromMap;
+
+  /// Decodes a [SlashCommand] from a JSON string.
   static const fromJson = SlashCommandMapper.fromJson;
 }

@@ -1,12 +1,12 @@
 ---
 name: google-antigravity-sdk-dart-sync
-description: "Synchronize upstream Python SDK commits (v0.1.22), version strings, features, and test suites to Dart."
+description: "Synchronize upstream Python SDK commits (v0.1.23), version strings, features, and test suites to Dart."
 disable-model-invocation: true
 ---
 
 # Python to Dart Synchronization Skill
 
-Standard procedure for synchronizing features, bug fixes, updates, and package versions from the reference Python SDK repository (`antigravity-sdk-python` v0.1.22) to this Dart SDK.
+Standard procedure for synchronizing features, bug fixes, updates, and package versions from the reference Python SDK repository (`antigravity-sdk-python` v0.1.23) to this Dart SDK.
 
 ## Core Sync Workflow
 
@@ -23,6 +23,10 @@ Standard procedure for synchronizing features, bug fixes, updates, and package v
 
 3. **Type & Paradigm Mapping**:
    - Keep `CompactionConfig.tokenThreshold` aligned with the upstream `token_threshold` wire field.
+   - `lib/src/connections/local/litert_server_python.dart` embeds upstream
+     `connections/local/litert_server.py` verbatim, followed by a Dart-only
+     `__main__` launcher. When upstream changes that file, replace the body
+     and keep the launcher; `diff` the embedded text against upstream.
    - Map Python async methods to Dart `Future<T>` methods.
    - Map Python async generators to Dart streams (`Stream<T>`, `async*`, `yield`).
    - Translate Python `pytest` suites to native Dart `test` structures.

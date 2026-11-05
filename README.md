@@ -166,6 +166,28 @@ final config = LocalAgentConfig(
 );
 ```
 
+### 7. Titled Custom System Instructions
+Give replacement system instructions their own section title, rendered under `<title>` tags instead of the generic `<System>` section:
+
+```dart
+final config = LocalAgentConfig(
+  systemInstructions: CustomSystemInstructions(
+    title: 'SecurityPolicy',
+    text: 'Never expose credentials or API keys in responses.',
+  ),
+);
+```
+
+### 8. Workflow Arguments (beta)
+Pass structured inputs to a Python workflow script, where they are available as `args` alongside `call_tool`, multi-turn `agent(...)` handles, `parallel`, and `pipeline`:
+
+```dart
+final result = await agent.beta.runWorkflow(
+  scriptPath: 'audit_workflow.py',
+  args: {'file': 'main.py'},
+);
+```
+
 ---
 
 ## 🧪 Testing
@@ -203,7 +225,7 @@ The [`example/`](example/) directory contains high-fidelity ports of every scrip
 | `example/getting_started/autonomous_shell.dart` | Provides an autonomous shell agent run |
 | `example/getting_started/multimodal.dart` | Ingests mixed text, images, and document attachments; returns media from tool outputs |
 | `example/getting_started/human_in_the_loop.dart`| Implements stdin-based interactive confirmation |
-| `example/getting_started/workflows.dart` | Executes a Python workflow via `agent.beta.runWorkflow()` |
+| `example/getting_started/workflows.dart` | Runs a bundled security-audit Python workflow (or your own) via `agent.beta.runWorkflow()` with `args` |
 | `example/getting_started/agent_skills.dart`      | Loads and queries local agent skills |
 | `example/getting_started/app_data_dir_override.dart` | Overrides the local application data directory |
 | `example/getting_started/error_handler.dart`     | Catches and resolves tool/agent errors using hooks |

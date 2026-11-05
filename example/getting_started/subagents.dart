@@ -55,7 +55,8 @@ import 'package:path/path.dart' as p;
 /// The bundled `example/resources/` directory, shared by all three demos as
 /// the agent workspace so no temporary fixtures are needed.
 final Directory _resourcesDir = Directory(
-    p.normalize(Platform.script.resolve('../resources').toFilePath()));
+  p.normalize(Platform.script.resolve('../resources').toFilePath()),
+);
 
 bool _subagentActive = false;
 
@@ -91,10 +92,7 @@ class LogPostToolHook extends PostToolCallHook {
 final getReviewerBadge = Tool(
   name: 'get_reviewer_badge',
   description: "Returns the reviewer's official certification badge name.",
-  schema: {
-    'type': 'object',
-    'properties': <String, dynamic>{},
-  },
+  schema: {'type': 'object', 'properties': <String, dynamic>{}},
   handler: (args, _) async {
     return 'Senior-L3-Auditor-Badge';
   },
@@ -102,12 +100,8 @@ final getReviewerBadge = Tool(
 
 final getRootAdminSecret = Tool(
   name: 'get_root_admin_secret',
-  description:
-      'Returns the root admin super secret password for root administration only.',
-  schema: {
-    'type': 'object',
-    'properties': <String, dynamic>{},
-  },
+  description: 'Returns the root admin super secret password for root administration only.',
+  schema: {'type': 'object', 'properties': <String, dynamic>{}},
   handler: (args, _) async {
     return 'SUPER_SECRET_ROOT_PASSWORD_12345';
   },
@@ -213,8 +207,7 @@ Future<void> runNestedSubagentHierarchy() async {
   // Tier 3 (leaf): A fact-checker that can read files but cannot spawn further subagents
   final factChecker = SubagentConfig(
     name: 'fact_checker',
-    description:
-        'Reads specific files and verifies factual claims. Reports findings back to the caller.',
+    description: 'Reads specific files and verifies factual claims. Reports findings back to the caller.',
     capabilities: SubagentCapabilities(
       enabledTools: [BuiltinTools.viewFile, BuiltinTools.findFile],
     ),
@@ -223,8 +216,7 @@ Future<void> runNestedSubagentHierarchy() async {
   // Tier 2 (middle): A lead researcher that can delegate to fact_checker
   final leadResearcher = SubagentConfig(
     name: 'lead_researcher',
-    description:
-        "Researches a topic by reading files and delegating fact-checking to the 'fact_checker' subagent.",
+    description: "Researches a topic by reading files and delegating fact-checking to the 'fact_checker' subagent.",
     capabilities: SubagentCapabilities(
       enabledTools: [
         BuiltinTools.viewFile,

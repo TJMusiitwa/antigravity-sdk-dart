@@ -36,8 +36,10 @@ const _budgetScopeJson = {
 };
 
 /// The empty JSON schema used for tools that declare no parameters.
-Map<String, dynamic> _emptyParameters() =>
-    {'type': 'object', 'properties': <String, dynamic>{}};
+Map<String, dynamic> _emptyParameters() => {
+  'type': 'object',
+  'properties': <String, dynamic>{},
+};
 
 String _sanitizePrompt(String text) => text.replaceAll('\x00', '');
 
@@ -47,13 +49,17 @@ Map<String, dynamic> toolToFunctionToolDict(Tool tool) {
     'type': 'function',
     'name': tool.name,
     if (tool.description.isNotEmpty) 'description': tool.description,
-    'parameters':
-        normalizeSchema(tool.schema.isEmpty ? _emptyParameters() : tool.schema),
+    'parameters': normalizeSchema(
+      tool.schema.isEmpty ? _emptyParameters() : tool.schema,
+    ),
   };
 }
 
-Map<String, dynamic> _unresolvedFunctionTool(String name) =>
-    {'type': 'function', 'name': name, 'parameters': _emptyParameters()};
+Map<String, dynamic> _unresolvedFunctionTool(String name) => {
+  'type': 'function',
+  'name': name,
+  'parameters': _emptyParameters(),
+};
 
 void _translateSystemInstructions(
   dynamic instructions,
@@ -89,7 +95,8 @@ void _translateSystemInstructions(
       }
     default:
       throw ArgumentError(
-          'Unsupported systemInstructions type: ${instructions.runtimeType}');
+        'Unsupported systemInstructions type: ${instructions.runtimeType}',
+      );
   }
 }
 
@@ -115,7 +122,8 @@ Map<String, dynamic> _translateMcpServer(McpServerConfig server) {
       };
     default:
       throw ArgumentError(
-          'Unknown McpServerConfig type: ${server.runtimeType}');
+        'Unknown McpServerConfig type: ${server.runtimeType}',
+      );
   }
   final enabled = server.enabledTools;
   final disabled = server.disabledTools;
@@ -137,16 +145,13 @@ Set<BuiltinTools> _resolveActiveTools(
   List<BuiltinTools>? disabledTools,
 ) {
   if (enabledTools != null) return enabledTools.toSet();
-  return BuiltinTools.defaultTools()
-      .toSet()
-      .difference(disabledTools?.toSet() ?? const {});
+  return BuiltinTools.defaultTools().toSet().difference(
+    disabledTools?.toSet() ?? const {},
+  );
 }
 
 ({List<Map<String, dynamic>> tools, Map<String, dynamic> policy})
-    _translateCapabilities(
-  Set<BuiltinTools> active,
-  RunCommandConfig? runCommand,
-) {
+_translateCapabilities(Set<BuiltinTools> active, RunCommandConfig? runCommand) {
   final tools = <Map<String, dynamic>>[];
   if (active.contains(BuiltinTools.runCommand)) {
     final bash = <String, dynamic>{'type': 'bash'};
@@ -208,7 +213,8 @@ Map<String, dynamic> _allowedSubagentsDict(
 }
 
 Map<String, dynamic>? _translateSubagentSkillsConfig(
-    SubagentSkillsConfig? config) {
+  SubagentSkillsConfig? config,
+) {
   if (config == null) return null;
   if (config.noneConfig != null) return {'none_config': <String, dynamic>{}};
   final inherit = config.inheritConfig;
@@ -226,8 +232,9 @@ Map<String, dynamic>? _translateSubagentSkillsConfig(
   if (override != null) {
     if (override.inlineSkills.isNotEmpty) {
       throw AntigravityValidationException(
-          'inlineSkills in SubagentOverrideSkillsConfig is not supported by '
-          'InteractionsAgentConfig; use skillsPaths instead.');
+        'inlineSkills in SubagentOverrideSkillsConfig is not supported by '
+        'InteractionsAgentConfig; use skillsPaths instead.',
+      );
     }
     return {
       'override_config': {
@@ -243,7 +250,8 @@ Map<String, dynamic> _translateCustomSubagent(
   SubagentConfig subagent,
   Map<String, Map<String, dynamic>> allToolDicts,
 ) {
-  final caps = subagent.capabilities ??
+  final caps =
+      subagent.capabilities ??
       SubagentCapabilities(enabledTools: BuiltinTools.readOnly());
   final result = <String, dynamic>{
     'name': subagent.name,
@@ -262,7 +270,8 @@ Map<String, dynamic> _translateCustomSubagent(
       resolvedTools.add(dict);
     } else {
       throw ArgumentError(
-          "Invalid tool type in subagent '${subagent.name}' tools list: $tool");
+        "Invalid tool type in subagent '${subagent.name}' tools list: $tool",
+      );
     }
   }
 
@@ -282,11 +291,10 @@ Map<String, dynamic> _translateCustomSubagent(
 }
 
 Map<String, dynamic> _translateGeminiOptions(GeminiModelOptions? options) => {
-      if (options?.thinkingLevel != null)
-        'thinking_level': options!.thinkingLevel!.value,
-      if (options?.serviceTier != null)
-        'service_tier': options!.serviceTier!.value,
-    };
+  if (options?.thinkingLevel != null)
+    'thinking_level': options!.thinkingLevel!.value,
+  if (options?.serviceTier != null) 'service_tier': options!.serviceTier!.value,
+};
 
 Map<String, dynamic> _translateModelTarget(ModelTarget model) {
   final result = <String, dynamic>{
@@ -316,7 +324,8 @@ Map<String, dynamic> _translateModelTarget(ModelTarget model) {
       };
     default:
       throw ArgumentError(
-          'Unrecognized endpoint type: ${model.endpoint.runtimeType}');
+        'Unrecognized endpoint type: ${model.endpoint.runtimeType}',
+      );
   }
   return result;
 }
@@ -348,12 +357,14 @@ Map<String, dynamic> _translatePolicyConfig(List<dynamic> policies) {
   for (final p in flattenPolicies(policies)) {
     if (p.auto) {
       throw AntigravityValidationException(
-          'policy.auto() is not yet supported by the GAOS Interactions API '
-          'protocol in localharness.');
+        'policy.auto() is not yet supported by the GAOS Interactions API '
+        'protocol in localharness.',
+      );
     }
     final isWorkspaceOnly = p.name == workspaceOnlyPolicyName;
     hasWorkspaceOnly = hasWorkspaceOnly || isWorkspaceOnly;
-    hasAllowAll = hasAllowAll ||
+    hasAllowAll =
+        hasAllowAll ||
         (p.name == 'allow_all' &&
             p.tool == '*' &&
             p.decision == Decision.approve &&
@@ -362,10 +373,11 @@ Map<String, dynamic> _translatePolicyConfig(List<dynamic> policies) {
         (p.when != null || p.decision == Decision.askUser) && !isWorkspaceOnly;
     if (isDynamic) {
       throw AntigravityValidationException(
-          "Dynamic policy rules (with 'when' predicates or 'askUser' "
-          "handlers, such as '${p.name.isNotEmpty ? p.name : p.tool}') are not "
-          'yet supported by the GAOS Interactions API protocol in '
-          'localharness.');
+        "Dynamic policy rules (with 'when' predicates or 'askUser' "
+        "handlers, such as '${p.name.isNotEmpty ? p.name : p.tool}') are not "
+        'yet supported by the GAOS Interactions API protocol in '
+        'localharness.',
+      );
     }
     final slash = p.tool == '*' ? -1 : p.tool.indexOf('/');
     final toolName = slash < 0 ? p.tool : p.tool.substring(slash + 1);
@@ -498,8 +510,10 @@ Map<String, dynamic> buildCreateInteractionEvent({
   if (subagentsEnabled || customSubagents.isNotEmpty) {
     final maxDepth = caps.maxSubagentDepth;
     agentConfig['subagents_config'] = {
-      'allowed_subagents':
-          _allowedSubagentsDict(subagentsEnabled, caps.allowedSubagents),
+      'allowed_subagents': _allowedSubagentsDict(
+        subagentsEnabled,
+        caps.allowedSubagents,
+      ),
       if (maxDepth != null && maxDepth > 0) 'max_nesting_depth': maxDepth,
       if (customSubagents.isNotEmpty)
         'custom_subagents': [
@@ -533,13 +547,14 @@ Map<String, dynamic> buildCreateInteractionEvent({
   final hooks = interactionsEnabledHooks(hookRunner);
   if (hooks.isNotEmpty) agentConfig['enabled_hooks'] = hooks;
 
-  final threshold = (compactionConfig ??
-          // ignore: deprecated_member_use_from_same_package
-          (caps.compactionThreshold == null
-              ? null
+  final threshold =
+      (compactionConfig ??
               // ignore: deprecated_member_use_from_same_package
-              : CompactionConfig(tokenThreshold: caps.compactionThreshold)))
-      ?.tokenThreshold;
+              (caps.compactionThreshold == null
+                  ? null
+                  // ignore: deprecated_member_use_from_same_package
+                  : CompactionConfig(tokenThreshold: caps.compactionThreshold)))
+          ?.tokenThreshold;
   if (threshold != null && threshold > 0) {
     agentConfig['compaction_config'] = {'token_threshold': threshold};
   }
@@ -662,7 +677,8 @@ List<Map<String, dynamic>> questionResponsesToElicitationResultEvents(
         'event_type': 'elicitation_result',
         'elicitation_id': elicitationIds[i],
         'multiple_choice': _multipleChoice(
-            responses != null && i < responses.length ? responses[i] : null),
+          responses != null && i < responses.length ? responses[i] : null,
+        ),
       },
   ];
 }
@@ -681,9 +697,11 @@ Map<String, dynamic> _multipleChoice(QuestionResponse? response) {
 }
 
 /// Builds a GAOS event cancelling the current turn.
-Map<String, dynamic> buildCancelInteractionEvent() =>
-    {'event_type': 'interaction.cancel'};
+Map<String, dynamic> buildCancelInteractionEvent() => {
+  'event_type': 'interaction.cancel',
+};
 
 /// Builds a GAOS event completing the session.
-Map<String, dynamic> buildCompleteInteractionEvent() =>
-    {'event_type': 'interaction.complete'};
+Map<String, dynamic> buildCompleteInteractionEvent() => {
+  'event_type': 'interaction.complete',
+};

@@ -45,8 +45,7 @@ const interactiveExamples = [
   {
     'name': 'MCP Tools Client',
     'path': 'example/getting_started/mcp_tools.dart',
-    'desc':
-        'Demonstrates connecting to and invoking external MCP server tools (requires running MCP server).',
+    'desc': 'Demonstrates connecting to and invoking external MCP server tools (requires running MCP server).',
   },
 ];
 

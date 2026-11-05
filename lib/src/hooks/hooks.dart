@@ -90,7 +90,8 @@ class FunctionDecideHook<T> implements DecideHook<T> {
 
   /// Creates a stateless [FunctionDecideHook] instance accepting only data.
   factory FunctionDecideHook.stateless(
-      FutureOr<HookResult> Function(T data) func) {
+    FutureOr<HookResult> Function(T data) func,
+  ) {
     return FunctionDecideHook((_, data) => func(data));
   }
 
@@ -154,20 +155,24 @@ abstract class OnCompactionHook extends InspectHook<Step> {}
 /// to inject a system prompt and resume the agent loop, or allow the default
 /// [StopDecision.allowStop] to let the turn complete.
 abstract class StopHook implements Hook {
+  /// Decides whether the turn stops, given the [context] and [data].
+  ///
+  /// Returns null or a [StopHookResult].
   FutureOr<StopHookResult?> run(HookContext context, StopArgs data);
 }
 
 /// Helper class to adapt functions into [StopHook]s.
 class FunctionStopHook implements StopHook {
   final FutureOr<StopHookResult?> Function(HookContext context, StopArgs data)
-      _func;
+  _func;
 
   /// Creates a new [FunctionStopHook] instance accepting a [HookContext] and [StopArgs].
   FunctionStopHook(this._func);
 
   /// Creates a stateless [FunctionStopHook] instance accepting only [StopArgs].
   factory FunctionStopHook.stateless(
-      FutureOr<StopHookResult?> Function(StopArgs data) func) {
+    FutureOr<StopHookResult?> Function(StopArgs data) func,
+  ) {
     return FunctionStopHook((_, data) => func(data));
   }
 
@@ -187,19 +192,43 @@ abstract class PostStepHook extends InspectHook<Step> {}
 
 /// Coordinates registration and dispatch of lifecycle hooks.
 class HookRunner {
+  /// Registered [OnSessionStartHook]s.
   final List<OnSessionStartHook> onSessionStartHooks;
+
+  /// Registered [OnSessionEndHook]s.
   final List<OnSessionEndHook> onSessionEndHooks;
+
+  /// Registered [PreTurnHook]s.
   final List<PreTurnHook> preTurnHooks;
+
+  /// Registered [PostTurnHook]s.
   final List<PostTurnHook> postTurnHooks;
+
+  /// Registered [PreToolCallDecideHook]s.
   final List<PreToolCallDecideHook> preToolCallDecideHooks;
+
+  /// Registered [PostToolCallHook]s.
   final List<PostToolCallHook> postToolCallHooks;
+
+  /// Registered [OnToolErrorHook]s.
   final List<OnToolErrorHook> onToolErrorHooks;
+
+  /// Registered [OnInteractionHook]s.
   final List<OnInteractionHook> onInteractionHooks;
+
+  /// Registered [OnCompactionHook]s.
   final List<OnCompactionHook> onCompactionHooks;
+
+  /// Registered [StopHook]s.
   final List<StopHook> stopHooks;
+
+  /// Registered [PreStepHook]s.
   final List<PreStepHook> preStepHooks;
+
+  /// Registered [PostStepHook]s.
   final List<PostStepHook> postStepHooks;
 
+  /// Context shared by all hooks for the lifetime of this runner.
   final SessionContext sessionContext = SessionContext();
   TurnContext? _currentTurnContext;
 
@@ -218,18 +247,18 @@ class HookRunner {
     List<StopHook>? stopHooks,
     List<PreStepHook>? preStepHooks,
     List<PostStepHook>? postStepHooks,
-  })  : onSessionStartHooks = onSessionStartHooks ?? [],
-        onSessionEndHooks = onSessionEndHooks ?? [],
-        preTurnHooks = preTurnHooks ?? [],
-        postTurnHooks = postTurnHooks ?? [],
-        preToolCallDecideHooks = preToolCallDecideHooks ?? [],
-        postToolCallHooks = postToolCallHooks ?? [],
-        onToolErrorHooks = onToolErrorHooks ?? [],
-        onInteractionHooks = onInteractionHooks ?? [],
-        onCompactionHooks = onCompactionHooks ?? [],
-        stopHooks = stopHooks ?? [],
-        preStepHooks = preStepHooks ?? [],
-        postStepHooks = postStepHooks ?? [] {
+  }) : onSessionStartHooks = onSessionStartHooks ?? [],
+       onSessionEndHooks = onSessionEndHooks ?? [],
+       preTurnHooks = preTurnHooks ?? [],
+       postTurnHooks = postTurnHooks ?? [],
+       preToolCallDecideHooks = preToolCallDecideHooks ?? [],
+       postToolCallHooks = postToolCallHooks ?? [],
+       onToolErrorHooks = onToolErrorHooks ?? [],
+       onInteractionHooks = onInteractionHooks ?? [],
+       onCompactionHooks = onCompactionHooks ?? [],
+       stopHooks = stopHooks ?? [],
+       preStepHooks = preStepHooks ?? [],
+       postStepHooks = postStepHooks ?? [] {
     registerHooks(hooks);
   }
 

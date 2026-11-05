@@ -76,9 +76,15 @@ void main() {
         hookRunner: HookRunner(),
       );
       await expectLater(
-          failed.disconnect(),
-          throwsA(isA<AntigravityExecutionException>().having(
-              (e) => e.message, 'message', contains('exited with code 7'))));
+        failed.disconnect(),
+        throwsA(
+          isA<AntigravityExecutionException>().having(
+            (e) => e.message,
+            'message',
+            contains('exited with code 7'),
+          ),
+        ),
+      );
     });
 
     test('disconnect accepts a successful harness exit', () async {
@@ -95,9 +101,23 @@ void main() {
       expect(toolResponse['id'], equals('call-1'));
       expect(toolResponse.containsKey('supplemental_media'), isFalse);
 
-      final responseJson = jsonDecode(toolResponse['response_json'] as String)
-          as Map<String, dynamic>;
+      final responseJson = jsonDecode(
+        toolResponse['response_json'] as String,
+      ) as Map<String, dynamic>;
       expect(responseJson['result'], equals('hello'));
+    });
+
+    test('non-ASCII text in response_json is sent unescaped', () async {
+      await connection.sendToolResults([
+        ToolResult(id: 'call_1', name: 'test_tool', result: '요즘 어깨가'),
+      ]);
+
+      final event = await received.stream.first;
+      final toolResponse = event['tool_response'] as Map<String, dynamic>;
+      final responseJson = toolResponse['response_json'] as String;
+      expect(responseJson, contains('요즘 어깨가'));
+      expect(responseJson, isNot(contains(r'\u')));
+      expect(jsonDecode(responseJson), {'result': '요즘 어깨가'});
     });
 
     test('error result short-circuits media extraction', () async {
@@ -109,13 +129,13 @@ void main() {
       final toolResponse = event['tool_response'] as Map<String, dynamic>;
       expect(toolResponse.containsKey('supplemental_media'), isFalse);
 
-      final responseJson = jsonDecode(toolResponse['response_json'] as String)
-          as Map<String, dynamic>;
+      final responseJson = jsonDecode(
+        toolResponse['response_json'] as String,
+      ) as Map<String, dynamic>;
       expect(responseJson['error'], equals('boom'));
     });
 
-    test('a MediaContent result is extracted into supplemental_media',
-        () async {
+    test('a MediaContent result is extracted into supplemental_media', () async {
       final img = Image(
         mimeType: 'image/png',
         description: 'a test image',
@@ -134,36 +154,40 @@ void main() {
       expect(media[0]['data'], equals(base64Encode([1, 2, 3, 4])));
 
       // No text left over, so response_json gets an auto-generated placeholder.
-      final responseJson = jsonDecode(toolResponse['response_json'] as String)
-          as Map<String, dynamic>;
+      final responseJson = jsonDecode(
+        toolResponse['response_json'] as String,
+      ) as Map<String, dynamic>;
       expect(responseJson['result'], equals('Returned 1 media attachment(s).'));
     });
 
-    test('mixed list result keeps text and extracts media separately',
-        () async {
-      final img = Image(
-        mimeType: 'image/jpeg',
-        description: 'photo',
-        data: [9, 9, 9],
-      );
-      await connection.sendToolResults([
-        ToolResult(
-          id: 'call-3',
-          name: 'load_with_caption',
-          result: ['Here is the photo.', img],
-        ),
-      ]);
+    test(
+      'mixed list result keeps text and extracts media separately',
+      () async {
+        final img = Image(
+          mimeType: 'image/jpeg',
+          description: 'photo',
+          data: [9, 9, 9],
+        );
+        await connection.sendToolResults([
+          ToolResult(
+            id: 'call-3',
+            name: 'load_with_caption',
+            result: ['Here is the photo.', img],
+          ),
+        ]);
 
-      final event = await received.stream.first;
-      final toolResponse = event['tool_response'] as Map<String, dynamic>;
-      final media = toolResponse['supplemental_media'] as List<dynamic>;
-      expect(media, hasLength(1));
-      expect(media[0]['mime_type'], equals('image/jpeg'));
+        final event = await received.stream.first;
+        final toolResponse = event['tool_response'] as Map<String, dynamic>;
+        final media = toolResponse['supplemental_media'] as List<dynamic>;
+        expect(media, hasLength(1));
+        expect(media[0]['mime_type'], equals('image/jpeg'));
 
-      final responseJson = jsonDecode(toolResponse['response_json'] as String)
-          as Map<String, dynamic>;
-      expect(responseJson['result'], equals(['Here is the photo.']));
-    });
+        final responseJson = jsonDecode(
+          toolResponse['response_json'] as String,
+        ) as Map<String, dynamic>;
+        expect(responseJson['result'], equals(['Here is the photo.']));
+      },
+    );
   });
 
   group('LocalConnection trajectory state tracking', () {
@@ -197,64 +221,76 @@ void main() {
       await messageStream.close();
     });
 
-    test('step_update sets mainTrajectoryId and preserves conversationId',
-        () async {
-      final steps = connection.receiveSteps();
-      messageStream.add(jsonEncode({
-        'step_update': {
-          'trajectory_id': 'traj-main',
-          'cascade_id': 'cascade-123',
-          'step_index': 0,
-          'type': 'MODEL',
-          'source': 'SOURCE_MODEL',
-          'target': 'TARGET_USER',
-          'status': 'ACTIVE',
-          'content_delta': 'hello',
-        }
-      }));
+    test(
+      'step_update sets mainTrajectoryId and preserves conversationId',
+      () async {
+        final steps = connection.receiveSteps();
+        messageStream.add(
+          jsonEncode({
+            'step_update': {
+              'trajectory_id': 'traj-main',
+              'cascade_id': 'cascade-123',
+              'step_index': 0,
+              'type': 'MODEL',
+              'source': 'SOURCE_MODEL',
+              'target': 'TARGET_USER',
+              'status': 'ACTIVE',
+              'content_delta': 'hello',
+            },
+          }),
+        );
 
-      final step = await steps.first;
-      expect(step.contentDelta, equals('hello'));
-      expect(connection.mainTrajectoryId, equals('traj-main'));
-      expect(connection.conversationId, equals('cascade-123'));
-    });
+        final step = await steps.first;
+        expect(step.contentDelta, equals('hello'));
+        expect(connection.mainTrajectoryId, equals('traj-main'));
+        expect(connection.conversationId, equals('cascade-123'));
+      },
+    );
 
-    test('trajectory_state_update for main trajectory emits idle_sentinel',
-        () async {
-      connection.mainTrajectoryId = 'traj-main';
+    test(
+      'trajectory_state_update for main trajectory emits idle_sentinel',
+      () async {
+        connection.mainTrajectoryId = 'traj-main';
 
-      final steps = connection.receiveSteps();
-      final stepFuture = steps.first;
+        final steps = connection.receiveSteps();
+        final stepFuture = steps.first;
 
-      messageStream.add(jsonEncode({
-        'trajectory_state_update': {
-          'trajectory_id': 'traj-main',
-          'state': 'STATE_FULLY_IDLE',
-        }
-      }));
+        messageStream.add(
+          jsonEncode({
+            'trajectory_state_update': {
+              'trajectory_id': 'traj-main',
+              'state': 'STATE_FULLY_IDLE',
+            },
+          }),
+        );
 
-      final step = await stepFuture;
-      expect(step.id, equals('idle_sentinel'));
-      expect(connection.isIdle, isTrue);
-    });
+        final step = await stepFuture;
+        expect(step.id, equals('idle_sentinel'));
+        expect(connection.isIdle, isTrue);
+      },
+    );
 
-    test('subagent trajectory_state_update does not emit idle_sentinel',
-        () async {
-      connection.mainTrajectoryId = 'traj-main';
+    test(
+      'subagent trajectory_state_update does not emit idle_sentinel',
+      () async {
+        connection.mainTrajectoryId = 'traj-main';
 
-      final receivedSteps = <Step>[];
-      final sub = connection.receiveSteps().listen(receivedSteps.add);
+        final receivedSteps = <Step>[];
+        final sub = connection.receiveSteps().listen(receivedSteps.add);
 
-      messageStream.add(jsonEncode({
-        'trajectory_state_update': {
-          'trajectory_id': 'subagent-traj-999',
-          'state': 'STATE_FULLY_IDLE',
-        }
-      }));
+        messageStream.add(
+          jsonEncode({
+            'trajectory_state_update': {
+              'trajectory_id': 'subagent-traj-999',
+              'state': 'STATE_FULLY_IDLE',
+            },
+          }),
+        );
 
-      await Future.delayed(const Duration(milliseconds: 50));
-      expect(receivedSteps, isEmpty);
-      await sub.cancel();
-    });
+        await Future.delayed(const Duration(milliseconds: 50));
+        expect(receivedSteps, isEmpty);
+        await sub.cancel();
+      },
+    );
   });
 }

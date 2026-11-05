@@ -28,6 +28,17 @@ const Map<String, String> _schemaKeywordMap = {
   'min_properties': 'minProperties',
   'max_properties': 'maxProperties',
   'unique_items': 'uniqueItems',
+  'multiple_of': 'multipleOf',
+  'exclusive_minimum': 'exclusiveMinimum',
+  'exclusive_maximum': 'exclusiveMaximum',
+  'prefix_items': 'prefixItems',
+  'property_names': 'propertyNames',
+  'dependent_required': 'dependentRequired',
+  'dependent_schemas': 'dependentSchemas',
+  'unevaluated_properties': 'unevaluatedProperties',
+  'unevaluated_items': 'unevaluatedItems',
+  'read_only': 'readOnly',
+  'write_only': 'writeOnly',
 };
 
 const Set<String> _uppercaseTypes = {
@@ -43,14 +54,20 @@ const Set<String> _uppercaseTypes = {
 /// Recursively normalizes JSON Schema maps and lists for universal model compatibility.
 ///
 /// Converts uppercase GenAI/Protobuf type names to lowercase strings, converts
-/// snake_case JSON Schema keywords to camelCase (e.g. `any_of` -> `anyOf`),
-/// and preserves literal values (`enum`, `const`, `default`).
+/// snake_case JSON Schema keywords to camelCase (e.g. `any_of` -> `anyOf`,
+/// `multiple_of` -> `multipleOf`, `read_only` -> `readOnly`), and preserves
+/// literal values and metadata (`enum`, `const`, `default`, `example`,
+/// `examples`, `dependentRequired`, `title`, `description`, `summary`,
+/// `format`, `pattern`) without lowercasing type-like strings such as
+/// `"STRING"`. The keys of `properties`, `patternProperties`, `$defs`,
+/// `definitions`, and `dependentSchemas` are property names and are kept
+/// as-is; only their subschemas are normalized.
 dynamic normalizeSchema(dynamic schema) => switch (schema) {
-      Map() => _normalizeMap(schema),
-      List() => schema.map(normalizeSchema).toList(),
-      String s when _uppercaseTypes.contains(s) => s.toLowerCase(),
-      _ => schema,
-    };
+  Map() => _normalizeMap(schema),
+  List() => schema.map(normalizeSchema).toList(),
+  String s when _uppercaseTypes.contains(s) => s.toLowerCase(),
+  _ => schema,
+};
 
 Map<String, dynamic> _normalizeMap(Map schema) {
   final normalized = <String, dynamic>{};
@@ -63,21 +80,29 @@ Map<String, dynamic> _normalizeMap(Map schema) {
 }
 
 dynamic _normalizeEntryValue(String key, dynamic value) => switch (key) {
-      'type' => switch (value) {
-          String s => s.toLowerCase(),
-          List l => l.map(normalizeSchema).toList(),
-          _ => normalizeSchema(value),
-        },
-      'properties' ||
-      'patternProperties' ||
-      r'$defs' ||
-      'definitions' =>
-        switch (value) {
-          Map m => m.map(
-              (pk, pv) => MapEntry(pk.toString(), normalizeSchema(pv)),
-            ),
-          _ => normalizeSchema(value),
-        },
-      'enum' || 'const' || 'default' => value,
-      _ => normalizeSchema(value),
-    };
+  'type' => switch (value) {
+    String s => s.toLowerCase(),
+    List l => l.map(normalizeSchema).toList(),
+    _ => normalizeSchema(value),
+  },
+  'properties' ||
+  'patternProperties' ||
+  r'$defs' ||
+  'definitions' ||
+  'dependentSchemas' => switch (value) {
+    Map m => m.map((pk, pv) => MapEntry(pk.toString(), normalizeSchema(pv))),
+    _ => normalizeSchema(value),
+  },
+  'enum' ||
+  'const' ||
+  'default' ||
+  'example' ||
+  'examples' ||
+  'dependentRequired' ||
+  'title' ||
+  'description' ||
+  'summary' ||
+  'format' ||
+  'pattern' => value,
+  _ => normalizeSchema(value),
+};

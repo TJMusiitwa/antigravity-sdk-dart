@@ -41,8 +41,7 @@ void main() {
       await agent.stop();
     });
 
-    test(
-        'Agent registers the client policy hook when the harness does not '
+    test('Agent registers the client policy hook when the harness does not '
         'evaluate policies', () async {
       final config = FakeAgentConfig(strategy, policies: [allowAll()]);
       final agent = Agent(config);
@@ -54,8 +53,7 @@ void main() {
       await agent.stop();
     });
 
-    test(
-        'Agent skips the client policy hook when the harness evaluates '
+    test('Agent skips the client policy hook when the harness evaluates '
         'policies', () async {
       final config = FakeAgentConfig(
         strategy,
@@ -79,9 +77,7 @@ void main() {
       final config = FakeAgentConfig(
         strategy,
         harnessPolicies: true,
-        policies: [
-          Policy(tool: 'run_command', decision: Decision.askUser),
-        ],
+        policies: [Policy(tool: 'run_command', decision: Decision.askUser)],
       );
       final agent = Agent(config);
       expect(agent.start(), throwsArgumentError);
@@ -115,41 +111,35 @@ void main() {
       await agent.stop();
     });
 
-    test(
-      'Conversation pre-turn hook deny halts execution and returns canceled response',
-      () async {
-        final preDenyHook = TestPreTurnDenyHook('Custom hook denial');
+    test('Conversation pre-turn hook deny halts execution and returns canceled response', () async {
+      final preDenyHook = TestPreTurnDenyHook('Custom hook denial');
 
-        final config = FakeAgentConfig(
-          strategy,
-          hooks: [preDenyHook],
-          policies: [allowAll()],
-        );
-        final agent = Agent(config);
-        await agent.start();
+      final config = FakeAgentConfig(
+        strategy,
+        hooks: [preDenyHook],
+        policies: [allowAll()],
+      );
+      final agent = Agent(config);
+      await agent.start();
 
-        final response = await agent.chat('some prompt');
-        final steps = await response.chunks.toList();
+      final response = await agent.chat('some prompt');
+      final steps = await response.chunks.toList();
 
-        expect(steps.length, equals(1));
-        expect(steps[0], isA<Step>());
-        final step = steps[0] as Step;
-        expect(step.status, equals(StepStatus.canceled));
-        expect(step.error, equals('Custom hook denial'));
+      expect(steps.length, equals(1));
+      expect(steps[0], isA<Step>());
+      final step = steps[0] as Step;
+      expect(step.status, equals(StepStatus.canceled));
+      expect(step.error, equals('Custom hook denial'));
 
-        // Check conversation history has the canceled step
-        expect(
-          agent.conversation.history.length,
-          equals(2),
-        ); // user text step + canceled step
-        expect(
-          agent.conversation.history[1].status,
-          equals(StepStatus.canceled),
-        );
+      // Check conversation history has the canceled step
+      expect(
+        agent.conversation.history.length,
+        equals(2),
+      ); // user text step + canceled step
+      expect(agent.conversation.history[1].status, equals(StepStatus.canceled));
 
-        await agent.stop();
-      },
-    );
+      await agent.stop();
+    });
 
     test('Conversation post-turn hook executes successfully', () async {
       var postHookCalledWithResponse = '';
@@ -244,9 +234,7 @@ void main() {
       await agent.stop();
     });
 
-    test(
-        'Conversation.lastTurnUsage returns null before turn or when no tokens accumulated, and returns diff when tokens change',
-        () async {
+    test('Conversation.lastTurnUsage returns null before turn or when no tokens accumulated, and returns diff when tokens change', () async {
       final strategy = FakeConnectionStrategy();
       final config = FakeAgentConfig(strategy, policies: [allowAll()]);
       final agent = Agent(config);
@@ -266,45 +254,42 @@ void main() {
     });
 
     test(
-        'Formats single, concurrent, compaction, and reasoning steps correctly',
-        () {
-      final singleToolStep = Step(
-        type: StepType.toolCall,
-        toolCalls: [ToolCall(name: 'view_file')],
-      );
-      expect(
-        formatStepSpinnerMessage(singleToolStep),
-        equals(
-          "Running tool 'view_file'...",
-        ),
-      );
+      'Formats single, concurrent, compaction, and reasoning steps correctly',
+      () {
+        final singleToolStep = Step(
+          type: StepType.toolCall,
+          toolCalls: [ToolCall(name: 'view_file')],
+        );
+        expect(
+          formatStepSpinnerMessage(singleToolStep),
+          equals("Running tool 'view_file'..."),
+        );
 
-      final concurrentToolsStep = Step(
-        type: StepType.toolCall,
-        toolCalls: [ToolCall(name: 'view_file'), ToolCall(name: 'edit_file')],
-      );
-      expect(
-        formatStepSpinnerMessage(concurrentToolsStep),
-        equals(
-          "Running tools 'view_file', 'edit_file'...",
-        ),
-      );
+        final concurrentToolsStep = Step(
+          type: StepType.toolCall,
+          toolCalls: [
+            ToolCall(name: 'view_file'),
+            ToolCall(name: 'edit_file'),
+          ],
+        );
+        expect(
+          formatStepSpinnerMessage(concurrentToolsStep),
+          equals("Running tools 'view_file', 'edit_file'..."),
+        );
 
-      final compactionStep = Step(type: StepType.compaction);
-      expect(
-        formatStepSpinnerMessage(compactionStep),
-        equals('Compacting context...'),
-      );
+        final compactionStep = Step(type: StepType.compaction);
+        expect(
+          formatStepSpinnerMessage(compactionStep),
+          equals('Compacting context...'),
+        );
 
-      final reasoningStep = Step(
-        source: StepSource.model,
-        thinkingDelta: 'thinking...',
-      );
-      expect(
-        formatStepSpinnerMessage(reasoningStep),
-        equals('Reasoning...'),
-      );
-    });
+        final reasoningStep = Step(
+          source: StepSource.model,
+          thinkingDelta: 'thinking...',
+        );
+        expect(formatStepSpinnerMessage(reasoningStep), equals('Reasoning...'));
+      },
+    );
   });
 
   group('MediaContent fromFile and MIME verification', () {
@@ -375,53 +360,51 @@ void main() {
         fakeStrategy,
         tools: [t1],
         subagents: [
-          SubagentConfig(
-            name: 'sub1',
-            description: 'Subagent 1',
-            tools: [t2],
-          ),
+          SubagentConfig(name: 'sub1', description: 'Subagent 1', tools: [t2]),
         ],
       );
 
       final allTools = config.getAllCustomTools();
       expect(allTools, hasLength(2));
       expect(
-          allTools.map((t) => t.name), containsAll(['tool_one', 'tool_two']));
-    });
-
-    test('AgentConfig.getAllCustomTools throws on duplicate conflicting tools',
-        () {
-      final fakeStrategy = FakeConnectionStrategy();
-      final t1 = Tool(
-        name: 'conflict_tool',
-        description: 'First tool',
-        schema: const {},
-        handler: (args, ctx) async => 'res1',
+        allTools.map((t) => t.name),
+        containsAll(['tool_one', 'tool_two']),
       );
-      final t2 = Tool(
-        name: 'conflict_tool',
-        description: 'Different tool with same name',
-        schema: const {},
-        handler: (args, ctx) async => 'res2',
-      );
-      final config = FakeAgentConfig(
-        fakeStrategy,
-        tools: [t1],
-        subagents: [
-          SubagentConfig(
-            name: 'sub1',
-            description: 'Subagent 1',
-            tools: [t2],
-          ),
-        ],
-      );
-
-      expect(() => config.getAllCustomTools(), throwsArgumentError);
     });
 
     test(
-        'Conversation deduplicates compactionIndices for wire-format steps without id field',
-        () {
+      'AgentConfig.getAllCustomTools throws on duplicate conflicting tools',
+      () {
+        final fakeStrategy = FakeConnectionStrategy();
+        final t1 = Tool(
+          name: 'conflict_tool',
+          description: 'First tool',
+          schema: const {},
+          handler: (args, ctx) async => 'res1',
+        );
+        final t2 = Tool(
+          name: 'conflict_tool',
+          description: 'Different tool with same name',
+          schema: const {},
+          handler: (args, ctx) async => 'res2',
+        );
+        final config = FakeAgentConfig(
+          fakeStrategy,
+          tools: [t1],
+          subagents: [
+            SubagentConfig(
+              name: 'sub1',
+              description: 'Subagent 1',
+              tools: [t2],
+            ),
+          ],
+        );
+
+        expect(() => config.getAllCustomTools(), throwsArgumentError);
+      },
+    );
+
+    test('Conversation deduplicates compactionIndices for wire-format steps without id field', () {
       // Wire frames carry trajectory_id and step_index, but NO id field.
       final wireStep1Active = Step.fromMap({
         'trajectory_id': 'traj-main',
@@ -446,16 +429,17 @@ void main() {
       });
 
       final conn = FakeConnection();
-      conn.initialHistory
-          .addAll([wireStep1Active, wireStep1Done, wireStep2Done]);
+      conn.initialHistory.addAll([
+        wireStep1Active,
+        wireStep1Done,
+        wireStep2Done,
+      ]);
       final conv = Conversation(conn);
 
       expect(conv.compactionIndices, equals([0, 2]));
     });
 
-    test(
-        'Conversation deduplicates streaming compaction steps with makeStepId fallback',
-        () async {
+    test('Conversation deduplicates streaming compaction steps with makeStepId fallback', () async {
       final conn = FakeConnection();
       conn.autoRespond = false;
       final conv = Conversation(conn);
@@ -463,29 +447,35 @@ void main() {
       final response = await conv.chat('start');
 
       // Emit two wire-format compaction step updates (ACTIVE then DONE) for the same step index
-      conn._stepController.add(Step.fromMap({
-        'trajectory_id': 'traj-live',
-        'step_index': 3,
-        'type': 'COMPACTION',
-        'status': 'ACTIVE',
-        'content': 'Compacting...',
-      }));
-      conn._stepController.add(Step.fromMap({
-        'trajectory_id': 'traj-live',
-        'step_index': 3,
-        'type': 'COMPACTION',
-        'status': 'DONE',
-        'content': 'Compacted steps into summary',
-      }));
-      conn._stepController.add(Step(
-        id: 'finish_step',
-        stepIndex: 4,
-        type: StepType.finish,
-        source: StepSource.system,
-        target: StepTarget.environment,
-        status: StepStatus.done,
-        content: 'Finished',
-      ));
+      conn._stepController.add(
+        Step.fromMap({
+          'trajectory_id': 'traj-live',
+          'step_index': 3,
+          'type': 'COMPACTION',
+          'status': 'ACTIVE',
+          'content': 'Compacting...',
+        }),
+      );
+      conn._stepController.add(
+        Step.fromMap({
+          'trajectory_id': 'traj-live',
+          'step_index': 3,
+          'type': 'COMPACTION',
+          'status': 'DONE',
+          'content': 'Compacted steps into summary',
+        }),
+      );
+      conn._stepController.add(
+        Step(
+          id: 'finish_step',
+          stepIndex: 4,
+          type: StepType.finish,
+          source: StepSource.system,
+          target: StepTarget.environment,
+          status: StepStatus.done,
+          content: 'Finished',
+        ),
+      );
 
       await response.chunks.drain();
 
@@ -494,19 +484,17 @@ void main() {
       expect(conv.history[conv.compactionIndices.first].stepIndex, equals(3));
     });
 
-    test(
-        'Conversation dedups a streaming compaction duplicate separated by another compaction',
-        () async {
+    test('Conversation dedups a streaming compaction duplicate separated by another compaction', () async {
       // Discriminating case: the previous implementation compared only against
       // _compactionIndices.last, so in the sequence A, B, A the second A was
       // checked against B and slipped through. Set-based dedup catches it.
       Step compaction(String traj, int idx, String status) => Step.fromMap({
-            'trajectory_id': traj,
-            'step_index': idx,
-            'type': 'COMPACTION',
-            'status': status,
-            'content': 'compaction $traj:$idx $status',
-          });
+        'trajectory_id': traj,
+        'step_index': idx,
+        'type': 'COMPACTION',
+        'status': status,
+        'content': 'compaction $traj:$idx $status',
+      });
 
       final conn = FakeConnection();
       conn.autoRespond = false;
@@ -516,22 +504,25 @@ void main() {
       conn._stepController.add(compaction('traj-live', 3, 'ACTIVE')); // A
       conn._stepController.add(compaction('traj-live', 9, 'DONE')); // B
       conn._stepController.add(compaction('traj-live', 3, 'DONE')); // A again
-      conn._stepController.add(Step(
-        id: 'finish_step',
-        stepIndex: 10,
-        type: StepType.finish,
-        source: StepSource.system,
-        target: StepTarget.environment,
-        status: StepStatus.done,
-        content: 'Finished',
-      ));
+      conn._stepController.add(
+        Step(
+          id: 'finish_step',
+          stepIndex: 10,
+          type: StepType.finish,
+          source: StepSource.system,
+          target: StepTarget.environment,
+          status: StepStatus.done,
+          content: 'Finished',
+        ),
+      );
 
       await response.chunks.drain();
 
       // Two distinct compactions (3 and 9); the repeat of 3 must not re-index.
       expect(conv.compactionIndices, hasLength(2));
-      final indexedStepIndices =
-          conv.compactionIndices.map((i) => conv.history[i].stepIndex).toList();
+      final indexedStepIndices = conv.compactionIndices
+          .map((i) => conv.history[i].stepIndex)
+          .toList();
       expect(indexedStepIndices, equals([3, 9]));
     });
   });
@@ -703,6 +694,7 @@ class FakeAgentConfig extends AgentConfig {
     super.triggers,
     super.subagents,
     super.responseSchema,
+    super.workspaces,
   });
 
   @override
@@ -771,49 +763,69 @@ class WorkflowConnection extends FakeConnection {
   final String mode;
   WorkflowConnection(this.mode);
   final controller = StreamController<Step>.broadcast();
+
+  /// Prompts passed to [send], in order.
+  final prompts = <ContentPrimitive?>[];
   @override
   Stream<Step> receiveSteps() => controller.stream;
   @override
-  Future<void> send(ContentPrimitive? prompt,
-      {Map<String, dynamic>? kwargs}) async {
+  Future<void> send(
+    ContentPrimitive? prompt, {
+    Map<String, dynamic>? kwargs,
+  }) async {
+    prompts.add(prompt);
     scheduleMicrotask(() {
       if (mode == 'error_text') {
-        controller.add(Step(
+        controller.add(
+          Step(
             source: StepSource.model,
             target: StepTarget.user,
             status: StepStatus.error,
             contentDelta: 'bad text',
-            thinkingDelta: 'bad thought'));
+            thinkingDelta: 'bad thought',
+          ),
+        );
         return;
       }
       if (mode == 'dedup') {
         for (final id in ['', '', 'same', 'same']) {
           controller.add(
-              Step(toolCalls: [ToolCall(id: id, name: 'example', args: {})]));
+            Step(
+              toolCalls: [ToolCall(id: id, name: 'example', args: {})],
+            ),
+          );
         }
         controller.add(Step(id: 'idle_sentinel', type: StepType.finish));
         return;
       }
       if (mode != 'missing') {
-        controller.add(Step.fromMap({
-          'step_index': 1,
-          'run_workflow': {'output': 'workflow output'},
-          'state': mode == 'error' ? 'STATE_ERROR' : 'STATE_DONE',
-          'error': mode == 'error' ? 'failed' : ''
-        }));
+        controller.add(
+          Step.fromMap({
+            'step_index': 1,
+            'run_workflow': {'output': 'workflow output'},
+            'state': mode == 'error' ? 'STATE_ERROR' : 'STATE_DONE',
+            'error': mode == 'error' ? 'failed' : '',
+          }),
+        );
       }
-      controller.add(Step(
+      controller.add(
+        Step(
           stepIndex: 2,
           type: StepType.textResponse,
           source: StepSource.model,
           target: StepTarget.user,
           contentDelta: 'finished',
-          status: StepStatus.done));
-      controller.add(Step(
+          status: StepStatus.done,
+        ),
+      );
+      controller.add(
+        Step(
           id: 'idle_sentinel',
           stepIndex: -1,
           type: StepType.finish,
-          status: StepStatus.done));
+          status: StepStatus.done,
+        ),
+      );
     });
   }
 

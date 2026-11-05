@@ -32,19 +32,24 @@ class _Harness {
   final WebSocket client;
   final WebSocket _serverSide;
   final _sent = StreamController<Map<String, dynamic>>();
-  late final StreamIterator<Map<String, dynamic>> _iterator =
-      StreamIterator(_sent.stream);
+  late final StreamIterator<Map<String, dynamic>> _iterator = StreamIterator(
+    _sent.stream,
+  );
 
   _Harness._(this._server, this.client, this._serverSide) {
-    _serverSide.listen((message) =>
-        _sent.add(jsonDecode(message as String) as Map<String, dynamic>));
+    _serverSide.listen(
+      (message) =>
+          _sent.add(jsonDecode(message as String) as Map<String, dynamic>),
+    );
   }
 
   static Future<_Harness> open() async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     final serverSide = Completer<WebSocket>();
-    server.listen((request) async =>
-        serverSide.complete(await WebSocketTransformer.upgrade(request)));
+    server.listen(
+      (request) async =>
+          serverSide.complete(await WebSocketTransformer.upgrade(request)),
+    );
     final client = await WebSocket.connect('ws://127.0.0.1:${server.port}');
     return _Harness._(server, client, await serverSide.future);
   }
@@ -54,8 +59,9 @@ class _Harness {
 
   /// The next event the connection sent to the harness.
   Future<Map<String, dynamic>> next() async {
-    final hasNext =
-        await _iterator.moveNext().timeout(const Duration(seconds: 2));
+    final hasNext = await _iterator.moveNext().timeout(
+      const Duration(seconds: 2),
+    );
     if (!hasNext) throw StateError('Harness socket closed');
     return _iterator.current;
   }
@@ -117,8 +123,9 @@ class _PreTool extends PreToolCallDecideHook {
     log.entries.add('pre_tool:${data.name}:${data.canonicalPath}');
     if (!allow) return HookResult(allow: false, message: 'tool blocked');
     return HookResult(
-        allow: true,
-        modifiedArgs: {'path': data.canonicalPath, 'max_lines': 10});
+      allow: true,
+      modifiedArgs: {'path': data.canonicalPath, 'max_lines': 10},
+    );
   }
 }
 
@@ -156,12 +163,16 @@ class _Interaction extends OnInteractionHook {
   final List<int> batchSizes = [];
   @override
   Future<QuestionHookResult> run(
-      HookContext context, AskQuestionInteractionSpec data) async {
+    HookContext context,
+    AskQuestionInteractionSpec data,
+  ) async {
     batchSizes.add(data.questions.length);
-    return QuestionHookResult(responses: [
-      QuestionResponse(selectedOptionIds: ['1']),
-      QuestionResponse(selectedOptionIds: ['2']),
-    ]);
+    return QuestionHookResult(
+      responses: [
+        QuestionResponse(selectedOptionIds: ['1']),
+        QuestionResponse(selectedOptionIds: ['2']),
+      ],
+    );
   }
 }
 
@@ -203,46 +214,48 @@ class _CapturePreTurn extends PreTurnHook {
   }
 }
 
-Map<String, dynamic> _hookRequest(String id, String type,
-        [Map<String, dynamic> extra = const {}]) =>
-    {
-      'event_type': 'call_hook_request',
-      'request_id': id,
-      'type': type,
-      'name': type,
-      ...extra,
-    };
+Map<String, dynamic> _hookRequest(
+  String id,
+  String type, [
+  Map<String, dynamic> extra = const {},
+]) => {
+  'event_type': 'call_hook_request',
+  'request_id': id,
+  'type': type,
+  'name': type,
+  ...extra,
+};
 
 Map<String, dynamic> _question(int index, String id, String text) => {
-      'event_type': 'step.start',
-      'index': index,
-      'step': {
-        'type': 'elicitation_call',
-        'elicitation_id': id,
-        'preamble': {
-          'content': [
-            {'type': 'text', 'text': text},
+  'event_type': 'step.start',
+  'index': index,
+  'step': {
+    'type': 'elicitation_call',
+    'elicitation_id': id,
+    'preamble': {
+      'content': [
+        {'type': 'text', 'text': text},
+      ],
+    },
+    'multiple_choice_request': {
+      'allow_multiple_selections': false,
+      'choices': [
+        {
+          'label': '1',
+          'display': [
+            {'type': 'text', 'text': 'A'},
           ],
         },
-        'multiple_choice_request': {
-          'allow_multiple_selections': false,
-          'choices': [
-            {
-              'label': '1',
-              'display': [
-                {'type': 'text', 'text': 'A'},
-              ],
-            },
-            {
-              'label': '2',
-              'display': [
-                {'type': 'text', 'text': 'B'},
-              ],
-            },
+        {
+          'label': '2',
+          'display': [
+            {'type': 'text', 'text': 'B'},
           ],
         },
-      },
-    };
+      ],
+    },
+  },
+};
 
 void main() {
   late _Harness harness;
@@ -343,55 +356,63 @@ void main() {
     expect(emitted.last.status, StepStatus.done);
   });
 
-  test('function_invocation runs the client tool and returns its result',
-      () async {
-    connect(
-      toolRunner: ToolRunner(tools: [
-        Tool(
-          name: 'add_numbers',
-          description: 'Adds two integers.',
-          schema: const {},
-          handler: (args, _) => (args['a'] as int) + (args['b'] as int),
+  test(
+    'function_invocation runs the client tool and returns its result',
+    () async {
+      connect(
+        toolRunner: ToolRunner(
+          tools: [
+            Tool(
+              name: 'add_numbers',
+              description: 'Adds two integers.',
+              schema: const {},
+              handler: (args, _) => (args['a'] as int) + (args['b'] as int),
+            ),
+          ],
         ),
-      ]),
-    );
-    harness.push({
-      'event_type': 'function_invocation',
-      'call_id': 'call_add_1',
-      'name': 'add_numbers',
-      'arguments': {'a': 7, 'b': 8},
-    });
-    expect(await harness.next(), {
-      'event_type': 'function_result',
-      'call_id': 'call_add_1',
-      'name': 'add_numbers',
-      'is_error': false,
-      'result': {'result': 15},
-    });
-    final call = steps.single;
-    expect(call.type, StepType.toolCall);
-    expect(call.trajectoryId, 'root-1');
-    expect(call.toolCalls.single.args, {'a': 7, 'b': 8});
-  });
+      );
+      harness.push({
+        'event_type': 'function_invocation',
+        'call_id': 'call_add_1',
+        'name': 'add_numbers',
+        'arguments': {'a': 7, 'b': 8},
+      });
+      expect(await harness.next(), {
+        'event_type': 'function_result',
+        'call_id': 'call_add_1',
+        'name': 'add_numbers',
+        'is_error': false,
+        'result': {'result': 15},
+      });
+      final call = steps.single;
+      expect(call.type, StepType.toolCall);
+      expect(call.trajectoryId, 'root-1');
+      expect(call.toolCalls.single.args, {'a': 7, 'b': 8});
+    },
+  );
 
   test('hook requests dispatch every lifecycle hook', () async {
     final log = _Log();
     final connection = connect(
-      hookRunner: HookRunner(hooks: [
-        _SessionStart(log),
-        _PreTurn(log),
-        _PreTool(log),
-        _PostTool(log),
-        _ToolError(log),
-        _Compaction(log),
-        FunctionStopHook((_, args) {
-          log.entries.add('stop:${args.responseText}');
-          return StopHookResult(
-              decision: StopDecision.continueTurn, reason: 'Continue working');
-        }),
-        _PostTurn(log),
-        _SessionEnd(log),
-      ]),
+      hookRunner: HookRunner(
+        hooks: [
+          _SessionStart(log),
+          _PreTurn(log),
+          _PreTool(log),
+          _PostTool(log),
+          _ToolError(log),
+          _Compaction(log),
+          FunctionStopHook((_, args) {
+            log.entries.add('stop:${args.responseText}');
+            return StopHookResult(
+              decision: StopDecision.continueTurn,
+              reason: 'Continue working',
+            );
+          }),
+          _PostTurn(log),
+          _SessionEnd(log),
+        ],
+      ),
     );
 
     harness.push(_hookRequest('req-start', 'on_session_start'));
@@ -401,42 +422,52 @@ void main() {
       'empty_result': {},
     });
 
-    harness.push(_hookRequest('req-pre-turn', 'pre_turn', {
-      'pre_turn_args': {
-        'user_input': {'type': 'user_input', 'content': 'original prompt'},
-      },
-    }));
+    harness.push(
+      _hookRequest('req-pre-turn', 'pre_turn', {
+        'pre_turn_args': {
+          'user_input': {'type': 'user_input', 'content': 'original prompt'},
+        },
+      }),
+    );
     expect((await harness.next())['pre_turn_result'], {'decision': 'allow'});
 
-    harness.push(_hookRequest('req-pre-tool', 'pre_tool', {
-      'pre_tool_args': {
-        'tool_name': 'view_file',
-        'arguments_json': '{"path": "file:///tmp/test.py"}',
-      },
-    }));
+    harness.push(
+      _hookRequest('req-pre-tool', 'pre_tool', {
+        'pre_tool_args': {
+          'tool_name': 'view_file',
+          'arguments_json': '{"path": "file:///tmp/test.py"}',
+        },
+      }),
+    );
     final preTool = await harness.next();
     expect(preTool['pre_tool_result'], {
       'decision': 'allow',
       'modified_args': {'path': '/tmp/test.py', 'max_lines': 10},
     });
     expect(
-        preTool['pre_tool_result']['modified_args']['max_lines'], isA<int>());
+      preTool['pre_tool_result']['modified_args']['max_lines'],
+      isA<int>(),
+    );
 
-    harness.push(_hookRequest('req-post-tool', 'post_tool', {
-      'post_tool_args': {'tool_name': 'view_file', 'result': 'file contents'},
-    }));
+    harness.push(
+      _hookRequest('req-post-tool', 'post_tool', {
+        'post_tool_args': {'tool_name': 'view_file', 'result': 'file contents'},
+      }),
+    );
     expect(await harness.next(), {
       'event_type': 'call_hook_response',
       'request_id': 'req-post-tool',
       'empty_result': {},
     });
 
-    harness.push(_hookRequest('req-tool-err', 'on_tool_error', {
-      'on_tool_error_args': {
-        'tool_name': 'run_command',
-        'error_message': 'exit 1',
-      },
-    }));
+    harness.push(
+      _hookRequest('req-tool-err', 'on_tool_error', {
+        'on_tool_error_args': {
+          'tool_name': 'run_command',
+          'error_message': 'exit 1',
+        },
+      }),
+    );
     expect(await harness.next(), {
       'event_type': 'call_hook_response',
       'request_id': 'req-tool-err',
@@ -445,13 +476,15 @@ void main() {
       },
     });
 
-    harness.push(_hookRequest('req-compact', 'on_compaction', {
-      'on_compaction_args': {
-        'interaction_id': 'root-1',
-        'step_index': 5,
-        'summary': 'Compacted summary',
-      },
-    }));
+    harness.push(
+      _hookRequest('req-compact', 'on_compaction', {
+        'on_compaction_args': {
+          'interaction_id': 'root-1',
+          'step_index': 5,
+          'summary': 'Compacted summary',
+        },
+      }),
+    );
     expect(await harness.next(), {
       'event_type': 'call_hook_response',
       'request_id': 'req-compact',
@@ -460,21 +493,25 @@ void main() {
     // Compaction steps arrive on the step stream; the hook emits none.
     expect(steps.where((s) => s.type == StepType.compaction), isEmpty);
 
-    harness.push(_hookRequest('req-stop', 'stop', {
-      'stop_args': {
-        'response_text': 'Almost done',
-        'interaction_id': 'root-1',
-        'continuation_count': 1,
-      },
-    }));
+    harness.push(
+      _hookRequest('req-stop', 'stop', {
+        'stop_args': {
+          'response_text': 'Almost done',
+          'interaction_id': 'root-1',
+          'continuation_count': 1,
+        },
+      }),
+    );
     expect((await harness.next())['stop_result'], {
       'decision': 'continue',
       'reason': 'Continue working',
     });
 
-    harness.push(_hookRequest('req-post-turn', 'post_turn', {
-      'post_turn_args': {'response_text': 'All done'},
-    }));
+    harness.push(
+      _hookRequest('req-post-turn', 'post_turn', {
+        'post_turn_args': {'response_text': 'All done'},
+      }),
+    );
     expect((await harness.next())['empty_result'], {});
 
     harness.push(_hookRequest('req-end', 'on_session_end'));
@@ -498,12 +535,14 @@ void main() {
     final log = _Log();
     final capture = _PostTool(log);
     connect(hookRunner: HookRunner(hooks: [capture]));
-    harness.push(_hookRequest('r', 'post_tool', {
-      'post_tool_args': {
-        'tool_name': 'run_command',
-        'result': '{"output": "ok"}',
-      },
-    }));
+    harness.push(
+      _hookRequest('r', 'post_tool', {
+        'post_tool_args': {
+          'tool_name': 'run_command',
+          'result': '{"output": "ok"}',
+        },
+      }),
+    );
     await harness.next();
     expect(capture.results.single, isA<RunCommandResult>());
     expect((capture.results.single as RunCommandResult).output, 'ok');
@@ -511,7 +550,10 @@ void main() {
 
   test('question elicitations in one batch dispatch together', () async {
     final interaction = _Interaction();
-    connect(root: 'conv-1', hookRunner: HookRunner(hooks: [interaction]));
+    connect(
+      root: 'conv-1',
+      hookRunner: HookRunner(hooks: [interaction]),
+    );
     harness
       ..push(_question(10, 'conv-1-question-3-0', 'Language?'))
       ..push({'event_type': 'step.stop', 'index': 10})
@@ -520,111 +562,133 @@ void main() {
 
     final first = await harness.next();
     final second = await harness.next();
-    expect([
-      first,
-      second
-    ], [
-      {
-        'event_type': 'elicitation_result',
-        'elicitation_id': 'conv-1-question-3-0',
-        'multiple_choice': {
-          'selected_choice_labels': ['1'],
+    expect(
+      [first, second],
+      [
+        {
+          'event_type': 'elicitation_result',
+          'elicitation_id': 'conv-1-question-3-0',
+          'multiple_choice': {
+            'selected_choice_labels': ['1'],
+          },
         },
-      },
-      {
-        'event_type': 'elicitation_result',
-        'elicitation_id': 'conv-1-question-3-1',
-        'multiple_choice': {
-          'selected_choice_labels': ['2'],
+        {
+          'event_type': 'elicitation_result',
+          'elicitation_id': 'conv-1-question-3-1',
+          'multiple_choice': {
+            'selected_choice_labels': ['2'],
+          },
         },
-      },
-    ]);
+      ],
+    );
     expect(interaction.batchSizes, [2]);
     expect(steps.map((s) => s.status), everyElement(StepStatus.waitingForUser));
   });
 
-  test('questions without an interaction hook are answered as skipped',
-      () async {
-    connect(root: 'conv-1');
-    harness.push(_question(10, 'conv-1-question-3-0', 'Language?'));
-    expect(await harness.next(), {
-      'event_type': 'elicitation_result',
-      'elicitation_id': 'conv-1-question-3-0',
-      'multiple_choice': {},
-    });
-  });
+  test(
+    'questions without an interaction hook are answered as skipped',
+    () async {
+      connect(root: 'conv-1');
+      harness.push(_question(10, 'conv-1-question-3-0', 'Language?'));
+      expect(await harness.next(), {
+        'event_type': 'elicitation_result',
+        'elicitation_id': 'conv-1-question-3-0',
+        'multiple_choice': {},
+      });
+    },
+  );
 
-  test('subagent state updates do not end the turn; cancellation does',
-      () async {
-    final connection = connect(root: 'conv-1');
-    await connection.send('go');
-    await harness.next();
-    harness.push({
-      'event_type': 'state_update',
-      'sub_interaction_id': 'sub-1',
-      'parent_interaction_id': 'conv-1',
-      'state': 'fully_idle',
-    });
-    harness.push({
-      'event_type': 'state_update',
-      'state': 'cancelled',
-      'error': 'Turn cancelled by user',
-    });
-    await idle();
-    expect(connection.isIdle, isTrue);
-    expect(errors.single, isA<AntigravityExecutionException>());
-    expect(errors.single.toString(), contains('Turn cancelled by user'));
-  });
+  test(
+    'subagent state updates do not end the turn; cancellation does',
+    () async {
+      final connection = connect(root: 'conv-1');
+      await connection.send('go');
+      await harness.next();
+      harness.push({
+        'event_type': 'state_update',
+        'sub_interaction_id': 'sub-1',
+        'parent_interaction_id': 'conv-1',
+        'state': 'fully_idle',
+      });
+      harness.push({
+        'event_type': 'state_update',
+        'state': 'cancelled',
+        'error': 'Turn cancelled by user',
+      });
+      await idle();
+      expect(connection.isIdle, isTrue);
+      expect(errors.single, isA<AntigravityExecutionException>());
+      expect(errors.single.toString(), contains('Turn cancelled by user'));
+    },
+  );
 
   test('denials, allow_stop, hook failures, and media results', () async {
     final log = _Log();
     connect(
       root: 'conv-1',
-      hookRunner: HookRunner(hooks: [
-        _PreTurn(log, allow: false),
-        _PreTool(log, allow: false),
-        FunctionStopHook(
-            (_, __) => StopHookResult(decision: StopDecision.allowStop)),
-        _PostTurn(log, fail: true),
-      ]),
-      toolRunner: ToolRunner(tools: [
-        Tool(
-          name: 'make_chart',
-          description: 'Returns an image.',
-          schema: const {},
-          handler: (_, __) => Image(
+      hookRunner: HookRunner(
+        hooks: [
+          _PreTurn(log, allow: false),
+          _PreTool(log, allow: false),
+          FunctionStopHook(
+            (_, _) => StopHookResult(decision: StopDecision.allowStop),
+          ),
+          _PostTurn(log, fail: true),
+        ],
+      ),
+      toolRunner: ToolRunner(
+        tools: [
+          Tool(
+            name: 'make_chart',
+            description: 'Returns an image.',
+            schema: const {},
+            handler: (_, _) => Image(
               mimeType: 'image/png',
               description: '',
-              data: utf8.encode('pngbytes')),
-        ),
-      ]),
+              data: utf8.encode('pngbytes'),
+            ),
+          ),
+        ],
+      ),
     );
 
-    harness.push(_hookRequest('req-deny-turn', 'pre_turn', {
-      'pre_turn_args': {
-        'user_input': {'type': 'user_input', 'content': 'x'},
-      },
-    }));
-    expect((await harness.next())['pre_turn_result'],
-        {'decision': 'deny', 'reason': 'turn blocked'});
+    harness.push(
+      _hookRequest('req-deny-turn', 'pre_turn', {
+        'pre_turn_args': {
+          'user_input': {'type': 'user_input', 'content': 'x'},
+        },
+      }),
+    );
+    expect((await harness.next())['pre_turn_result'], {
+      'decision': 'deny',
+      'reason': 'turn blocked',
+    });
 
-    harness.push(_hookRequest('req-deny-tool', 'pre_tool', {
-      'pre_tool_args': {
-        'tool_name': 'run_command',
-        'arguments_json': '{"CommandLine": "rm -rf /"}',
-      },
-    }));
-    expect((await harness.next())['pre_tool_result'],
-        {'decision': 'deny', 'reason': 'tool blocked'});
+    harness.push(
+      _hookRequest('req-deny-tool', 'pre_tool', {
+        'pre_tool_args': {
+          'tool_name': 'run_command',
+          'arguments_json': '{"CommandLine": "rm -rf /"}',
+        },
+      }),
+    );
+    expect((await harness.next())['pre_tool_result'], {
+      'decision': 'deny',
+      'reason': 'tool blocked',
+    });
 
-    harness.push(_hookRequest('req-allow-stop', 'stop', {
-      'stop_args': {'response_text': 'Done'},
-    }));
+    harness.push(
+      _hookRequest('req-allow-stop', 'stop', {
+        'stop_args': {'response_text': 'Done'},
+      }),
+    );
     expect((await harness.next())['stop_result'], {'decision': 'allow_stop'});
 
-    harness.push(_hookRequest('req-err', 'post_turn', {
-      'post_turn_args': {'response_text': 'Done'},
-    }));
+    harness.push(
+      _hookRequest('req-err', 'post_turn', {
+        'post_turn_args': {'response_text': 'Done'},
+      }),
+    );
     expect((await harness.next())['error_message'], contains('boom'));
 
     harness.push({
@@ -673,10 +737,14 @@ void main() {
 
   test('tool results need an id; triggers are unsupported', () async {
     final connection = connect();
-    expect(() => connection.sendToolResults([ToolResult(name: 't')]),
-        throwsArgumentError);
-    expect(() => connection.sendTriggerNotification('ping'),
-        throwsUnsupportedError);
+    expect(
+      () => connection.sendToolResults([ToolResult(name: 't')]),
+      throwsArgumentError,
+    );
+    expect(
+      () => connection.sendTriggerNotification('ping'),
+      throwsUnsupportedError,
+    );
   });
 
   test('usage_update accumulates root and subagent usage', () async {
@@ -728,106 +796,124 @@ void main() {
     expect(sub.totalTokenCount, 70);
   });
 
-  test('tool hooks correlate call_id and step_id with streamed steps',
-      () async {
-    final preCalls = <ToolCall>[];
-    final postResults = <ToolResult>[];
-    final toolErrors = <ToolExecutionException>[];
-    connect(
-      root: 'conv-root',
-      hookRunner: HookRunner(hooks: [
-        _CapturePreTool(preCalls),
-        _CapturePostTool(postResults),
-        _CaptureToolError(toolErrors),
-      ]),
-    );
+  test(
+    'tool hooks correlate call_id and step_id with streamed steps',
+    () async {
+      final preCalls = <ToolCall>[];
+      final postResults = <ToolResult>[];
+      final toolErrors = <ToolExecutionException>[];
+      connect(
+        root: 'conv-root',
+        hookRunner: HookRunner(
+          hooks: [
+            _CapturePreTool(preCalls),
+            _CapturePostTool(postResults),
+            _CaptureToolError(toolErrors),
+          ],
+        ),
+      );
 
-    harness.push(_hookRequest('req-pre-1', 'pre_tool', {
-      'pre_tool_args': {
-        'tool_name': 'get_weather',
-        'arguments_json': '{"location": "Seattle"}',
-        'call_id': 'call-weather-1',
-        'interaction_id': 'conv-root',
-        'step_index': 7,
-      },
-    }));
-    await harness.next();
-    harness
-      ..push({
-        'event_type': 'step.start',
-        'index': 1,
-        'step': {
-          'type': 'function_call',
-          'id': 'call-weather-1',
-          'name': 'get_weather',
-          'arguments': {'location': 'Seattle'},
-        },
-      })
-      ..push({'event_type': 'step.stop', 'index': 1})
-      ..push(_hookRequest('req-post-1', 'post_tool', {
-        'post_tool_args': {
-          'tool_name': 'get_weather',
-          'result': 'Sunny',
-          'call_id': 'call-weather-1',
-        },
-      }));
-    await harness.next();
-    harness
-      ..push({
-        'event_type': 'step.start',
-        'index': 2,
-        'step': {
-          'type': 'code_execution_call',
-          'id': 'call-cmd-2',
-          'code': 'false',
-        },
-      })
-      ..push({'event_type': 'step.stop', 'index': 2})
-      ..push({
-        'event_type': 'step.start',
-        'index': 3,
-        'step': {
-          'type': 'code_execution_result',
-          'call_id': 'call-cmd-2',
-          'is_error': true,
-          'result': 'exit status 1',
-        },
-      })
-      ..push({'event_type': 'step.stop', 'index': 3})
-      ..push(_hookRequest('req-err-1', 'on_tool_error', {
-        'on_tool_error_args': {
-          'tool_name': 'run_command',
-          'error_message': 'exit status 1',
-          'call_id': 'call-cmd-2',
-        },
-      }));
-    await harness.next();
+      harness.push(
+        _hookRequest('req-pre-1', 'pre_tool', {
+          'pre_tool_args': {
+            'tool_name': 'get_weather',
+            'arguments_json': '{"location": "Seattle"}',
+            'call_id': 'call-weather-1',
+            'interaction_id': 'conv-root',
+            'step_index': 7,
+          },
+        }),
+      );
+      await harness.next();
+      harness
+        ..push({
+          'event_type': 'step.start',
+          'index': 1,
+          'step': {
+            'type': 'function_call',
+            'id': 'call-weather-1',
+            'name': 'get_weather',
+            'arguments': {'location': 'Seattle'},
+          },
+        })
+        ..push({'event_type': 'step.stop', 'index': 1})
+        ..push(
+          _hookRequest('req-post-1', 'post_tool', {
+            'post_tool_args': {
+              'tool_name': 'get_weather',
+              'result': 'Sunny',
+              'call_id': 'call-weather-1',
+            },
+          }),
+        );
+      await harness.next();
+      harness
+        ..push({
+          'event_type': 'step.start',
+          'index': 2,
+          'step': {
+            'type': 'code_execution_call',
+            'id': 'call-cmd-2',
+            'code': 'false',
+          },
+        })
+        ..push({'event_type': 'step.stop', 'index': 2})
+        ..push({
+          'event_type': 'step.start',
+          'index': 3,
+          'step': {
+            'type': 'code_execution_result',
+            'call_id': 'call-cmd-2',
+            'is_error': true,
+            'result': 'exit status 1',
+          },
+        })
+        ..push({'event_type': 'step.stop', 'index': 3})
+        ..push(
+          _hookRequest('req-err-1', 'on_tool_error', {
+            'on_tool_error_args': {
+              'tool_name': 'run_command',
+              'error_message': 'exit status 1',
+              'call_id': 'call-cmd-2',
+            },
+          }),
+        );
+      await harness.next();
 
-    final toolSteps = steps
-        .where((s) => s.type == StepType.toolCall)
-        .map((s) => s.toolCalls.single)
-        .toList();
-    expect(toolSteps.map((c) => c.id),
-        ['call-weather-1', 'call-cmd-2', 'call-cmd-2']);
-    expect(toolSteps.map((c) => c.stepId),
-        ['call-weather-1', 'call-cmd-2', 'call-cmd-2']);
+      final toolSteps = steps
+          .where((s) => s.type == StepType.toolCall)
+          .map((s) => s.toolCalls.single)
+          .toList();
+      expect(toolSteps.map((c) => c.id), [
+        'call-weather-1',
+        'call-cmd-2',
+        'call-cmd-2',
+      ]);
+      expect(toolSteps.map((c) => c.stepId), [
+        'call-weather-1',
+        'call-cmd-2',
+        'call-cmd-2',
+      ]);
 
-    expect(preCalls.single.id, 'call-weather-1');
-    expect(preCalls.single.stepId, 'call-weather-1');
-    expect(postResults.single.id, 'call-weather-1');
-    expect(postResults.single.stepId, 'call-weather-1');
-    expect(postResults.single.result, 'Sunny');
-    expect(toolErrors.single.callId, 'call-cmd-2');
-    expect(toolErrors.single.stepId, 'call-cmd-2');
-  });
+      expect(preCalls.single.id, 'call-weather-1');
+      expect(preCalls.single.stepId, 'call-weather-1');
+      expect(postResults.single.id, 'call-weather-1');
+      expect(postResults.single.stepId, 'call-weather-1');
+      expect(postResults.single.result, 'Sunny');
+      expect(toolErrors.single.callId, 'call-cmd-2');
+      expect(toolErrors.single.stepId, 'call-cmd-2');
+    },
+  );
 
   test('pre_turn input_content interleaves slash commands', () async {
     final inputs = <ContentPrimitive>[];
     connect(hookRunner: HookRunner(hooks: [_CapturePreTurn(inputs)]));
     Future<void> preTurn(Map<String, dynamic> userInput) async {
-      harness.push(_hookRequest('req', 'pre_turn', {
-        'pre_turn_args': {'user_input': userInput},
-      }));
+      harness.push(
+        _hookRequest('req', 'pre_turn', {
+          'pre_turn_args': {'user_input': userInput},
+        }),
+      );
       await harness.next();
     }
 
@@ -895,7 +981,9 @@ void main() {
         systemInstructions: 'You are helpful.',
       );
       final strategy = config.createStrategy(
-          toolRunner: ToolRunner(), hookRunner: HookRunner());
+        toolRunner: ToolRunner(),
+        hookRunner: HookRunner(),
+      );
       expect(strategy, isA<InteractionsConnectionStrategy>());
       final event = (strategy as InteractionsConnectionStrategy)
           .buildCreateInteractionEventForTest();
@@ -908,28 +996,39 @@ void main() {
 
     test('rejects auto and dynamic policies when building the event', () {
       for (final policy in [auto(), allow('run_command', when: (_) => true)]) {
-        final strategy = InteractionsAgentConfig(
-          apiKey: 'test-key',
-          policies: [policy],
-        ).createStrategy(toolRunner: ToolRunner(), hookRunner: HookRunner())
-            as InteractionsConnectionStrategy;
-        expect(strategy.buildCreateInteractionEventForTest,
-            throwsA(isA<AntigravityValidationException>()));
+        final strategy =
+            InteractionsAgentConfig(
+                  apiKey: 'test-key',
+                  policies: [policy],
+                ).createStrategy(
+                  toolRunner: ToolRunner(),
+                  hookRunner: HookRunner(),
+                )
+                as InteractionsConnectionStrategy;
+        expect(
+          strategy.buildCreateInteractionEventForTest,
+          throwsA(isA<AntigravityValidationException>()),
+        );
       }
     });
 
     test('rejects triggers', () {
       expect(
-          () => InteractionsAgentConfig(
-              apiKey: 'test-key', triggers: [(ctx) async {}]),
-          throwsA(isA<AntigravityValidationException>()));
+        () => InteractionsAgentConfig(
+          apiKey: 'test-key',
+          triggers: [(ctx) async {}],
+        ),
+        throwsA(isA<AntigravityValidationException>()),
+      );
     });
   });
 
   test('the handshake sets use_interactions_api (field 6)', () {
     final plain = LocalHarnessProto.encodeInputConfig(storageDirectory: '');
     final interactions = LocalHarnessProto.encodeInputConfig(
-        storageDirectory: '', useInteractionsApi: true);
+      storageDirectory: '',
+      useInteractionsApi: true,
+    );
     expect(plain, isEmpty);
     expect(interactions, [6 << 3, 1]);
   });

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:logging/logging.dart';
+
 import '../../hooks/hooks.dart';
 import '../../types.dart';
 import 'local_connection_config.dart';
@@ -29,7 +31,10 @@ const protoFieldToSdkName = {
 };
 
 /// Tool argument keys carrying wire-format URIs normalized to filesystem paths.
-const wirePathArgumentKeys = {
+///
+/// Kept in a fixed priority order so canonical path resolution is
+/// deterministic.
+const wirePathArgumentKeys = [
   'path',
   'file_path',
   'directory_path',
@@ -37,7 +42,7 @@ const wirePathArgumentKeys = {
   'output_path',
   'script_path',
   'ScriptPath',
-};
+];
 
 /// Converts `file://` and `cns://` wire URIs into filesystem paths.
 String normalizeWirePath(String path) {
@@ -53,15 +58,29 @@ String normalizeWirePath(String path) {
   return path;
 }
 
-void _normalizePathArgs(Map<String, dynamic> args) {
+/// Normalizes wire-format URIs in [args] to filesystem paths in place.
+///
+/// Paths arrive as `file:///` or `cns://` URIs over the wire protocol; hooks
+/// and policy checks expect clean absolute paths. Empty and non-string values
+/// are left unchanged.
+///
+/// Returns the canonical path: the first normalized value in
+/// [wirePathArgumentKeys] order, or null when no path argument is present.
+String? normalizePathArguments(Map<String, dynamic> args) {
+  String? canonicalPath;
   for (final key in wirePathArgumentKeys) {
     final val = args[key];
     if (val is String && val.isNotEmpty) {
-      args[key] = normalizeWirePath(val);
+      final normalized = normalizeWirePath(val);
+      args[key] = normalized;
+      canonicalPath ??= normalized;
     }
   }
+  return canonicalPath;
 }
 
+/// Routes `call_hook_request` messages from the local harness to a
+/// [HookRunner] and sends a `call_hook_response` back.
 class HookRouter {
   final HookRunner _hookRunner;
   final Future<void> Function(Map<String, dynamic> event) _send;
@@ -69,12 +88,14 @@ class HookRouter {
 
   TurnContext? _currentTurnContext;
 
-  HookRouter(
-    this._hookRunner,
-    this._send, {
-    dynamic Function(Map<String, dynamic> stepUpdate)? resultExtractor,
-  }) : _resultExtractor = resultExtractor;
+  /// Creates a router that dispatches hooks to the given [HookRunner] and
+  /// sends each response through the given event sender.
+  ///
+  /// [resultExtractor], when set, extracts the tool result passed to
+  /// post-tool hooks from the request's `step_update`.
+  HookRouter(this._hookRunner, this._send, {this._resultExtractor});
 
+  /// The active [TurnContext] set by the most recent pre-turn hook, or null.
   TurnContext? get currentTurnContext => _currentTurnContext;
 
   ContentPrimitive _fromProtoUserInput(Map<String, dynamic> ui) {
@@ -133,6 +154,10 @@ class HookRouter {
     }
   }
 
+  /// Handles the hook request [req] and sends a `call_hook_response`.
+  ///
+  /// If the hook throws, the error is logged and returned to the harness in
+  /// `error_message` instead of being rethrown.
   Future<void> handle(Map<String, dynamic> req) async {
     final requestId = req['request_id']?.toString() ?? '';
     final hookTypeStr = req['type']?.toString() ?? '';
@@ -194,10 +219,13 @@ class HookRouter {
     final trajectoryId =
         (stopArgsMap['trajectory_id'] ?? stopArgsMap['trajectoryId'] ?? '')
             .toString();
-    final continuationCount = int.tryParse((stopArgsMap['continuation_count'] ??
-                stopArgsMap['continuationCount'] ??
-                '0')
-            .toString()) ??
+    final continuationCount =
+        int.tryParse(
+          (stopArgsMap['continuation_count'] ??
+                  stopArgsMap['continuationCount'] ??
+                  '0')
+              .toString(),
+        ) ??
         0;
     final rawStopReason =
         stopArgsMap['stop_reason'] ?? stopArgsMap['stopReason'];
@@ -227,9 +255,7 @@ class HookRouter {
       };
     } else {
       _currentTurnContext = null;
-      response['stop_result'] = {
-        'decision': 'ALLOW_STOP',
-      };
+      response['stop_result'] = {'decision': 'ALLOW_STOP'};
     }
   }
 
@@ -271,8 +297,9 @@ class HookRouter {
     if (args is Map && args['user_input'] is Map) {
       userInputMap = Map<String, dynamic>.from(args['user_input'] as Map);
     }
-    final userInput =
-        userInputMap != null ? _fromProtoUserInput(userInputMap) : '';
+    final userInput = userInputMap != null
+        ? _fromProtoUserInput(userInputMap)
+        : '';
     final res = await _hookRunner.dispatchPreTurn(userInput);
     _currentTurnContext = _hookRunner.currentTurnContext;
 
@@ -290,8 +317,8 @@ class HookRouter {
     var responseText = '';
     final args = req['post_turn_args'];
     if (args is Map) {
-      responseText =
-          (args['response_text'] ?? args['responseText'] ?? '').toString();
+      responseText = (args['response_text'] ?? args['responseText'] ?? '')
+          .toString();
     }
     final turnCtx = _currentTurnContext ?? _hookRunner.createTurnContext();
     await _hookRunner.dispatchPostTurn(turnCtx, responseText);
@@ -324,26 +351,18 @@ class HookRouter {
     String? serverName;
     String? callId;
     String? stepId;
+    String? canonicalPath;
 
     if (ptaRaw is Map) {
       final pta = ptaRaw;
-      final rawToolName =
-          (pta['tool_name'] ?? pta['toolName'] ?? '').toString();
+      final rawToolName = (pta['tool_name'] ?? pta['toolName'] ?? '')
+          .toString();
       toolName = protoFieldToSdkName[rawToolName] ?? rawToolName;
       args = _extractToolCallArguments(pta);
       serverName = (pta['server_name'] ?? pta['serverName'])?.toString();
       callId = _extractCallId(pta);
       stepId = _extractStepId(pta);
-      _normalizePathArgs(args);
-    }
-
-    String? canonicalPath;
-    for (final key in wirePathArgumentKeys) {
-      final val = args[key];
-      if (val is String && val.isNotEmpty) {
-        canonicalPath = val;
-        break;
-      }
+      canonicalPath = normalizePathArguments(args);
     }
 
     return ToolCall(
@@ -384,8 +403,8 @@ class HookRouter {
 
     final args = req['post_tool_args'];
     if (args is Map) {
-      final rawToolName =
-          (args['tool_name'] ?? args['toolName'] ?? '').toString();
+      final rawToolName = (args['tool_name'] ?? args['toolName'] ?? '')
+          .toString();
       toolName = protoFieldToSdkName[rawToolName] ?? rawToolName;
       callId = _extractCallId(args);
       stepId = _extractStepId(args);
@@ -399,9 +418,10 @@ class HookRouter {
       }
 
       if (args['step_update'] is Map && _resultExtractor != null) {
-        final stepUpdate =
-            Map<String, dynamic>.from(args['step_update'] as Map);
-        final extracted = _resultExtractor!(stepUpdate);
+        final stepUpdate = Map<String, dynamic>.from(
+          args['step_update'] as Map,
+        );
+        final extracted = _resultExtractor(stepUpdate);
         if (extracted != null) {
           resultVal = extracted;
         }
@@ -472,13 +492,15 @@ String? _extractStepId(Map args) {
   String rawToolName,
   String? serverName,
   String? callId,
-  String? stepId
-}) _extractToolErrorDetails(Map args) {
-  final errorStr = (args['error'] ??
-          args['error_message'] ??
-          args['errorMessage'] ??
-          'Unknown tool error')
-      .toString();
+  String? stepId,
+})
+_extractToolErrorDetails(Map args) {
+  final errorStr =
+      (args['error'] ??
+              args['error_message'] ??
+              args['errorMessage'] ??
+              'Unknown tool error')
+          .toString();
   final rawToolName = (args['tool_name'] ?? args['toolName'] ?? '').toString();
   final serverName = (args['server_name'] ?? args['serverName'])?.toString();
   final callId = _extractCallId(args);

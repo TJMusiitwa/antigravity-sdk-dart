@@ -121,10 +121,7 @@ Future<void> main() async {
     final loadExampleImage = Tool(
       name: 'load_example_image',
       description: 'Loads the example image so you can see it.',
-      schema: const {
-        'type': 'object',
-        'properties': {},
-      },
+      schema: const {'type': 'object', 'properties': {}},
       handler: (args, ctx) async {
         return [
           'Here is the requested image.',
@@ -132,14 +129,12 @@ Future<void> main() async {
             mimeType: 'image/png',
             data: File(imagePath).readAsBytesSync(),
             description: 'example image',
-          )
+          ),
         ];
       },
     );
 
-    final config = LocalAgentConfig(
-      tools: [loadExampleImage],
-    );
+    final config = LocalAgentConfig(tools: [loadExampleImage]);
     final agent = Agent(config);
     await agent.start();
     try {
