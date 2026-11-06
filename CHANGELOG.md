@@ -1,3 +1,11 @@
+## 0.18.1
+
+### Changed
+
+* Added `.pubignore` rules to omit files that package consumers do not need,
+  reducing the published package size from approximately 1 MB to 963 KB
+  (about 4%).
+
 ## 0.18.0
 
 Syncs with Python SDK v0.1.23.

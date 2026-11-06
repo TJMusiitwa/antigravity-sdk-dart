@@ -1,0 +1,34 @@
+# Repository metadata and local tooling.
+.git/
+.github/
+.idea/
+.vscode/
+.env
+
+# Dart and Flutter generated files.
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+coverage/
+pubspec.lock
+
+# Generated documentation and platform build artifacts.
+doc/api/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+
+# Test-only and maintenance files are not part of the SDK package.
+test/
+scripts/
+
+# Temporary and editor files.
+.DS_Store
+*.class
+*.log
+*.pyc
+*.swp
+*.iml
+*.ipr
+*.iws
