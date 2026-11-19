@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dart_mappable/dart_mappable.dart';
 
+import '../utils/wire_path.dart';
 import 'capabilities.dart';
 
 part 'tool_call.mapper.dart';
@@ -55,10 +56,13 @@ class ToolCall with ToolCallMappable {
     this.id,
     this.callId,
     this.stepId,
-    this.canonicalPath,
+    String? canonicalPath,
     this.serverName,
   }) : name = normalizeBuiltinToolName(name, serverName: serverName),
-       args = args ?? {};
+       args = args ?? {},
+       canonicalPath = canonicalPath == null
+           ? null
+           : normalizeWirePath(canonicalPath);
 
   /// Returns effective correlation ID (either [callId] or [id]).
   String? get effectiveCallId => callId ?? id;

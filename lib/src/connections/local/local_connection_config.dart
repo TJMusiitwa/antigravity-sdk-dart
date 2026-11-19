@@ -370,103 +370,6 @@ class LocalAgentConfig extends BaseLocalAgentConfig
   }
 }
 
-/// Local harness configuration that speaks the GAOS Interactions API.
-///
-/// Accepts every [LocalAgentConfig] option and talks to `localharness` over
-/// the GAOS Interactions JSON protocol instead of the localharness protocol.
-///
-/// Not yet supported over this protocol, and rejected when the agent starts:
-/// [triggers] (rejected at construction), dynamic policies (`when` predicates
-/// or `askUser` decisions), [AutoPolicy], and a subagent `model`. Root
-/// [inlineSkills] are ignored.
-@MappableClass(
-  includeCustomMappers: [
-    ToolMapper(),
-    PolicyMapper(),
-    HookMapper(),
-    TriggerMapper(),
-  ],
-)
-class InteractionsAgentConfig extends LocalAgentConfig
-    with InteractionsAgentConfigMappable {
-  /// Creates a new [InteractionsAgentConfig].
-  InteractionsAgentConfig({
-    super.systemInstructions,
-    super.capabilities,
-    super.tools,
-    super.policies,
-    super.hooks,
-    super.triggers,
-    super.mcpServers,
-    super.subagents,
-    super.workspaces,
-    super.conversationId,
-    super.sessionContinuationMode,
-    super.saveDir,
-    super.appDataDir,
-    super.responseSchema,
-    super.skillsPaths,
-    super.inlineSkills,
-    super.debugConfig,
-    super.retryConfig,
-    super.budgetConfig,
-    super.compactionConfig,
-    super.model,
-    super.models,
-    super.apiKey,
-    super.vertex,
-    super.project,
-    super.location,
-    super.binaryPath,
-  }) {
-    if (triggers.isNotEmpty) {
-      throw AntigravityValidationException(
-        'Automated triggers are not yet supported with '
-        'InteractionsAgentConfig.',
-      );
-    }
-  }
-
-  @override
-  InteractionsAgentConfig lightweight() =>
-      super.lightweight() as InteractionsAgentConfig;
-
-  @override
-  InteractionsAgentConfig eval({
-    ThinkingLevel? thinkingLevel = ThinkingLevel.high,
-  }) => super.eval(thinkingLevel: thinkingLevel) as InteractionsAgentConfig;
-
-  @override
-  ConnectionStrategy createStrategy({
-    required ToolRunner toolRunner,
-    required HookRunner hookRunner,
-  }) {
-    return InteractionsConnectionStrategy(
-      binaryPath: binaryPath,
-      toolRunner: toolRunner,
-      hookRunner: hookRunner,
-      tools: tools,
-      models: _mergeModelsList(),
-      systemInstructions: systemInstructions,
-      capabilitiesConfig: capabilities,
-      conversationId: conversationId,
-      sessionContinuationMode: sessionContinuationMode,
-      saveDir: saveDir != null ? Directory(saveDir!).absolute.path : null,
-      workspaces: workspaces,
-      appDataDir: appDataDir ?? defaultAppDataDir,
-      skillsPaths: skillsPaths,
-      inlineSkills: inlineSkills,
-      mcpServers: mcpServers,
-      subagents: subagents,
-      debugConfig: debugConfig,
-      retryConfig: retryConfig,
-      budgetConfig: budgetConfig,
-      compactionConfig: effectiveCompactionConfig,
-      policies: policies,
-    );
-  }
-}
-
 /// OpenAI-compatible local completions API configuration.
 @MappableClass()
 class LocalOpenAIAgentConfig extends BaseLocalAgentConfig
@@ -597,7 +500,7 @@ enum LiteRTBackend {
 @MappableClass()
 class LiteRTAgentConfig extends BaseLocalAgentConfig
     with LiteRTAgentConfigMappable {
-  /// Path to the LiteRT `.bin`, `.task`, or `.tflite` model file on the local filesystem.
+  /// Path to the LiteRT `.litertlm` checkpoint on the local filesystem.
   final String modelPath;
 
   /// Hardware acceleration backend (`gpu`, `cpu`, or `npu`).
@@ -612,7 +515,9 @@ class LiteRTAgentConfig extends BaseLocalAgentConfig
   /// Hardware backend for audio preprocessing/inference.
   final LiteRTBackend? audioBackend;
 
-  /// Hardware backend for vision preprocessing/inference.
+  /// Hardware backend for vision preprocessing and inference.
+  ///
+  /// When null, LiteRT detects vision support from the checkpoint.
   final LiteRTBackend? visionBackend;
 
   /// Port on localhost to bind the internal LiteRT HTTP server to (0 for automatic random port).

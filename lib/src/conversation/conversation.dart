@@ -11,6 +11,9 @@ class Conversation {
   final HookRunner? _hookRunner;
   final List<Step> _history = [];
   final List<int> _compactionIndices = [];
+  dynamic _lastStructuredOutput;
+  ChatResponse? _activeResponse;
+  Future<void> _turnSetup = Future.value();
 
   /// The maximum number of processing steps retained in conversation history.
   int? maxHistorySize;
@@ -36,9 +39,7 @@ class Conversation {
     _history.addAll(_connection.initialHistory);
     for (var i = 0; i < _history.length; i++) {
       final step = _history[i];
-      if (step.type == StepType.compaction && _isNewCompaction(step)) {
-        _compactionIndices.add(i);
-      }
+      _trackTurnStep(step, i);
       // ignore: deprecated_member_use_from_same_package
       final usage = step.usageMetadata;
       if (usage != null) {
@@ -71,13 +72,16 @@ class Conversation {
   /// Returns an unmodifiable view of the conversation history.
   List<Step> get history => List.unmodifiable(_history);
 
-  /// Returns step indices where history compaction events occurred.
+  /// Returns history indices of completed root-conversation compactions.
   List<int> get compactionIndices => List.unmodifiable(_compactionIndices);
 
   /// Clears all steps and compaction indices from history.
   void clearHistory() {
     _history.clear();
     _compactionIndices.clear();
+    _seenCompactionKeys.clear();
+    _turnStartUsage = null;
+    _lastStructuredOutput = null;
   }
 
   /// Returns the current conversation identifier.
@@ -134,15 +138,8 @@ class Conversation {
     return diff;
   }
 
-  /// Extracts the structured output payload from the most recent finish step.
-  dynamic get lastStructuredOutput {
-    for (final step in _history.reversed) {
-      if (step.type == StepType.finish) {
-        return step.structuredOutput;
-      }
-    }
-    return null;
-  }
+  /// Returns the most recent root finish payload from the current turn.
+  dynamic get lastStructuredOutput => _lastStructuredOutput;
 
   /// Checks that [prompt] has content to send.
   ///
@@ -188,19 +185,41 @@ class Conversation {
     Map<String, dynamic>? kwargs,
   }) async {
     validatePrompt(prompt);
+    final previousSetup = _turnSetup;
+    final setup = Completer<void>();
+    _turnSetup = setup.future;
+    try {
+      await previousSetup;
+      await _prepareTurn();
+      _recordUserPromptStep(prompt);
+
+      final deniedResponse = await _checkPreTurnDenial(prompt);
+      if (deniedResponse != null) return deniedResponse;
+
+      final controller = StreamController<dynamic>();
+      final subscription = _setupStepForwarding(controller);
+      try {
+        await _connection.send(prompt, kwargs: kwargs);
+      } catch (_) {
+        await subscription.cancel();
+        unawaited(controller.close());
+        rethrow;
+      }
+      final response = ChatResponse(controller.stream, conversation: this);
+      _activeResponse = response;
+      return response;
+    } finally {
+      setup.complete();
+    }
+  }
+
+  Future<void> _prepareTurn() async {
+    await _activeResponse?.done;
+    _activeResponse = null;
+    if (!_connection.isIdle) await _connection.waitForIdle();
     _turnStartUsage = usage;
     _lastTurnStopReason = StopReason.unspecified;
-
-    _recordUserPromptStep(prompt);
-
-    final deniedResponse = await _checkPreTurnDenial(prompt);
-    if (deniedResponse != null) return deniedResponse;
-
-    final controller = StreamController<dynamic>();
-    _setupStepForwarding(controller);
-
-    await _connection.send(prompt, kwargs: kwargs);
-    return ChatResponse(controller.stream, conversation: this);
+    _lastStructuredOutput = null;
   }
 
   void _recordUserPromptStep(dynamic prompt) {
@@ -245,15 +264,18 @@ class Conversation {
     return ChatResponse(controller.stream);
   }
 
-  void _setupStepForwarding(StreamController<dynamic> controller) {
+  StreamSubscription<Step> _setupStepForwarding(
+    StreamController<dynamic> controller,
+  ) {
     final originalStream = _connection.receiveSteps();
     final seenToolIds = <String>{};
-    late StreamSubscription subscription;
+    late StreamSubscription<Step> subscription;
 
     subscription = originalStream.listen(
       (step) => _handleStepEvent(step, controller, seenToolIds, subscription),
-      onError: (err) {
-        controller.addError(err);
+      onError: (Object err, StackTrace stackTrace) {
+        _lastTurnStopReason = _connection.lastTurnStopReason;
+        controller.addError(err, stackTrace);
         unawaited(subscription.cancel());
         controller.close();
       },
@@ -261,6 +283,7 @@ class Conversation {
         if (!controller.isClosed) controller.close();
       },
     );
+    return subscription;
   }
 
   void _handleStepEvent(
@@ -281,7 +304,11 @@ class Conversation {
     _recordHistoryStep(step);
     _forwardStepChunks(step, controller, seenToolIds);
 
-    if (step.type == StepType.finish || step.status == StepStatus.error) {
+    // The harness sends final usage and stop reason before its idle event.
+    if (_connection is! LocalConnection &&
+        (_isRootFinish(step) || step.status == StepStatus.error) &&
+        step.depth == 0 &&
+        step.parentTrajectoryId.isEmpty) {
       _finalizeTurn(subscription, controller, step.content);
     }
   }
@@ -299,11 +326,24 @@ class Conversation {
     return _seenCompactionKeys.add(key);
   }
 
+  static bool _isRootFinish(Step step) =>
+      step.type == StepType.finish &&
+      step.depth == 0 &&
+      step.parentTrajectoryId.isEmpty;
+
+  void _trackTurnStep(Step step, int index) {
+    if (_isRootFinish(step)) _lastStructuredOutput = step.structuredOutput;
+    if (step.type == StepType.compaction &&
+        step.status == StepStatus.done &&
+        step.depth == 0 &&
+        _isNewCompaction(step)) {
+      _compactionIndices.add(index);
+    }
+  }
+
   void _recordHistoryStep(Step step) {
     _history.add(step);
-    if (step.type == StepType.compaction && _isNewCompaction(step)) {
-      _compactionIndices.add(_history.length - 1);
-    }
+    _trackTurnStep(step, _history.length - 1);
     _enforceMaxHistory();
     if (step.usageMetadata != null) {
       _accumulateUsage(step.usageMetadata!);
@@ -359,12 +399,26 @@ class Conversation {
     controller.close();
   }
 
-  /// Proxies for Connection methods used in examples
-  Future<void> send(ContentPrimitive? prompt, {Map<String, dynamic>? kwargs}) =>
-      _connection.send(prompt, kwargs: kwargs);
+  /// Sends a prompt for consumption through [receiveSteps].
+  Future<void> send(
+    ContentPrimitive? prompt, {
+    Map<String, dynamic>? kwargs,
+  }) async {
+    await _prepareTurn();
+    await _connection.send(prompt, kwargs: kwargs);
+  }
 
   /// Returns the stream of steps from the underlying connection.
-  Stream<Step> receiveSteps() => _connection.receiveSteps();
+  Stream<Step> receiveSteps() async* {
+    await for (final step in _connection.receiveSteps()) {
+      if (step.id == 'idle_sentinel') {
+        _lastTurnStopReason = _connection.lastTurnStopReason;
+      } else {
+        _recordHistoryStep(step);
+      }
+      yield step;
+    }
+  }
 
   void _accumulateUsage(UsageMetadata usage) {
     _cumulativeUsage = _cumulativeUsage + usage;

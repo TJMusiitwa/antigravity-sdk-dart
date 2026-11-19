@@ -83,6 +83,30 @@ class MockOnCompactionHook extends OnCompactionHook {
 }
 
 void main() {
+  test('normalizes local paths and keeps CNS paths under the CNS root', () {
+    final fromStep = Step.fromMap({
+      'step_index': 4,
+      'state': 'STATE_RUNNING',
+      'view_file': {'file_path': 'file:///workspace/sub/%2E%2E/file.dart'},
+    });
+    final args = {'file_path': 'file:///workspace/sub/%2E%2E/file.dart'};
+    final expected = Uri.file('/workspace/file.dart').toFilePath();
+    expect(normalizePathArguments(args), expected);
+    expect(fromStep.toolCalls.single.canonicalPath, expected);
+    expect(
+      normalizeWirePath('dir/./sub/../example.dart'),
+      Uri.file('dir/example.dart').toFilePath(),
+    );
+    expect(
+      normalizeWirePath('cns://cell/%2e%2e/%2e%2e/data%20file'),
+      '/cns/data file',
+    );
+    expect(
+      normalizeWirePath('https://example.test/a/../b'),
+      'https://example.test/a/../b',
+    );
+  });
+
   group('HookRouter', () {
     test('handles session start and end hooks', () async {
       final sessionStart = MockSessionStartHook();

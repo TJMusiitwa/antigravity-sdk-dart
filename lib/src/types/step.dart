@@ -5,6 +5,7 @@ import 'package:logging/logging.dart';
 
 import '../models.dart';
 import '../utils/string_utils.dart';
+import '../utils/wire_path.dart';
 import 'tool_call.dart';
 
 part 'step.mapper.dart';
@@ -758,7 +759,7 @@ class Step with StepMappable {
           ? pathKey
           : (args.containsKey(snakeKey) ? snakeKey : null);
       if (key != null && args[key] is String) {
-        final normalized = _normalizeWirePath(args[key] as String);
+        final normalized = normalizeWirePath(args[key] as String);
         args[key] = normalized;
         canonicalPath ??= normalized;
       }
@@ -826,14 +827,6 @@ class Step with StepMappable {
         map['target'] == 'TARGET_USER' || map['target'] == 'user';
     map['is_complete_response'] =
         isFromModel && isDone && hasText && isTargetUser;
-  }
-
-  static String _normalizeWirePath(String path) {
-    final uri = Uri.tryParse(path);
-    if (uri != null && uri.scheme == 'file') {
-      return Uri.decodeComponent(uri.path);
-    }
-    return path;
   }
 
   static String _toSnakeCase(String camel) => toSnakeCase(camel);

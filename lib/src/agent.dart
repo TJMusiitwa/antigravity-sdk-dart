@@ -135,25 +135,32 @@ class Agent {
       _toolRunner!.setContext(ctx);
 
       return this;
-    } catch (e) {
-      await stop();
+    } catch (_) {
+      try {
+        await stop();
+      } catch (_) {
+        // Preserve the original startup failure.
+      }
       rethrow;
     }
   }
 
   /// Stops the agent session.
   Future<void> stop() async {
-    if (_triggerRunner != null) {
-      await _triggerRunner!.stop();
+    try {
+      await _triggerRunner?.stop();
+    } finally {
       _triggerRunner = null;
-    }
-    if (_conversation != null) {
-      await _conversation!.disconnect();
-      _conversation = null;
-    }
-    if (_strategy != null) {
-      await _strategy!.stop();
-      _strategy = null;
+      try {
+        await _conversation?.disconnect();
+      } finally {
+        _conversation = null;
+        try {
+          await _strategy?.stop();
+        } finally {
+          _strategy = null;
+        }
+      }
     }
   }
 

@@ -18,13 +18,9 @@ import '../../utils/string_utils.dart';
 import '../../version.dart';
 import '../connection.dart';
 import 'hook_router.dart';
-import 'interactions_config_converter.dart';
-import 'interactions_step_assembler.dart';
 import 'litert_server_python.dart';
 import 'local_connection_config.dart';
 import 'localharness_proto.dart';
-
-part 'interactions_connection.dart';
 
 final _logger = Logger('antigravity.connection.local');
 
@@ -75,8 +71,6 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   /// Dynamic policies keyed by harness `rule_id`, filled when the config is built.
   final Map<String, Policy> dynamicPolicies = {};
 
-  Process? _process;
-  WebSocket? _ws;
   LocalConnection? _connection;
 
   /// Creates a new [LocalConnectionStrategy] for the Google Antigravity SDK.
@@ -149,36 +143,75 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     );
     _logger.info('Starting localharness binary at: $resolvedBinaryPath');
 
-    _process = await Process.start(resolvedBinaryPath, []);
-    await _sendHandshakeInputConfig(_process!);
+    final process = await Process.start(resolvedBinaryPath, []);
+    final stderr = StringBuffer();
+    final stderrDone = Completer<void>();
+    final stderrSubscription = process.stderr
+        .transform(const Utf8Decoder(allowMalformed: true))
+        .listen(
+          (chunk) {
+            stderr.write(chunk);
+            const limit = 32768;
+            if (stderr.length > limit) {
+              final tail = stderr.toString().substring(stderr.length - limit);
+              stderr.clear();
+              stderr.write(tail);
+            }
+          },
+          onError: (Object _) {},
+          onDone: stderrDone.complete,
+        );
+    final reader = HandshakeReader();
+    WebSocket? ws;
+    try {
+      // Handle errors from the sink even when they occur outside flush/close.
+      unawaited(process.stdin.done.then<void>((_) {}, onError: (Object _) {}));
+      await _sendHandshakeInputConfig(process);
+      final outputConfig = await reader.read(process.stdout);
+      ws = await _connectWebSocketWithRetry(outputConfig);
+      final sessionData = await _initializeHarnessSession(ws);
 
-    final outputConfig = await _readHandshakeOutputConfig(_process!);
-    final ws = await _connectWebSocketWithRetry(outputConfig, _process!);
-    _ws = ws;
-    final sessionData = await _initializeHarnessSession(ws, _process!);
-
-    _connection = LocalConnection(
-      process: _process!,
-      ws: _ws!,
-      dynamicPolicies: dynamicPolicies,
-      messageStream: sessionData.messageStream,
-      toolRunner: _toolRunner,
-      hookRunner: _hookRunner,
-      initialHistory: sessionData.initialHistory,
-      conversationId: sessionData.cascadeId,
-      cumulativeUsage: sessionData.cumulativeUsage,
-      trajectoryUsages: sessionData.trajectoryUsages,
-    );
-    _connection!._startStderrReader();
-    _connection!._startReaderLoop();
+      _connection = LocalConnection(
+        process: process,
+        ws: ws,
+        dynamicPolicies: dynamicPolicies,
+        messageStream: sessionData.messageStream,
+        toolRunner: _toolRunner,
+        hookRunner: _hookRunner,
+        initialHistory: sessionData.initialHistory,
+        conversationId: sessionData.cascadeId,
+        cumulativeUsage: sessionData.cumulativeUsage,
+        trajectoryUsages: sessionData.trajectoryUsages,
+      );
+      // Keep one stderr subscription for the lifetime of the process.
+      _connection!._stderrSubscription = stderrSubscription;
+      _connection!._stderrText = stderr;
+      _connection!._stderrDone = stderrDone.future;
+      _connection!._startReaderLoop();
+    } catch (error, stackTrace) {
+      process.kill(ProcessSignal.sigkill);
+      await _closeProcessStdin(process);
+      await reader.cancel();
+      if (ws != null) await _closeWebSocket(ws);
+      try {
+        await process.exitCode.timeout(const Duration(seconds: 1));
+        await stderrDone.future.timeout(const Duration(milliseconds: 200));
+      } on TimeoutException {
+        // The process has already received SIGKILL.
+      } finally {
+        await stderrSubscription.cancel();
+      }
+      Error.throwWithStackTrace(
+        AntigravityConnectionException(
+          'Failed to initialize localharness: $error\nHarness stderr:\n$stderr',
+        ),
+        stackTrace,
+      );
+    }
   }
 
-  Future<void> _sendHandshakeInputConfig(
-    Process process, {
-    bool useInteractionsApi = false,
-  }) async {
+  Future<void> _sendHandshakeInputConfig(Process process) async {
     final inputConfigBytes = LocalHarnessProto.encodeInputConfig(
-      useInteractionsApi: useInteractionsApi,
       storageDirectory: _saveDir ?? '',
       clientLanguage: 'dart',
       clientVersion: packageVersion,
@@ -189,33 +222,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     await process.stdin.flush();
   }
 
-  Future<Never> _failWithProcessStderr(
-    Process process,
-    String message,
-    Object? error,
-  ) async {
-    process.kill();
-    final stderrText = await process.stderr.transform(utf8.decoder).join();
-    _logger.severe('$message. Stderr: $stderrText');
-    throw Exception('$message process. Stderr: $stderrText. Error: $error');
-  }
-
-  Future<LocalHarnessProto> _readHandshakeOutputConfig(Process process) async {
-    try {
-      final reader = HandshakeReader();
-      return await reader.read(process.stdout);
-    } catch (e) {
-      await _failWithProcessStderr(
-        process,
-        'Failed to handshake with localharness',
-        e,
-      );
-    }
-  }
-
   Future<WebSocket> _connectWebSocketWithRetry(
     LocalHarnessProto outputConfig,
-    Process process,
   ) async {
     int attempt = 0;
     const maxRetries = 5;
@@ -234,10 +242,8 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       }
       attempt++;
       if (attempt >= maxRetries) {
-        process.kill();
-        final stderrText = await process.stderr.transform(utf8.decoder).join();
         throw Exception(
-          'Failed to connect to WebSocket after $maxRetries attempts. Last error: $lastException. Stderr: $stderrText',
+          'Failed to connect to WebSocket after $maxRetries attempts. Last error: $lastException.',
         );
       }
       final delay = Duration(milliseconds: 100 * (1 << attempt));
@@ -258,7 +264,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       Map<String, UsageMetadata>? trajectoryUsages,
     })
   >
-  _initializeHarnessSession(WebSocket ws, Process process) async {
+  _initializeHarnessSession(WebSocket ws) async {
     final initCompleter =
         Completer<
           ({
@@ -270,7 +276,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         >();
     final messageController = StreamController<dynamic>();
 
-    ws.listen(
+    final subscription = ws.listen(
       (message) =>
           _handleInitMessage(message, initCompleter, messageController),
       onError: (err) {
@@ -289,10 +295,10 @@ class LocalConnectionStrategy implements ConnectionStrategy {
       },
     );
 
-    final harnessConfig = _buildHarnessConfig();
-    ws.add(jsonEncode({'config': harnessConfig}));
-
+    messageController.onCancel = subscription.cancel;
     try {
+      final configMessage = jsonEncode({'config': _buildHarnessConfig()});
+      ws.add(configMessage);
       final sessionData = await initCompleter.future;
       return (
         initialHistory: sessionData.initialHistory,
@@ -301,12 +307,9 @@ class LocalConnectionStrategy implements ConnectionStrategy {
         cumulativeUsage: sessionData.cumulativeUsage,
         trajectoryUsages: sessionData.trajectoryUsages,
       );
-    } catch (e) {
-      await _failWithProcessStderr(
-        process,
-        'Failed to initialize conversation with localharness',
-        e,
-      );
+    } catch (_) {
+      await subscription.cancel();
+      rethrow;
     }
   }
 
@@ -412,12 +415,11 @@ class LocalConnectionStrategy implements ConnectionStrategy {
 
   @override
   Future<void> stop() async {
-    if (_connection != null) {
-      await _connection!.disconnect();
+    try {
+      await _connection?.disconnect();
+    } finally {
       _connection = null;
     }
-    _ws = null;
-    _process = null;
   }
 
   /// Returns the harness config this strategy sends on start, for tests.
@@ -674,7 +676,7 @@ class LocalConnectionStrategy implements ConnectionStrategy {
     final opts = _buildModelOptionsMap(ep.options);
     return {
       'gemini_api_endpoint': {
-        if (ep.baseUrl != null) 'base_url': ep.baseUrl,
+        'base_url': ?ep.effectiveBaseUrl,
         if (ep.httpHeaders != null) 'http_headers': ep.httpHeaders,
         if (ep.apiKey != null) 'api_key': ep.apiKey,
         'options': ?opts,
@@ -997,12 +999,28 @@ class LocalConnectionStrategy implements ConnectionStrategy {
   }
 }
 
+Future<void> _closeProcessStdin(Process process) async {
+  try {
+    await process.stdin.close().timeout(const Duration(milliseconds: 500));
+  } catch (_) {
+    // The process may have already closed its side of stdin.
+  }
+}
+
+Future<void> _closeWebSocket(WebSocket ws) async {
+  try {
+    await ws.close(status.goingAway).timeout(const Duration(milliseconds: 500));
+  } catch (_) {
+    // The underlying process may have closed the transport.
+  }
+}
+
 /// Helper class to read handshake payload statefully.
 class HandshakeReader {
   final List<int> _buffer = [];
   final Completer<LocalHarnessProto> _completer =
       Completer<LocalHarnessProto>();
-  late StreamSubscription<List<int>> _subscription;
+  StreamSubscription<List<int>>? _subscription;
   int? _targetLength;
 
   /// Reads and parses the handshake configuration from the provided stdout [stream].
@@ -1013,7 +1031,7 @@ class HandshakeReader {
         _process();
       },
       onError: (err) {
-        _subscription.cancel();
+        unawaited(cancel());
         _completer.completeError(err);
       },
       onDone: () {
@@ -1027,6 +1045,9 @@ class HandshakeReader {
     return _completer.future;
   }
 
+  /// Stops reading the handshake stream.
+  Future<void> cancel() async => _subscription?.cancel();
+
   void _process() {
     if (_targetLength == null) {
       if (_buffer.length >= 4) {
@@ -1039,7 +1060,7 @@ class HandshakeReader {
     if (_targetLength != null) {
       if (_buffer.length >= _targetLength!) {
         final payload = _buffer.sublist(0, _targetLength!);
-        _subscription.cancel();
+        unawaited(cancel());
         try {
           final result = LocalHarnessProto.decodeOutputConfig(payload);
           _completer.complete(result);
@@ -1064,8 +1085,11 @@ class LocalConnection implements Connection {
 
   final StreamController<Step> _stepController =
       StreamController<Step>.broadcast();
-  final List<String> _stderrLines = [];
+  StringBuffer _stderrText = StringBuffer();
+  StreamSubscription<String>? _stderrSubscription;
   Future<void>? _stderrDone;
+  StreamSubscription<dynamic>? _readerSubscription;
+  Future<void>? _disconnection;
   static const _processWaitTimeout = Duration(minutes: 3);
   bool _disconnecting = false;
   bool _idleState = true;
@@ -1145,24 +1169,11 @@ class LocalConnection implements Connection {
     _stepController.addError(error);
   }
 
-  void _startStderrReader() {
-    _stderrDone = _process.stderr
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())
-        .forEach((line) {
-          _stderrLines.add(line);
-          if (_stderrLines.length > 50) {
-            _stderrLines.removeAt(0);
-          }
-          _logger.fine('[Harness Stderr] $line');
-        });
-  }
-
   /// Starts the reader loop. Exposed for unit testing.
   void startReaderLoop() => _startReaderLoop();
 
   void _startReaderLoop() {
-    _messageStream.listen(
+    _readerSubscription = _messageStream.listen(
       (message) async {
         if (_disconnecting) return;
         try {
@@ -1181,8 +1192,9 @@ class LocalConnection implements Connection {
         }
       },
       onError: (err) {
+        _idleState = true;
         if (!_disconnecting) {
-          final stderrTail = _stderrLines.join('\n');
+          final stderrTail = _stderrText.toString();
           _logger.severe('WebSocket closed with error: $err');
           _safeAddError(
             AntigravityConnectionException(
@@ -1195,8 +1207,9 @@ class LocalConnection implements Connection {
         }
       },
       onDone: () {
+        _idleState = true;
         if (!_disconnecting) {
-          final stderrTail = _stderrLines.join('\n');
+          final stderrTail = _stderrText.toString();
           _logger.warning('WebSocket connection closed prematurely');
           _safeAddError(
             AntigravityConnectionException(
@@ -1492,11 +1505,6 @@ class LocalConnection implements Connection {
         trajectoryId.isNotEmpty &&
         trajectoryId != mainTrajectoryId;
 
-    if (update['stop_reason'] != null &&
-        update['stop_reason'].toString().isNotEmpty) {
-      _turnStopReason = StopReason.fromString(update['stop_reason'].toString());
-    }
-
     if (isSubagent) {
       if (update['error'] != null && update['error'].toString().isNotEmpty) {
         _logger.info(
@@ -1504,6 +1512,11 @@ class LocalConnection implements Connection {
         );
       }
       return;
+    }
+
+    if (update['stop_reason'] != null &&
+        update['stop_reason'].toString().isNotEmpty) {
+      _turnStopReason = StopReason.fromString(update['stop_reason'].toString());
     }
 
     _applyTrajectoryState(state, update['error']?.toString());
@@ -1621,6 +1634,7 @@ class LocalConnection implements Connection {
       bool allowed = true;
       final ctx = _hookRunner.createTurnContext();
       final res = await _hookRunner.dispatchPreToolCall(ctx, toolCall);
+      if (_disconnecting) return;
       allowed = res.allow;
       if (!allowed) {
         final errReason = res.message.isNotEmpty
@@ -1668,6 +1682,8 @@ class LocalConnection implements Connection {
           exception: e is Exception ? e : Exception(e.toString()),
         );
       }
+
+      if (_disconnecting) return;
 
       // Post-tool-call hook or error hook execution
       if (result.error == null) {
@@ -1732,7 +1748,6 @@ class LocalConnection implements Connection {
     ContentPrimitive? prompt, {
     Map<String, dynamic>? kwargs,
   }) async {
-    _idleState = false;
     final List<Map<String, dynamic>> parts = [];
 
     if (prompt is String) {
@@ -1775,6 +1790,8 @@ class LocalConnection implements Connection {
 
     _logger.finest('>>> Sending user_input over WebSocket');
     _ws.add(jsonEncode(inputEvent));
+    _turnStopReason = StopReason.unspecified;
+    _idleState = false;
   }
 
   @override
@@ -1784,6 +1801,7 @@ class LocalConnection implements Connection {
 
   @override
   Future<void> sendToolResults(List<ToolResult> results) async {
+    if (_disconnecting) return;
     for (final result in results) {
       dynamic responseJson;
       List<Map<String, dynamic>>? supplementalMedia;
@@ -1830,16 +1848,15 @@ class LocalConnection implements Connection {
   }
 
   @override
-  Future<void> disconnect() async {
+  Future<void> disconnect() => _disconnection ??= _disconnect();
+
+  Future<void> _disconnect() async {
     _disconnecting = true;
+    _idleState = true;
     _logger.info('Disconnecting from localharness');
     try {
-      await _ws
-          .close(status.goingAway)
-          .timeout(const Duration(milliseconds: 500));
-    } catch (_) {}
-    try {
-      await _process.stdin.close();
+      await _closeWebSocket(_ws);
+      await _closeProcessStdin(_process);
       int exitCode;
       try {
         exitCode = await _process.exitCode.timeout(_processWaitTimeout);
@@ -1856,20 +1873,21 @@ class LocalConnection implements Connection {
           );
         }
       }
-      try {
-        await _stderrDone?.timeout(const Duration(seconds: 1));
-      } on TimeoutException {
-        /* Retain the stderr already collected. */
-      }
       if (exitCode != 0) {
-        final stderr = _stderrLines.isEmpty
-            ? '(no stderr output)'
-            : _stderrLines.join('\n');
+        try {
+          await _stderrDone?.timeout(const Duration(milliseconds: 200));
+        } on TimeoutException {
+          // A descendant may still hold the write end open.
+        }
+        final stderr = _stderrText.isEmpty ? '(no stderr output)' : _stderrText;
         throw AntigravityExecutionException(
           'Harness process exited with code $exitCode.\nHarness stderr:\n$stderr',
         );
       }
     } finally {
+      // Cancellation closes our read ends even if a descendant inherited them.
+      await _stderrSubscription?.cancel();
+      await _readerSubscription?.cancel();
       await _stepController.close();
     }
   }
@@ -2175,7 +2193,9 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
   /// Backend override for audio processing, if any.
   final LiteRTBackend? audioBackend;
 
-  /// Backend override for vision and image processing, if any.
+  /// Backend override for vision and image processing.
+  ///
+  /// When null, the LiteRT subprocess detects vision support.
   final LiteRTBackend? visionBackend;
 
   /// Port for the LiteRT server; 0 picks a random free port.
@@ -2189,6 +2209,8 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
   /// Context-window limit passed to the LiteRT server, if any.
   final int? maxContextTokens;
   Process? _serverProcess;
+  StreamSubscription<String>? _serverStdout;
+  StreamSubscription<String>? _serverStderr;
 
   /// Creates a strategy that serves [modelPath] through a local LiteRT
   /// server and connects the harness to it.
@@ -2240,25 +2262,29 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
   Future<void> start() async {
     _validateConnection();
 
-    final scriptFile = _writeLiteRTServerScript();
-    _serverProcess = await _launchLiteRTServer(scriptFile);
-
-    final actualPort = await _readLiteRTPort(_serverProcess!);
-    final litertBaseUrl = 'http://127.0.0.1:$actualPort';
-    _logger.info(
-      'LiteRT Server started on port $actualPort. URL: $litertBaseUrl',
-    );
-
-    final client = HttpClient();
     try {
-      await _waitForLiteRTHealth(client, litertBaseUrl);
-      await _warmupLiteRT(client, litertBaseUrl);
-    } finally {
-      client.close();
-    }
+      final scriptFile = _writeLiteRTServerScript();
+      final process = await _launchLiteRTServer(scriptFile);
+      _serverProcess = process;
 
-    baseUrl = litertBaseUrl;
-    await super.start();
+      final actualPort = await _readLiteRTPort(process);
+      final litertBaseUrl = 'http://127.0.0.1:$actualPort';
+      _logger.info('LiteRT server started at $litertBaseUrl');
+
+      final client = HttpClient();
+      try {
+        await _waitForLiteRTHealth(client, litertBaseUrl);
+        await _warmupLiteRT(client, litertBaseUrl);
+      } finally {
+        client.close(force: true);
+      }
+
+      baseUrl = litertBaseUrl;
+      await super.start();
+    } catch (_) {
+      await _stopLiteRTServer();
+      rethrow;
+    }
   }
 
   File _writeLiteRTServerScript() {
@@ -2300,32 +2326,45 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
     final portCompleter = Completer<int>();
     final portRegex = RegExp(r'^LITERT_SERVER_PORT:(\d+)$');
 
-    process.stdout
-        .transform(utf8.decoder)
+    _serverStdout = process.stdout
+        .transform(const Utf8Decoder(allowMalformed: true))
         .transform(const LineSplitter())
-        .listen((line) {
-          _logger.fine('[LiteRT Server Stdout] $line');
-          final match = portRegex.firstMatch(line);
-          if (match != null && !portCompleter.isCompleted) {
-            portCompleter.complete(int.parse(match.group(1)!));
-          }
-        });
-
-    process.stderr
-        .transform(utf8.decoder)
+        .listen(
+          (line) {
+            _logger.fine('[LiteRT Server Stdout] $line');
+            final match = portRegex.firstMatch(line);
+            if (match != null && !portCompleter.isCompleted) {
+              portCompleter.complete(int.parse(match.group(1)!));
+            }
+          },
+          onDone: () {
+            if (!portCompleter.isCompleted) {
+              portCompleter.completeError(
+                AntigravityConnectionException(
+                  'LiteRT exited before reporting its port.',
+                ),
+              );
+            }
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            if (!portCompleter.isCompleted) {
+              portCompleter.completeError(error, stackTrace);
+            }
+          },
+        );
+    _serverStderr = process.stderr
+        .transform(const Utf8Decoder(allowMalformed: true))
         .transform(const LineSplitter())
-        .listen((line) {
-          _logger.warning('[LiteRT Server Stderr] $line');
-        });
+        .listen(
+          (line) {
+            _logger.warning('[LiteRT Server Stderr] $line');
+          },
+          onError: (Object error) {
+            _logger.warning('Could not read LiteRT stderr', error);
+          },
+        );
 
-    try {
-      return await portCompleter.future.timeout(const Duration(seconds: 15));
-    } catch (e) {
-      process.kill();
-      throw Exception(
-        'Failed to receive port from LiteRT server process. Error: $e',
-      );
-    }
+    return portCompleter.future.timeout(const Duration(seconds: 15));
   }
 
   Future<void> _waitForLiteRTHealth(
@@ -2342,8 +2381,9 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
       } catch (_) {}
       await Future.delayed(const Duration(milliseconds: 500));
     }
-    _serverProcess?.kill();
-    throw Exception('LiteRT loopback HTTP endpoint failed to respond.');
+    throw AntigravityConnectionException(
+      'LiteRT loopback HTTP endpoint failed to respond.',
+    );
   }
 
   Future<void> _warmupLiteRT(HttpClient client, String litertBaseUrl) async {
@@ -2382,9 +2422,29 @@ class LiteRTConnectionStrategy extends LocalOpenAIConnectionStrategy {
     try {
       await super.stop();
     } finally {
-      _logger.info('Stopping LiteRT server process...');
-      _serverProcess?.kill();
-      _serverProcess = null;
+      await _stopLiteRTServer();
+    }
+  }
+
+  Future<void> _stopLiteRTServer() async {
+    final process = _serverProcess;
+    if (process == null) return;
+    _serverProcess = null;
+    try {
+      process.kill();
+      await _closeProcessStdin(process);
+      await process.exitCode.timeout(const Duration(seconds: 1));
+    } on TimeoutException {
+      process.kill(ProcessSignal.sigkill);
+      await process.exitCode.timeout(
+        const Duration(seconds: 1),
+        onTimeout: () => -1,
+      );
+    } finally {
+      await _serverStdout?.cancel();
+      await _serverStderr?.cancel();
+      _serverStdout = null;
+      _serverStderr = null;
     }
   }
 }

@@ -433,10 +433,11 @@ void main() {
         wireStep1Active,
         wireStep1Done,
         wireStep2Done,
+        wireStep2Done.copyWith(depth: 1),
       ]);
       final conv = Conversation(conn);
 
-      expect(conv.compactionIndices, equals([0, 2]));
+      expect(conv.compactionIndices, equals([1, 2]));
     });
 
     test('Conversation deduplicates streaming compaction steps with makeStepId fallback', () async {
@@ -485,9 +486,7 @@ void main() {
     });
 
     test('Conversation dedups a streaming compaction duplicate separated by another compaction', () async {
-      // Discriminating case: the previous implementation compared only against
-      // _compactionIndices.last, so in the sequence A, B, A the second A was
-      // checked against B and slipped through. Set-based dedup catches it.
+      // A duplicate DONE update must be ignored even across another compaction.
       Step compaction(String traj, int idx, String status) => Step.fromMap({
         'trajectory_id': traj,
         'step_index': idx,
@@ -501,7 +500,8 @@ void main() {
       final conv = Conversation(conn);
       final response = await conv.chat('start');
 
-      conn._stepController.add(compaction('traj-live', 3, 'ACTIVE')); // A
+      conn._stepController.add(compaction('traj-live', 3, 'ACTIVE'));
+      conn._stepController.add(compaction('traj-live', 3, 'DONE')); // A
       conn._stepController.add(compaction('traj-live', 9, 'DONE')); // B
       conn._stepController.add(compaction('traj-live', 3, 'DONE')); // A again
       conn._stepController.add(
@@ -525,6 +525,68 @@ void main() {
           .toList();
       expect(indexedStepIndices, equals([3, 9]));
     });
+  });
+
+  group('Conversation turn isolation', () {
+    test(
+      'retains a completed response and workflow through another turn',
+      () async {
+        final conn = FakeConnection()..autoRespond = false;
+        addTearDown(conn.disconnect);
+        final conversation = Conversation(conn);
+        final first = await conversation.chat('first');
+        final pendingSecond = conversation.chat('second');
+
+        conn._stepController.add(
+          Step.fromMap({
+            'trajectory_id': 'child',
+            'parent_trajectory_id': 'root',
+            'type': 'FINISH',
+            'status': 'DONE',
+            'finish': {'output_string': '{"wrong":"subagent"}'},
+          }),
+        );
+        conn._stepController.add(
+          Step.fromMap({
+            'trajectory_id': 'root',
+            'type': 'FINISH',
+            'status': 'DONE',
+            'finish': {'output_string': '{"answer":1}'},
+            'usage_metadata': {'total_token_count': 8},
+          }),
+        );
+        conn.signalIdle();
+
+        final second = await pendingSecond;
+        expect(conversation.lastStructuredOutput, isNull);
+        expect(await first.structuredOutput(), {'answer': 1});
+        expect(first.usage?.totalTokenCount, 8);
+        final workflow = WorkflowResult.fromResponse(first);
+
+        conn._stepController.add(
+          Step.fromMap({
+            'trajectory_id': 'another-child',
+            'depth': 1,
+            'type': 'FINISH',
+            'finish': {'output_string': '{"wrong":2}'},
+          }),
+        );
+        conn._stepController.add(
+          Step(
+            id: 'idle_sentinel',
+            type: StepType.finish,
+            status: StepStatus.done,
+          ),
+        );
+        conn.signalIdle();
+
+        expect(await second.structuredOutput(), isNull);
+        expect(second.usage, isNull);
+        expect(await workflow.structuredOutput(), {'answer': 1});
+        expect(workflow.usage?.totalTokenCount, 8);
+        expect(await first.structuredOutput(), {'answer': 1});
+      },
+    );
   });
 
   group('Conversation step filtering', () {

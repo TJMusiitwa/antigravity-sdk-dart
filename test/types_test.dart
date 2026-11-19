@@ -1310,8 +1310,8 @@ void main() {
       expect(defaultModel, isNotEmpty);
     });
 
-    test('defaultModel is gemini-3.8-flash', () {
-      expect(defaultModel, equals('gemini-3.8-flash'));
+    test('defaultModel is gemini-4-hydrogen', () {
+      expect(defaultModel, equals('gemini-4-hydrogen'));
     });
   });
 

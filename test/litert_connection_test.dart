@@ -122,6 +122,93 @@ void main() {
   });
 
   group('litertServerPythonScript', () {
+    test('converts image parts and emits both reasoning fields', () async {
+      const unsupportedPython = 77;
+      final dir = await Directory.systemTemp.createTemp('litert_script_test_');
+      addTearDown(() => dir.delete(recursive: true));
+      final script = File.fromUri(dir.uri.resolve('litert_loopback.py'));
+      await script.writeAsString(litertServerPythonScript);
+      final python = await Process.run('python3', [
+        '-c',
+        r'''
+import io
+import json
+import sys
+from types import SimpleNamespace
+
+if sys.version_info < (3, 10):
+    print(f"LiteRT requires Python 3.10 or newer. Found Python {sys.version.split()[0]}.")
+    sys.exit(int(sys.argv[2]))
+
+sys.path.insert(0, sys.argv[1])
+import litert_loopback as server
+
+server.litert_lm = SimpleNamespace(
+    Content=SimpleNamespace(ImageBytes=lambda data: data),
+    Contents=SimpleNamespace(of=list),
+    Message=SimpleNamespace(model=lambda **kwargs: kwargs),
+)
+parts = server._translate_openai_content([
+    {"type": "image_url", "image_url": {"url": "data:image/png;base64,AQID"}},
+])
+assert parts == [b"\x01\x02\x03"], parts
+
+class ModelInfo:
+    input_modalities = SimpleNamespace(vision=True)
+    def __init__(self, path):
+        assert path == "model.litertlm"
+    def __enter__(self):
+        return self
+    def __exit__(self, *args):
+        pass
+    def supported_backends_for_modality(self, modality):
+        assert modality == "vision"
+        return ["GPU", "CPU"]
+
+server.litert_lm.ModelInfo = ModelInfo
+server.litert_lm.LiteRtLmModality = SimpleNamespace(VISION="vision")
+assert server._detect_default_vision_backend("model.litertlm") == "gpu"
+
+class Conversation:
+    def send_message(self, prompt):
+        return {"channels": {"thought": "reasoning text"},
+                "content": [{"type": "text", "text": "answer"}]}
+    def send_message_async(self, prompt):
+        yield self.send_message(prompt)
+
+class Handler:
+    def __init__(self):
+        self.wfile = io.BytesIO()
+    send_response = send_header = end_headers = lambda self, *args: None
+
+handler = Handler()
+server.LiteRTOpenAIHandler._handle_synchronous(
+    handler, Conversation(), "prompt", "gemma"
+)
+message = json.loads(handler.wfile.getvalue())["choices"][0]["message"]
+assert message["content"] == "answer", message
+assert message["reasoning"] == message["reasoning_content"] == "reasoning text", message
+
+handler = Handler()
+server.LiteRTOpenAIHandler._stream_response(handler, Conversation(), "prompt", "gemma")
+frames = handler.wfile.getvalue().decode().splitlines()
+assert frames[-2] == "data: [DONE]", frames
+chunks = [json.loads(frame[6:]) for frame in frames if frame.startswith("data: {")]
+delta = chunks[1]["choices"][0]["delta"]
+assert delta == {"content": "answer", "reasoning": "reasoning text",
+                 "reasoning_content": "reasoning text"}, delta
+
+''',
+        dir.path,
+        '$unsupportedPython',
+      ]);
+      if (python.exitCode == unsupportedPython) {
+        markTestSkipped((python.stdout as String).trim());
+        return;
+      }
+      expect(python.exitCode, 0, reason: python.stderr.toString());
+    });
+
     test('caches the LiteRT conversation across turns', () {
       const script = litertServerPythonScript;
       expect(script, contains('def _get_or_create_conversation('));

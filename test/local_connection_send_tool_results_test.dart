@@ -35,6 +35,44 @@ class FakeProcess implements Process {
 }
 
 void main() {
+  test(
+    'startup reports malformed stderr and releases the harness process',
+    () async {
+      final dir = await Directory.systemTemp.createTemp('localharness_test_');
+      addTearDown(() => dir.delete(recursive: true));
+      final script = File.fromUri(dir.uri.resolve('localharness'));
+      await script.writeAsString(r'''#!/bin/sh
+printf 'startup failed: \377\n' >&2
+exit 7
+''');
+      final chmod = await Process.run('chmod', ['+x', script.path]);
+      expect(chmod.exitCode, 0, reason: chmod.stderr.toString());
+
+      final strategy = LocalConnectionStrategy(
+        binaryPath: script.path,
+        toolRunner: ToolRunner(),
+        hookRunner: HookRunner(),
+        systemInstructions: null,
+        capabilitiesConfig: CapabilitiesConfig(),
+        workspaces: [],
+        skillsPaths: [],
+      );
+      await expectLater(
+        strategy.start(),
+        throwsA(
+          isA<AntigravityConnectionException>().having(
+            (error) => error.message,
+            'message',
+            contains('startup failed:'),
+          ),
+        ),
+      );
+      expect(strategy.connect, throwsStateError);
+      await strategy.stop();
+    },
+    skip: Platform.isWindows ? 'Requires a POSIX executable fixture.' : false,
+  );
+
   group('LocalConnection.sendToolResults', () {
     late HttpServer server;
     late WebSocket clientWs;
@@ -220,6 +258,49 @@ void main() {
       await server.close(force: true);
       await messageStream.close();
     });
+
+    test(
+      'chat snapshots late usage and the root stop reason on idle',
+      () async {
+        final conversation = Conversation(connection);
+        connection.mainTrajectoryId = 'root';
+        final response = await conversation.chat('first');
+        void send(Map<String, dynamic> event) =>
+            messageStream.add(jsonEncode(event));
+
+        send({
+          'step_update': {
+            'trajectory_id': 'root',
+            'type': 'FINISH',
+            'state': 'STATE_DONE',
+            'finish': {'output_string': '{"answer":1}'},
+          },
+        });
+        send({
+          'usage_update': {
+            'total': {'total_token_count': 15},
+          },
+        });
+        send({
+          'trajectory_state_update': {
+            'trajectory_id': 'child',
+            'state': 'STATE_FULLY_IDLE',
+            'stop_reason': 'STOP_REASON_QUOTA_EXHAUSTED',
+          },
+        });
+        send({
+          'trajectory_state_update': {
+            'trajectory_id': 'root',
+            'state': 'STATE_FULLY_IDLE',
+            'stop_reason': 'STOP_REASON_MAX_TOOL_CALLS_EXCEEDED',
+          },
+        });
+
+        expect(await response.structuredOutput(), {'answer': 1});
+        expect(response.usage?.totalTokenCount, 15);
+        expect(response.stopReason, StopReason.maxToolCallsExceeded);
+      },
+    );
 
     test(
       'step_update sets mainTrajectoryId and preserves conversationId',

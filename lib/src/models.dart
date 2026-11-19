@@ -11,7 +11,7 @@ part 'models.mapper.dart';
 // =============================================================================
 
 /// Default generative text model used when no model target is explicitly specified.
-const String defaultModel = 'gemini-3.8-flash';
+const String defaultModel = 'gemini-4-hydrogen';
 
 /// Default image generation model used by built-in image creation tools.
 const String defaultImageGenerationModel = 'gemini-3.1-flash-lite-image';
@@ -23,7 +23,7 @@ const String defaultImageGenerationModel = 'gemini-3.1-flash-lite-image';
 /// Thinking level for Gemini models that support extended thinking.
 ///
 /// Controls the amount of reasoning the model performs before responding.
-/// See https://ai.google.dev/gemini-api/docs/thinking#thinking-levels for details.
+/// See https://aistudio.google.com/docs/thinking#thinking-levels for details.
 @MappableEnum(defaultValue: ThinkingLevel.minimal)
 enum ThinkingLevel {
   /// Minimal thinking.
@@ -39,8 +39,8 @@ enum ThinkingLevel {
   high('high'),
 
   /// Enables the highest reasoning capability level on compatible models.
-  @MappableValue('extra_high')
-  extraHigh('extra_high');
+  @MappableValue('xhigh')
+  extraHigh('xhigh');
 
   /// The wire value of this level.
   final String value;
@@ -63,7 +63,7 @@ enum ThinkingLevel {
 /// Service tier for Gemini model inference.
 ///
 /// Controls the compute queue priority and rate limit fallback behavior.
-/// See https://ai.google.dev/gemini-api/docs/priority-inference for details.
+/// See https://aistudio.google.com/docs/priority-inference for details.
 @MappableEnum(defaultValue: ServiceTier.standard)
 enum ServiceTier {
   /// Standard processing tier.
@@ -138,10 +138,19 @@ abstract class ModelEndpoint with ModelEndpointMappable {
 /// Upper bound for [GeminiModelOptions.maxOutputTokens] (protobuf int32 max).
 const int maxGeminiOutputTokens = 2147483647;
 
+class _ThinkingLevelHook extends MappingHook {
+  const _ThinkingLevelHook();
+
+  @override
+  Object? beforeDecode(Object? value) =>
+      value == 'extra_high' ? 'xhigh' : value;
+}
+
 /// Gemini-specific model options.
 @MappableClass(caseStyle: CaseStyle.snakeCase, ignoreNull: true)
 class GeminiModelOptions with GeminiModelOptionsMappable {
   /// Thinking level for models that support extended thinking.
+  @MappableField(hook: _ThinkingLevelHook())
   final ThinkingLevel? thinkingLevel;
 
   /// Service tier for inference.
@@ -182,8 +191,8 @@ class GeminiModelOptions with GeminiModelOptionsMappable {
 class GeminiAPIEndpoint extends ModelEndpoint with GeminiAPIEndpointMappable {
   /// Gemini API key.
   ///
-  /// When null, the `GEMINI_API_KEY` environment variable must be set unless
-  /// [baseUrl] is given.
+  /// When null or empty, the `GEMINI_API_KEY` environment variable must
+  /// contain a key unless [baseUrl] is explicitly set to a non-empty URL.
   final String? apiKey;
 
   /// Gemini-specific model options.
@@ -197,13 +206,20 @@ class GeminiAPIEndpoint extends ModelEndpoint with GeminiAPIEndpointMappable {
     this.options,
   });
 
+  /// The explicit [baseUrl], or the value of `GOOGLE_GEMINI_BASE_URL`.
+  String? get effectiveBaseUrl {
+    final explicit = baseUrl;
+    if (explicit != null && explicit.isNotEmpty) return explicit;
+    final fallback = Platform.environment['GOOGLE_GEMINI_BASE_URL'];
+    return fallback == null || fallback.isEmpty ? null : fallback;
+  }
+
   @override
   void validateEndpoint() {
-    if (baseUrl != null) {
-      return; // External API, validation is done by the external API.
-    }
+    if (baseUrl?.isNotEmpty ?? false) return;
 
-    if (apiKey == null && Platform.environment['GEMINI_API_KEY'] == null) {
+    if ((apiKey?.isEmpty ?? true) &&
+        (Platform.environment['GEMINI_API_KEY']?.isEmpty ?? true)) {
       throw AntigravityValidationException(
         'A Gemini API key is required. Set it via GEMINI_API_KEY environment '
         'variable or via LocalAgentConfig(apiKey: ...).',

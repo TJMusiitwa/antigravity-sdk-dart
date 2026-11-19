@@ -5,7 +5,10 @@ import 'package:logging/logging.dart';
 
 import '../../hooks/hooks.dart';
 import '../../types.dart';
+import '../../utils/wire_path.dart';
 import 'local_connection_config.dart';
+
+export '../../utils/wire_path.dart' show normalizeWirePath;
 
 final _logger = Logger('antigravity.connection.local.hook_router');
 
@@ -43,20 +46,6 @@ const wirePathArgumentKeys = [
   'script_path',
   'ScriptPath',
 ];
-
-/// Converts `file://` and `cns://` wire URIs into filesystem paths.
-String normalizeWirePath(String path) {
-  final uri = Uri.tryParse(path);
-  if (uri != null && uri.hasScheme) {
-    if (uri.scheme == 'file') {
-      return uri.toFilePath();
-    }
-    if (uri.scheme == 'cns') {
-      return '/cns/${uri.host}${uri.path}';
-    }
-  }
-  return path;
-}
 
 /// Normalizes wire-format URIs in [args] to filesystem paths in place.
 ///

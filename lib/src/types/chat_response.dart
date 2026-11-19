@@ -8,35 +8,78 @@ import 'tool_call.dart';
 
 /// The response to a single conversation turn.
 ///
-/// A stream of semantic chunks with lazy buffering. Each stream getter
+/// A stream of semantic chunks buffered as they arrive. Each stream getter
 /// ([chunks], [textStream], [thoughts], [toolCalls]) returns an independent
 /// cursor over a shared buffer. If the upstream stream fails, the error is
 /// rethrown to each cursor that reaches the end of the buffer.
 class ChatResponse {
-  final Stream<dynamic> _stream;
   final List<dynamic> _bufferedChunks = [];
-  bool _isDone = false;
+  final Completer<void> _completion = Completer<void>();
+  Completer<void> _changed = Completer<void>();
   Object? _error;
+  StackTrace? _errorStack;
+  dynamic _structuredOutput;
+  UsageMetadata? _usage;
+  StopReason _stopReason = StopReason.unspecified;
   final Conversation? _conversation;
+  final ChatResponse? _source;
 
   /// Creates a [ChatResponse] that buffers chunks from [rawStream].
   ///
   /// The optional conversation supplies [usage], [stopReason], and
   /// [structuredOutput], and is used by [cancel]. Without it, those return
   /// their empty defaults and [cancel] does nothing.
-  ChatResponse(Stream<dynamic> rawStream, {this._conversation})
-    : _stream = rawStream.asBroadcastStream() {
-    _stream.listen(
+  ChatResponse(Stream<dynamic> rawStream, {Conversation? conversation})
+    : this._(rawStream, conversation: conversation);
+
+  ChatResponse._(
+    Stream<dynamic> rawStream, {
+    this._conversation,
+    this._source,
+  }) {
+    rawStream.listen(
       (chunk) {
         _bufferedChunks.add(chunk);
+        _notifyReaders();
       },
-      onError: (err) {
-        _error = err;
+      onError: (Object error, StackTrace stackTrace) {
+        _error = error;
+        _errorStack = stackTrace;
+        _finalize();
       },
-      onDone: () {
-        _isDone = true;
-      },
+      onDone: () => _finalize(),
+      cancelOnError: true,
     );
+  }
+
+  void _finalize() {
+    final source = _source;
+    if (_error == null) {
+      _structuredOutput = source == null
+          ? _conversation?.lastStructuredOutput
+          : source._structuredOutput;
+    }
+    _usage = source == null ? _conversation?.lastTurnUsage : source.usage;
+    _stopReason =
+        source?.stopReason ??
+        _conversation?.lastTurnStopReason ??
+        StopReason.unspecified;
+    _completion.complete();
+    _notifyReaders();
+  }
+
+  void _notifyReaders() {
+    _changed.complete();
+    _changed = Completer<void>();
+  }
+
+  /// Completes when this turn has finished, including after a stream error.
+  Future<void> get done => _completion.future;
+
+  void _throwIfFailed() {
+    if (_error case final error?) {
+      Error.throwWithStackTrace(error, _errorStack!);
+    }
   }
 
   /// Independent async stream of raw chunks (including thoughts and tool results).
@@ -45,11 +88,11 @@ class ChatResponse {
     while (true) {
       if (index < _bufferedChunks.length) {
         yield _bufferedChunks[index++];
-      } else if (_isDone) {
-        if (_error != null) throw _error!;
+      } else if (_completion.isCompleted) {
+        _throwIfFailed();
         break;
       } else {
-        await Future.delayed(const Duration(milliseconds: 5));
+        await _changed.future;
       }
     }
   }
@@ -79,20 +122,26 @@ class ChatResponse {
 
   /// Blocks until the stream completes and returns the final structured output.
   Future<dynamic> structuredOutput() async {
-    await text(); // Await full stream consumption
-    return _conversation?.lastStructuredOutput;
+    await _completion.future;
+    _throwIfFailed();
+    return _structuredOutput;
   }
 
   /// Accumulated token usage across all model invocations in this turn.
-  UsageMetadata? get usage => _conversation?.lastTurnUsage;
+  UsageMetadata? get usage => _completion.isCompleted
+      ? _usage
+      : (_source?.usage ?? _conversation?.lastTurnUsage);
 
   /// The reason why the execution turn stopped.
-  StopReason get stopReason =>
-      _conversation?.lastTurnStopReason ?? StopReason.unspecified;
+  StopReason get stopReason => _completion.isCompleted
+      ? _stopReason
+      : _source?.stopReason ??
+            _conversation?.lastTurnStopReason ??
+            StopReason.unspecified;
 
   /// Cancels the active execution turn and halts generation.
   Future<void> cancel() async {
-    if (!_isDone && _conversation != null) {
+    if (!_completion.isCompleted && _conversation != null) {
       await _conversation.cancel();
     }
   }
@@ -126,4 +175,14 @@ class WorkflowResult extends ChatResponse {
     this.output = '',
     this.responseText = '',
   });
+
+  /// Creates a workflow result with the chunks and metadata of [response].
+  WorkflowResult.fromResponse(
+    ChatResponse response, {
+    this.scriptPath = '',
+    this.script = '',
+    this.description = '',
+    this.output = '',
+    this.responseText = '',
+  }) : super._(response.chunks, source: response);
 }

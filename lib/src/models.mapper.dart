@@ -37,7 +37,7 @@ class ThinkingLevelMapper extends EnumMapper<ThinkingLevel> {
         return ThinkingLevel.medium;
       case r'high':
         return ThinkingLevel.high;
-      case 'extra_high':
+      case 'xhigh':
         return ThinkingLevel.extraHigh;
       default:
         return ThinkingLevel.values[0];
@@ -56,7 +56,7 @@ class ThinkingLevelMapper extends EnumMapper<ThinkingLevel> {
       case ThinkingLevel.high:
         return r'high';
       case ThinkingLevel.extraHigh:
-        return 'extra_high';
+        return 'xhigh';
     }
   }
 }
@@ -276,6 +276,7 @@ class GeminiModelOptionsMapper extends ClassMapperBase<GeminiModelOptions> {
         _$thinkingLevel,
         key: r'thinking_level',
         opt: true,
+        hook: _ThinkingLevelHook(),
       );
   static ServiceTier? _$serviceTier(GeminiModelOptions v) => v.serviceTier;
   static const Field<GeminiModelOptions, ServiceTier> _f$serviceTier = Field(

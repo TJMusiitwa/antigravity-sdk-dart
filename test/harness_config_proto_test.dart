@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:antigravity/src/agent.dart';
 import 'package:antigravity/src/connections/connection.dart';
 import 'package:antigravity/src/connections/local/local_connection.dart';
@@ -35,6 +38,101 @@ void main() {
       policies: policies,
     );
   }
+
+  test('Gemini config encodes the highest thinking level as xhigh', () {
+    final options = GeminiModelOptionsMapper.fromMap({
+      'thinking_level': 'xhigh',
+    });
+    expect(options.thinkingLevel, ThinkingLevel.extraHigh);
+    expect(
+      GeminiModelOptionsMapper.fromMap({'thinking_level': 'extra_high'})
+          .toMap(),
+      {'thinking_level': 'xhigh'},
+    );
+    final config = LocalAgentConfig(
+      model: ModelTarget(
+        name: defaultModel,
+        endpoint: GeminiAPIEndpoint(
+          baseUrl: 'https://explicit.example',
+          options: options,
+        ),
+      ),
+    );
+    final strategy = config.createStrategy(
+      toolRunner: ToolRunner(),
+      hookRunner: HookRunner(),
+    ) as LocalConnectionStrategy;
+    final models = strategy.buildHarnessConfigForTest()['models'] as List;
+    final endpoint = (models.first as Map)['gemini_api_endpoint'] as Map;
+    expect(endpoint['base_url'], 'https://explicit.example');
+    expect(endpoint['options'], {'thinking_level': 'xhigh'});
+  });
+
+  test('Gemini base URL fallback does not waive API-key validation', () async {
+    final dir = await Directory.systemTemp.createTemp('gemini_endpoint_test_');
+    addTearDown(() => dir.delete(recursive: true));
+    final probe = File.fromUri(dir.uri.resolve('probe.dart'));
+    await probe.writeAsString("""
+import 'dart:convert';
+import 'package:antigravity/antigravity.dart';
+
+void main() {
+  final endpoints = [
+    GeminiAPIEndpoint(),
+    GeminiAPIEndpoint(baseUrl: '', apiKey: ''),
+    GeminiAPIEndpoint(baseUrl: 'https://explicit.example'),
+    GeminiAPIEndpoint(apiKey: 'explicit-key'),
+  ];
+  final accepts = <bool>[];
+  for (final endpoint in endpoints) {
+    try {
+      endpoint.validateEndpoint();
+      accepts.add(true);
+    } on AntigravityValidationException {
+      accepts.add(false);
+    }
+  }
+  final strategy = LocalConnectionStrategy(
+    models: [
+      for (final endpoint in endpoints)
+        ModelTarget(name: defaultModel, endpoint: endpoint),
+    ],
+    toolRunner: ToolRunner(),
+    hookRunner: HookRunner(),
+    systemInstructions: null,
+    capabilitiesConfig: CapabilitiesConfig(),
+    workspaces: [],
+    skillsPaths: [],
+  );
+  print(jsonEncode({
+    'accepts': accepts,
+    'models': strategy.buildHarnessConfigForTest()['models'],
+  }));
+}
+""");
+    final result = await Process.run(
+      Platform.resolvedExecutable,
+      ['--packages=.dart_tool/package_config.json', probe.path],
+      environment: {
+        'GOOGLE_GEMINI_BASE_URL': 'https://ambient.example',
+        'GEMINI_API_KEY': '',
+      },
+      includeParentEnvironment: false,
+    );
+    expect(result.exitCode, 0, reason: result.stderr.toString());
+    final payload = jsonDecode(result.stdout as String) as Map;
+    expect(payload['accepts'], [false, false, true, true]);
+    final models = payload['models'] as List;
+    expect(
+      [for (final model in models) model['gemini_api_endpoint']['base_url']],
+      [
+        'https://ambient.example',
+        'https://ambient.example',
+        'https://explicit.example',
+        'https://ambient.example',
+      ],
+    );
+  });
 
   group('harness_side_tools proto naming', () {
     test('main agent uses localharness file tool names', () {

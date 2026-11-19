@@ -6,6 +6,10 @@ import 'package:antigravity/src/utils/binary_discovery.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('uses the matching harness release as the download fallback', () {
+    expect(HarnessDownloader.defaultVersion, '0.1.24');
+  });
+
   setUp(() {
     BinaryDiscovery.environmentOverride = {
       'HOME': '/nonexistent-home',

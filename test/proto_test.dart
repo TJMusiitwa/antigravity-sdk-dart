@@ -126,6 +126,43 @@ void main() {
   });
 
   group('LocalHarnessProto – encodeInputConfig', () {
+    test('uses only the current handshake fields', () {
+      final bytes = LocalHarnessProto.encodeInputConfig(
+        storageDirectory: '/tmp',
+        clientLanguage: 'dart',
+        clientVersion: 'test',
+        clientLanguageVersion: 'test',
+      );
+      expect(bytes, [
+        10,
+        4,
+        47,
+        116,
+        109,
+        112,
+        34,
+        18,
+        10,
+        4,
+        100,
+        97,
+        114,
+        116,
+        18,
+        4,
+        116,
+        101,
+        115,
+        116,
+        26,
+        4,
+        116,
+        101,
+        115,
+        116,
+      ]);
+    });
+
     test('produces non-empty bytes for valid inputs', () {
       final bytes = LocalHarnessProto.encodeInputConfig(
         storageDirectory: '/tmp/storage',

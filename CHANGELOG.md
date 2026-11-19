@@ -1,3 +1,31 @@
+## 0.19.0
+
+Syncs with Python SDK v0.1.24 and uses localharness 0.1.24 as the download fallback.
+
+### Changed
+
+* `LocalAgentConfig` defaults to `gemini-4-hydrogen`.
+  `ThinkingLevel.extraHigh` sends `xhigh`. Existing serialized Gemini options
+  containing `extra_high` still decode to the same Dart enum value.
+* Gemini endpoints use `GOOGLE_GEMINI_BASE_URL` when their explicit
+  `baseUrl` is absent or empty.
+* LiteRT automatically detects vision support and accepts image parts in
+  prompts. `visionBackend` overrides detection. Responses expose the LiteRT
+  thought channel in both streaming and synchronous completions.
+* Completed `ChatResponse` and `WorkflowResult` retain structured output,
+  usage, and stop reason across later turns. Starting a new chat waits for
+  the previous turn, including when its chunks have yet to be read.
+* `Conversation.compactionIndices` records completed root compactions.
+  Structured output comes from the current turn's root finish step.
+* Local harness and LiteRT startup failures release subprocess resources.
+  Tool paths collapse lexical `.` and `..` segments before reaching hooks
+  and consumers.
+
+### Removed
+
+* Removed the GAOS Interactions transport and `InteractionsAgentConfig`
+  to match upstream. Use `LocalAgentConfig` for local harness connections.
+
 ## 0.18.1
 
 ### Changed

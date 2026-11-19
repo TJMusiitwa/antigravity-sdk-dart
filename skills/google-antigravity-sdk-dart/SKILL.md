@@ -9,7 +9,7 @@ description: "Initialize, configure, or debug Google Antigravity (AGY) agents, c
 
 1. **Dependency Verification**: Verify `antigravity` dependency in [`pubspec.yaml`](file://pubspec.yaml).
 2. **Key & Service Tier Lookup**: Pass `GEMINI_API_KEY` via `LocalAgentConfig(apiKey: "...")` or ensure the `GEMINI_API_KEY` environment variable is set. Optionally specify `ServiceTier.priority` for prioritized inference.
-3. **Session Initialization**: Configure `LocalAgentConfig` with default generative text model `gemini-3.7-flash`, execution behavior `AgentBehavior.autonomous`, required tool lists, persona system instructions, budget configuration (`BudgetConfig`), and policy rules before launching the agent instance.
+3. **Session Initialization**: Configure `LocalAgentConfig` with default generative text model `gemini-4-hydrogen`, execution behavior `AgentBehavior.autonomous`, required tool lists, persona system instructions, budget configuration (`BudgetConfig`), and policy rules before launching the agent instance.
 
 ## 2. Standard Example References
 
@@ -40,12 +40,14 @@ Reference implementations for common setups:
 - `CustomSystemInstructions(text: ..., title: 'SecurityPolicy')` renders the
   replacement instructions under a `<SecurityPolicy>` section instead of
   `<System>`.
-- `InteractionsAgentConfig` takes the same options as `LocalAgentConfig` but
-  talks to the harness over the GAOS Interactions protocol. It rejects triggers
-  and `auto()` and dynamic (`when`/`askUser`) policies, and ignores root
-  `inlineSkills`. Subagent `model` overrides are supported.
 
 ## Tools and model limits
+
+- `ThinkingLevel.extraHigh` sends `xhigh`. Set it with
+  `GeminiModelOptions(thinkingLevel: ThinkingLevel.extraHigh)`.
+- `GeminiAPIEndpoint.baseUrl` overrides `GOOGLE_GEMINI_BASE_URL`.
+- LiteRT detects a vision backend for image-capable checkpoints. Pass
+  `LiteRTAgentConfig(visionBackend: ...)` to choose it explicitly.
 
 - Subagent delegation is `BuiltinTools.invokeSubagent` (`invoke_subagent`).
   `BuiltinTools.startSubagent` and the `start_subagent` wire name are deprecated

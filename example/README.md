@@ -10,11 +10,15 @@ For advanced examples, see the [`deep_dives/`](deep_dives/README.md) directory.
 
 Before running any of the examples, ensure you have set up your environment:
 
-1. **Install Dart**: Make sure you have the [Dart SDK](https://dart.dev/get-dart) installed (version `>=3.11.5`).
+1. **Install Dart**: Make sure you have the [Dart SDK](https://dart.dev/get-dart) installed (version `>=3.13.0`).
 2. **Set Gemini API Key**:
    ```bash
    export GEMINI_API_KEY="your_actual_gemini_api_key"
    ```
+
+The examples use `gemini-4-hydrogen` by default. To send inference to a
+custom Gemini API endpoint, set `GOOGLE_GEMINI_BASE_URL` or supply
+`GeminiAPIEndpoint(baseUrl: ...)` through a `ModelTarget`.
 
 > [!NOTE]
 > **Zero Configuration:** The SDK automatically detects your host OS and architecture on the first run, downloads the corresponding precompiled official `localharness` binary from PyPI, and extracts it using native tools (`unzip` on macOS/Linux, `tar` on Windows) under `~/.antigravity/bin/`. No manual download or CLI environment setup is required!

@@ -121,9 +121,8 @@ class AgentBeta {
       );
     }
     final progress = workflowStep.workflowProgress;
-    return WorkflowResult(
-      response.chunks,
-      conversation: conversation,
+    return WorkflowResult.fromResponse(
+      response,
       scriptPath: progress == null || progress.scriptPath.isEmpty
           ? resolvedPath
           : progress.scriptPath,

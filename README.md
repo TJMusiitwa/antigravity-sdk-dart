@@ -27,10 +27,10 @@ dart run example/getting_started/hello_world.dart
 > **Zero Configuration:** You do *not* need to manually install the Python SDK or download the orchestration harness binary. On the first run, the SDK will automatically detect your platform (OS and CPU architecture), download the official precompiled `localharness` binary from PyPI, extract it, and cache it locally in `~/.antigravity/bin/`.
 
 > [!IMPORTANT]
-> **LiteRT local Gemma execution:** Running local Gemma models via LiteRT (`LiteRTAgentConfig` / `LiteRTConnectionStrategy`) requires `python3` and the `litert-lm-api` library installed in the user's host environment (`pip install litert-lm-api`). `LiteRTAgentConfig` does not apply the lightweight preset automatically; call `lightweight()` when you want the reduced tool set.
+> **LiteRT local Gemma execution:** Running local models via `LiteRTAgentConfig` requires `python3` and the `litert_lm` module. Install `litert-lm>=0.19.1` for vision checkpoints. Pass an `Image` alongside text in `agent.chat([...])`. LiteRT detects the vision backend from the checkpoint, and `visionBackend` overrides detection. Call `lightweight()` to use the reduced tool set.
 
-> [!NOTE]
-> **GAOS Interactions transport:** `InteractionsAgentConfig` accepts the same options as `LocalAgentConfig` but speaks the GAOS Interactions protocol to `localharness`. Triggers and `auto()` and dynamic (`when`/`askUser`) policies are not yet supported over this protocol and are rejected; root `inlineSkills` are ignored. Subagent `model` overrides are supported.
+> **Upgrading to 0.19.0**
+> Replace `InteractionsAgentConfig` with `LocalAgentConfig`. This release follows Python SDK 0.1.24 and uses the localharness WebSocket protocol.
 
 ---
 
@@ -50,6 +50,14 @@ The SDK is organized into a clean, decoupled three-layer architecture:
 
 ### 1. Simple Agent Lifecycle
 The `Agent` class handles binary discovery, stateful connection setup, tool dispatch, hooks, and policy enforcement behind a simple async lifecycle.
+
+`LocalAgentConfig()` defaults to `gemini-4-hydrogen`. Pass a model string or
+`ModelTarget` to choose a different model. For a custom Gemini endpoint,
+`GeminiAPIEndpoint.baseUrl` takes precedence over the
+`GOOGLE_GEMINI_BASE_URL` environment variable. An environment-only base URL
+still requires a Gemini API key. Configure the highest reasoning
+level with `GeminiModelOptions(thinkingLevel: ThinkingLevel.extraHigh)` (`xhigh`
+on the wire).
 
 ```dart
 import 'package:antigravity/antigravity.dart';
@@ -87,6 +95,9 @@ await for (final thought in response.thoughts) {
   print("Thinking bubble delta: $thought");
 }
 ```
+
+Completed `ChatResponse` and `WorkflowResult` objects retain their own
+structured output, token usage, and stop reason across later turns.
 
 ### 3. Declarative Safety Policies
 Protect your local filesystem and commands with priority-bucketed declarative safety policies:

@@ -1,12 +1,12 @@
 ---
 name: google-antigravity-sdk-dart-sync
-description: "Synchronize upstream Python SDK commits (v0.1.23), version strings, features, and test suites to Dart."
+description: "Synchronize upstream Python SDK commits (v0.1.24), version strings, features, and test suites to Dart."
 disable-model-invocation: true
 ---
 
 # Python to Dart Synchronization Skill
 
-Standard procedure for synchronizing features, bug fixes, updates, and package versions from the reference Python SDK repository (`antigravity-sdk-python` v0.1.23) to this Dart SDK.
+Standard procedure for synchronizing features, bug fixes, updates, and package versions from the reference Python SDK repository (`antigravity-sdk-python` v0.1.24) to this Dart SDK.
 
 ## Core Sync Workflow
 
@@ -24,22 +24,22 @@ Standard procedure for synchronizing features, bug fixes, updates, and package v
 3. **Type & Paradigm Mapping**:
    - Keep `CompactionConfig.tokenThreshold` aligned with the upstream `token_threshold` wire field.
    - `lib/src/connections/local/litert_server_python.dart` embeds upstream
-     `connections/local/litert_server.py` verbatim, followed by a Dart-only
-     `__main__` launcher. When upstream changes that file, replace the body
-     and keep the launcher; `diff` the embedded text against upstream.
+     `connections/local/litert_server.py` verbatim, followed by the vision detection helper from upstream
+     `litert_connection.py` and a Dart-only `__main__` launcher. When upstream changes that file, replace the body
+     and keep the launcher and its vision detection helper; `diff` the embedded text against upstream.
    - Map Python async methods to Dart `Future<T>` methods.
    - Map Python async generators to Dart streams (`Stream<T>`, `async*`, `yield`).
    - Translate Python `pytest` suites to native Dart `test` structures.
    - Put each test in the file for the feature it covers (for example
      `types_test.dart`, `policy_test.dart`, `harness_config_proto_test.dart`,
-     `interactions_step_assembler_test.dart`), grouped by feature. Do not create
+     `agent_conversation_test.dart`), grouped by feature. Do not create
      per-release files such as `python_0122_sync_test.dart` or name groups after
      versions; add a new feature-named file only when no existing file fits.
 
 4. **Verification Pipeline**:
    ```bash
    dart pub get
-   dart run build_runner build --delete-conflicting-outputs
+   dart run build_runner build
    dart format .
    dart analyze --fatal-infos
    dart test
@@ -93,7 +93,7 @@ the sync summary; state "not applicable" only where verified.
 | l. Removals | Deleted fields/behavior and renamed files, not just additions. |
 | m. Wire tests | At least one literal upstream payload assertion for each wire feature. |
 | n. Additional boundary risks | Fix and add any new category not covered above. |
-| o. Parallel transports | Apply items a–d to every wire protocol separately: the localharness protocol (`LocalConnection`) and GAOS Interactions JSON (`InteractionsConnection`) use different keys and enum spellings for the same config. |
+| o. Parallel transports | Apply items a–d to every wire protocol separately: check the localharness protocol (`LocalConnection`) and custom HTTP endpoints independently when both implement the same feature. |
 | p. Mapper constructors | `dart_mappable` encodes fields with the mapped constructor's parameter types and cannot use private constructors; widening a mapped parameter (for example to a shorthand interface) breaks `toJson`. Round-trip every changed config. |
 
 ## Final audit
@@ -104,6 +104,6 @@ the sync summary; state "not applicable" only where verified.
   `dart analyze --fatal-infos`, the full test suite, and analysis of
   `example/getting_started/`.
 - State whether live-harness behavior was tested; mocks do not establish it.
-- Only after checks pass, redirect `git rev-parse HEAD` from the target upstream
+- Only after checks pass, redirect `git rev-parse "$target^{commit}"` from the target upstream
   checkout into the marker, then prove it with `cat-file -e` and
   `describe --tags --exact-match`. Include both outputs in the sync summary.

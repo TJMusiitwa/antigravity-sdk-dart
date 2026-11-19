@@ -156,6 +156,17 @@ void main() {
   // ChatResponse – error propagation
   // ---------------------------------------------------------------------------
   group('ChatResponse – error propagation', () {
+    test(
+      'structuredOutput rethrows the same failure on repeated reads',
+      () async {
+        final error = AntigravityExecutionException('stream broke');
+        final response = ChatResponse(Stream<dynamic>.error(error));
+        await expectLater(response.structuredOutput(), throwsA(same(error)));
+        await expectLater(response.structuredOutput(), throwsA(same(error)));
+        await response.done;
+      },
+    );
+
     test('textStream re-throws stream error', () async {
       final stream = Stream<dynamic>.error(Exception('stream broke'));
       final response = ChatResponse(stream);
